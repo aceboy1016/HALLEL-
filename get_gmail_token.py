@@ -4,7 +4,8 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+# 'modify' scope allows reading emails and marking them as read
+SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
 def main():
     creds = None
