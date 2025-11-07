@@ -95,3 +95,10 @@
 2025-11-07 09:25:31,600 -  * Debugger is active!
 2025-11-07 09:25:31,602 -  * Debugger PIN: 598-490-110
 2025-11-07 09:25:43,129 - 127.0.0.1 - - [07/Nov/2025 09:25:43] "GET / HTTP/1.1" 200 -
+2025-11-07 09:27:30,133 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-11-07 09:27:30,133 - [33mPress CTRL+C to quit[0m
+2025-11-07 09:27:30,134 -  * Restarting with stat
+2025-11-07 09:27:30,471 -  * Debugger is active!
+2025-11-07 09:27:30,473 -  * Debugger PIN: 598-490-110
+2025-11-07 09:27:56,585 - 127.0.0.1 - - [07/Nov/2025 09:27:56] "GET / HTTP/1.1" 200 -
