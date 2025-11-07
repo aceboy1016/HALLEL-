@@ -73,3 +73,11 @@
 2025-08-02 17:48:56,768 - 127.0.0.1 - - [02/Aug/2025 17:48:56] "GET /api/reservations HTTP/1.1" 200 -
 2025-08-02 17:49:06,059 - 127.0.0.1 - - [02/Aug/2025 17:49:06] "GET /admin/calendar HTTP/1.1" 200 -
 2025-08-02 17:49:06,166 - 127.0.0.1 - - [02/Aug/2025 17:49:06] "GET /api/reservations HTTP/1.1" 200 -
+2025-11-07 08:17:46,986 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-11-07 08:17:46,987 - [33mPress CTRL+C to quit[0m
+2025-11-07 08:17:46,988 -  * Restarting with stat
+2025-11-07 08:17:47,353 -  * Debugger is active!
+2025-11-07 08:17:47,355 -  * Debugger PIN: 104-280-244
+2025-11-07 08:18:52,023 - 127.0.0.1 - - [07/Nov/2025 08:18:52] "GET / HTTP/1.1" 200 -
+2025-11-07 08:19:01,730 - 127.0.0.1 - - [07/Nov/2025 08:19:01] "GET /login HTTP/1.1" 200 -
