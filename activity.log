@@ -119,3 +119,12 @@
 2025-11-07 09:32:46,038 - 127.0.0.1 - - [07/Nov/2025 09:32:46] "GET / HTTP/1.1" 200 -
 2025-11-07 09:36:51,564 - 127.0.0.1 - - [07/Nov/2025 09:36:51] "GET / HTTP/1.1" 200 -
 2025-11-07 09:37:08,117 - 127.0.0.1 - - [07/Nov/2025 09:37:08] "GET / HTTP/1.1" 200 -
+2025-11-07 10:01:56,118 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://21.0.0.146:5001
+2025-11-07 10:01:56,118 - [33mPress CTRL+C to quit[0m
+2025-11-07 10:01:56,119 -  * Restarting with stat
+2025-11-07 10:01:56,429 -  * Debugger is active!
+2025-11-07 10:01:56,430 -  * Debugger PIN: 158-805-320
+2025-11-07 10:04:12,929 - 127.0.0.1 - - [07/Nov/2025 10:04:12] "GET / HTTP/1.1" 200 -
