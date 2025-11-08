@@ -25,15 +25,8 @@ def set_initial_password():
             f.write(hashed_password)
 
 # --- In-memory database ---
-reservations_db = {
-    '2025-08-01': [
-        { 'type': 'gmail', 'start': '14:00', 'end': '15:00' },
-        { 'type': 'charter', 'start': '11:00', 'end': '13:00' },
-    ],
-    '2025-08-02': [
-        { 'type': 'gmail', 'start': '10:00', 'end': '11:30' },
-    ]
-}
+# 空の状態で開始（GASから渋谷店のデータのみ受信）
+reservations_db = {}
 
 # --- Frontend Routes (Public) ---
 @app.route('/')
