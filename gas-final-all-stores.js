@@ -463,7 +463,7 @@ function processGmailMessage(message) {
 }
 
 /**
- * ラベル適用
+ * ラベル適用（メッセージ単位 - Advanced Gmail Service使用）
  */
 function applyLabels(message, isCancellation, store = 'shibuya') {
   try {
@@ -486,15 +486,30 @@ function applyLabels(message, isCancellation, store = 'shibuya') {
       labelsToApply.push(CONFIG.LABELS.BOOKING);
     }
 
+    // メッセージIDを取得
+    const messageId = message.getId();
+
+    // ラベルIDを取得
+    const labelIds = [];
     for (const labelName of labelsToApply) {
       const label = GmailApp.getUserLabelByName(labelName);
       if (label) {
-        const thread = message.getThread();
-        thread.addLabel(label);
+        labelIds.push(label.getId());
       }
     }
 
-    console.log(`🏷️ ラベル適用: ${labelsToApply.join(', ')}`);
+    // Advanced Gmail Serviceでメッセージ単位にラベルを適用
+    if (labelIds.length > 0) {
+      Gmail.Users.Messages.modify(
+        {
+          addLabelIds: labelIds
+        },
+        'me',
+        messageId
+      );
+    }
+
+    console.log(`🏷️ ラベル適用 (メッセージ単位): ${labelsToApply.join(', ')}`);
 
   } catch (error) {
     console.error(`❌ ラベル適用エラー: ${error.message}`);
