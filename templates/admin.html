@@ -3,141 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理者ダッシュボード</title>
+    <title>HALLEL 管理ダッシュボード</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --dark-bg: #1a1a1a;
-            --dark-card-bg: #222222;
-            --light-text: #e0e0e0;
-            --medium-text: #b0b0b0;
-            --border-color: #333333;
-            --accent-color: #ffffff; /* White for HALLEL logo style */
-            --font-family: 'Oswald', sans-serif;
+            /* Atlassian-inspired Color Palette */
+            --primary-blue: #0052CC;
+            --primary-blue-hover: #0065FF;
+            --neutral-900: #091E42;
+            --neutral-800: #172B4D;
+            --neutral-700: #253858;
+            --neutral-600: #344563;
+            --neutral-500: #42526E;
+            --neutral-400: #5E6C84;
+            --neutral-300: #7A869A;
+            --neutral-200: #97A0AF;
+            --neutral-100: #DFE1E6;
+            --neutral-50: #F4F5F7;
+
+            /* Status Colors */
+            --success: #00875A;
+            --success-light: #36B37E;
+            --warning: #FF8B00;
+            --warning-light: #FFAB00;
+            --danger: #DE350B;
+            --danger-light: #FF5630;
+
+            /* Surface Colors */
+            --surface-bg: #F4F5F7;
+            --card-bg: #FFFFFF;
+            --header-bg: #253858;
+
+            /* Text Colors */
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --text-light: #FFFFFF;
+
+            /* Font Family */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+            /* Shadows (Atlassian Elevation) */
+            --shadow-low: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-medium: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-high: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+
+            /* Border Radius */
+            --radius-sm: 3px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: var(--dark-bg);
-            color: var(--light-text);
+            background: linear-gradient(135deg, var(--surface-bg) 0%, #E6E9EF 100%);
+            color: var(--text-primary);
             font-family: var(--font-family);
             line-height: 1.6;
+            min-height: 100vh;
         }
-        .card {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border: none;
-            border-radius: 0.75rem;
-            margin-bottom: 2rem;
-            background-color: var(--dark-card-bg);
-        }
-        .card-header {
-            background-color: var(--dark-bg);
-            color: var(--accent-color);
-            font-weight: 600;
-            border-top-left-radius: 0.75rem;
-            border-top-right-radius: 0.75rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .log-container {
-            height: 300px;
-            background-color: #111111; /* Even darker background for logs */
-            color: #e0e0e0;
-            font-family: 'Oswald', monospace;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            overflow-y: scroll;
-            white-space: pre-wrap; /* Preserve whitespace and wrap text */
-            word-break: break-all; /* Break long words */
-            border: 1px solid var(--border-color);
-        }
+
+        /* Navbar Styling */
         .navbar {
-            background-color: var(--dark-bg) !important;
-            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--header-bg) 0%, var(--neutral-700) 100%);
+            box-shadow: var(--shadow-medium);
+            padding: 1rem 0;
         }
+
         .navbar-brand {
-            font-weight: 600;
-            color: var(--accent-color) !important;
-            letter-spacing: 0.05em;
+            font-weight: 700;
+            color: var(--text-light) !important;
+            letter-spacing: -0.02em;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
+
+        .navbar-brand::before {
+            content: '🔐';
+            font-size: 1.5rem;
+        }
+
         .navbar-nav .nav-link {
-            color: var(--medium-text) !important;
-            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.8) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 50px;
+            transition: all 0.2s ease;
+            margin: 0 0.25rem;
         }
+
         .navbar-nav .nav-link:hover {
-            color: var(--accent-color) !important;
+            color: var(--text-light) !important;
+            background-color: rgba(255, 255, 255, 0.1);
             transform: translateY(-2px);
         }
-        .btn-primary {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-            color: var(--dark-bg);
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background-color: var(--medium-text);
-            border-color: var(--medium-text);
-            color: var(--dark-bg);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        .btn-warning {
-            background-color: #ffc107;
-            border-color: #ffc107;
-            color: var(--dark-bg);
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-warning:hover {
-            background-color: #e0a800;
-            border-color: #e0a800;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
+
         .btn-outline-light {
-            color: var(--accent-color);
-            border-color: var(--accent-color);
+            color: var(--text-light);
+            border-color: rgba(255, 255, 255, 0.3);
             font-weight: 600;
-            transition: all 0.3s ease;
+            border-radius: 50px;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.2s ease;
         }
+
         .btn-outline-light:hover {
-            background-color: var(--accent-color);
-            color: var(--dark-bg);
+            background-color: var(--text-light);
+            color: var(--header-bg);
+            border-color: var(--text-light);
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: var(--shadow-low);
         }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--card-bg);
+            border: none;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: 0 12px 24px -6px rgba(9, 30, 66, 0.3), 0 0 1px rgba(9, 30, 66, 0.31);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 1.25rem 1.5rem;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-header::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background-color: var(--text-light);
+            border-radius: 2px;
+        }
+
+        .card-body {
+            padding: 2rem 1.5rem;
+        }
+
+        /* Form Styling */
         .form-label {
-            color: var(--medium-text);
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
         }
-        .form-control, textarea.form-control {
-            background-color: var(--dark-bg);
-            border: 1px solid var(--border-color);
-            color: var(--light-text);
+
+        .form-control {
+            background-color: var(--neutral-50);
+            border: 2px solid var(--neutral-100);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .form-control:hover {
+            border-color: var(--primary-blue);
+        }
+
+        .form-control:focus {
+            background-color: var(--card-bg);
+            border-color: var(--primary-blue);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+            outline: none;
+        }
+
+        .form-text {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Buttons */
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, var(--warning-light) 100%);
+            border: none;
+            color: var(--neutral-900);
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-low);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            color: var(--neutral-900);
+        }
+
+        .btn-warning:active {
+            transform: translateY(0);
+        }
+
+        /* Log Container */
+        .log-container {
+            height: 400px;
+            background-color: var(--neutral-900);
+            color: #36B37E;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 0.85rem;
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+            line-height: 1.6;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .log-container div {
+            padding: 0.25rem 0;
+            border-left: 3px solid transparent;
+            padding-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .log-container div:hover {
+            background-color: rgba(54, 179, 126, 0.1);
+            border-left-color: #36B37E;
+        }
+
+        /* Alerts */
+        .alert {
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            animation: slideDown 0.3s ease;
+            box-shadow: var(--shadow-low);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background-color: #E3FCEF;
+            color: #006644;
+            border-left: 4px solid var(--success);
+        }
+
+        .alert-danger {
+            background-color: #FFEBE6;
+            color: #BF2600;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-info {
+            background-color: #DEEBFF;
+            color: #0052CC;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        .btn-close {
+            opacity: 0.6;
+        }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+        /* Responsive Grid */
+        .row {
+            margin: 0 -15px;
+        }
+
+        .col-lg-6 {
+            padding: 0 15px;
+        }
+
+        /* Animation for cards */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        /* Quick Stats (optional enhancement) */
+        .quick-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-medium);
             transition: all 0.3s ease;
         }
-        .form-control:focus, textarea.form-control:focus {
-            background-color: var(--dark-bg);
-            border-color: var(--accent-color);
-            color: var(--light-text);
-            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-high);
         }
-        .alert {
-            color: var(--dark-bg);
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+
+            .card-body {
+                padding: 1.5rem 1rem;
+            }
+
+            .log-container {
+                height: 300px;
+                font-size: 0.8rem;
+            }
+
+            .quick-stats {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/admin">管理者ダッシュボード</a>
-            <div class="collapse navbar-collapse">
+            <a class="navbar-brand" href="/admin">管理ダッシュボード</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" href="/admin/calendar" target="_blank">編集カレンダー</a>
+                        <a class="nav-link" href="/admin/calendar" target="_blank">📅 編集カレンダー</a>
                     </li>
-                     <li class="nav-item">
-                        <a class="nav-link" href="/" target="_blank">閲覧カレンダー</a>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" target="_blank">👁️ 閲覧カレンダー</a>
                     </li>
                 </ul>
                 <a href="/logout" class="btn btn-outline-light">ログアウト</a>
@@ -145,7 +425,7 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mt-5">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -158,17 +438,31 @@
         {% endwith %}
 
         <div class="row">
+            <!-- Left Column: Password Change -->
             <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">パスワード変更</div>
+                    <div class="card-header">
+                        🔑 パスワード変更
+                    </div>
                     <div class="card-body">
                         <form method="POST" action="/admin/change_password">
                             <div class="mb-3">
                                 <label for="new_password" class="form-label">新しいパスワード</label>
-                                <input type="password" class="form-control" id="new_password" name="new_password" required minlength="8">
-                                <div class="form-text">8文字以上で入力してください。</div>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="new_password"
+                                    name="new_password"
+                                    required
+                                    minlength="8"
+                                    placeholder="8文字以上で入力してください"
+                                    autocomplete="new-password"
+                                >
+                                <div class="form-text">セキュリティのため、8文字以上のパスワードを設定してください。</div>
                             </div>
-                            <button type="submit" class="btn btn-warning">パスワードを変更</button>
+                            <button type="submit" class="btn btn-warning w-100">
+                                🔒 パスワードを変更
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -177,7 +471,9 @@
             <!-- Right Column: Activity Log -->
             <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">アクティビティログ</div>
+                    <div class="card-header">
+                        📊 アクティビティログ
+                    </div>
                     <div class="card-body">
                         <div class="log-container">
                             {% if logs %}
@@ -185,7 +481,9 @@
                                     <div>{{ log.strip() }}</div>
                                 {% endfor %}
                             {% else %}
-                                <div>ログはまだありません。</div>
+                                <div style="color: rgba(255, 255, 255, 0.5); text-align: center; padding: 2rem;">
+                                    ログはまだありません
+                                </div>
                             {% endif %}
                         </div>
                     </div>
@@ -195,5 +493,14 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-scroll log container to bottom on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const logContainer = document.querySelector('.log-container');
+            if (logContainer) {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        });
+    </script>
 </body>
 </html>

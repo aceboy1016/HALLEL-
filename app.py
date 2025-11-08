@@ -25,15 +25,8 @@ def set_initial_password():
             f.write(hashed_password)
 
 # --- In-memory database ---
-reservations_db = {
-    '2025-08-01': [
-        { 'type': 'gmail', 'start': '14:00', 'end': '15:00' },
-        { 'type': 'charter', 'start': '11:00', 'end': '13:00' },
-    ],
-    '2025-08-02': [
-        { 'type': 'gmail', 'start': '10:00', 'end': '11:30' },
-    ]
-}
+# 空の状態で開始（GASから渋谷店のデータのみ受信）
+reservations_db = {}
 
 # --- Frontend Routes (Public) ---
 @app.route('/')
@@ -138,47 +131,117 @@ def delete_reservation_api():
 
 @app.route('/api/process_email', methods=['POST'])
 def process_email():
-    # This endpoint now expects structured JSON from GAS
-    data = request.json
-    action_type = data.get('action_type') # 'booking' or 'cancellation'
-    date = data.get('date')
-    start_time = data.get('start_time')
-    end_time = data.get('end_time') # Only for booking
+    """
+    Gmail連携用エンドポイント
+    GASまたはPythonスクリプトから呼び出される
+    """
+    try:
+        # リクエストデータの取得
+        data = request.json
+        if not data:
+            log_activity('process_email: No JSON data received')
+            return jsonify({'error': 'No JSON data provided'}), 400
 
-    if not all([action_type, date, start_time]):
-        return jsonify({'error': 'Missing data for email processing'}), 400
+        # 必須フィールドの確認
+        action_type = data.get('action_type')  # 'booking' or 'cancellation'
+        date = data.get('date')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')  # Only for booking
 
-    if action_type == 'booking':
-        if not end_time:
-            return jsonify({'error': 'End time is required for booking'}), 400
-        if date not in reservations_db:
-            reservations_db[date] = []
-        new_booking = {'type': 'gmail', 'start': start_time, 'end': end_time}
-        reservations_db[date].append(new_booking)
-        log_activity(f"GAS-processed booking added: {new_booking}")
-        return jsonify({'message': f"予約を追加 (GAS): {date} {start_time} - {end_time}"}), 200
+        log_activity(f"process_email: Received {action_type} for {date} {start_time}")
 
-    elif action_type == 'cancellation':
-        if date in reservations_db:
-            initial_count = len(reservations_db[date])
-            # Find and remove the first matching gmail type reservation
+        if not all([action_type, date, start_time]):
+            log_activity('process_email: Missing required fields')
+            return jsonify({
+                'error': 'Missing required fields',
+                'required': ['action_type', 'date', 'start_time']
+            }), 400
+
+        # 日付フォーマットの検証
+        try:
+            datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            log_activity(f'process_email: Invalid date format: {date}')
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+        # 時刻フォーマットの検証
+        time_pattern = re.compile(r'^\d{1,2}:\d{2}$')
+        if not time_pattern.match(start_time):
+            log_activity(f'process_email: Invalid start_time format: {start_time}')
+            return jsonify({'error': 'Invalid start_time format. Use HH:MM'}), 400
+
+        # 予約処理
+        if action_type == 'booking':
+            if not end_time:
+                log_activity('process_email: Missing end_time for booking')
+                return jsonify({'error': 'End time is required for booking'}), 400
+
+            if not time_pattern.match(end_time):
+                log_activity(f'process_email: Invalid end_time format: {end_time}')
+                return jsonify({'error': 'Invalid end_time format. Use HH:MM'}), 400
+
+            # 予約を追加
+            if date not in reservations_db:
+                reservations_db[date] = []
+
+            new_booking = {'type': 'gmail', 'start': start_time, 'end': end_time}
+            reservations_db[date].append(new_booking)
+            log_activity(f"Gmail booking added: {date} {start_time}-{end_time}")
+
+            return jsonify({
+                'status': 'success',
+                'message': f"予約を追加しました: {date} {start_time} - {end_time}",
+                'booking': new_booking
+            }), 200
+
+        # キャンセル処理
+        elif action_type == 'cancellation':
+            if date not in reservations_db:
+                log_activity(f'process_email: No reservations found for date: {date}')
+                return jsonify({
+                    'error': f'{date}の予約が見つかりませんでした。'
+                }), 404
+
+            # 該当予約を検索して削除
             found_and_removed = False
+            removed_booking = None
+
             for i, r in enumerate(reservations_db[date]):
                 if r['start'] == start_time and r['type'] == 'gmail':
-                    reservations_db[date].pop(i)
+                    removed_booking = reservations_db[date].pop(i)
                     found_and_removed = True
                     break
-            
-            if found_and_removed:
-                log_activity(f"GAS-processed cancellation: {date} {start_time}")
-                return jsonify({'message': f"予約をキャンセル (GAS): {date} {start_time}"}), 200
-            else:
-                return jsonify({'error': '該当の予約が見つかりませんでした。'}), 404
 
-    return jsonify({'error': '不明なアクションタイプです。'}), 400
+            if found_and_removed:
+                log_activity(f"Gmail cancellation: {date} {start_time}")
+                return jsonify({
+                    'status': 'success',
+                    'message': f"予約をキャンセルしました: {date} {start_time}",
+                    'cancelled': removed_booking
+                }), 200
+            else:
+                log_activity(f'process_email: Matching reservation not found: {date} {start_time}')
+                return jsonify({
+                    'error': f'該当の予約が見つかりませんでした: {date} {start_time}'
+                }), 404
+
+        # 未知のアクションタイプ
+        else:
+            log_activity(f'process_email: Unknown action_type: {action_type}')
+            return jsonify({
+                'error': f'不明なアクションタイプです: {action_type}',
+                'valid_types': ['booking', 'cancellation']
+            }), 400
+
+    except Exception as e:
+        log_activity(f'process_email: Exception occurred: {str(e)}')
+        return jsonify({
+            'error': 'Internal server error',
+            'details': str(e)
+        }), 500
 
 if __name__ == '__main__':
     with app.app_context():
         set_initial_password()
-    app.run(debug=True, port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5001)
 
