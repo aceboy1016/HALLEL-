@@ -197,9 +197,15 @@ function processBatchEmails(startIndex = 0) {
       }
     }
 
-    // Vercelにデータを送信
+    // Vercelにデータを送信（渋谷店のみ）
     if (reservations.length > 0) {
-      sendToVercel(reservations);
+      const shibuyaReservations = reservations.filter(r => r.store === 'shibuya');
+      if (shibuyaReservations.length > 0) {
+        console.log(`📤 Vercel送信: ${shibuyaReservations.length}件（渋谷店のみ）/ 全${reservations.length}件処理`);
+        sendToVercel(shibuyaReservations);
+      } else {
+        console.log(`ℹ️ 渋谷店の予約なし（他店舗: ${reservations.length}件）`);
+      }
     }
 
     // 次のバッチがある場合はスケジュール
@@ -258,10 +264,16 @@ function scheduledSync() {
     }
 
     if (reservations.length > 0) {
-      sendToVercel(reservations);
+      const shibuyaReservations = reservations.filter(r => r.store === 'shibuya');
+      if (shibuyaReservations.length > 0) {
+        console.log(`📤 Vercel送信: ${shibuyaReservations.length}件（渋谷店のみ）/ 全${reservations.length}件処理`);
+        sendToVercel(shibuyaReservations);
+      } else {
+        console.log(`ℹ️ 渋谷店の予約なし（他店舗: ${reservations.length}件）`);
+      }
     }
 
-    console.log(`✅ 定期同期完了: ${reservations.length}件`);
+    console.log(`✅ 定期同期完了: 渋谷店${reservations.filter(r => r.store === 'shibuya').length}件 / 全${reservations.length}件`);
 
   } catch (error) {
     console.error(`❌ 定期同期エラー: ${error.message}`);
