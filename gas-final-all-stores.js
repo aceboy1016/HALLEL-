@@ -351,7 +351,8 @@ function processMessage(message) {
     let detectedStore = null;
 
     // まず「店舗：」フィールドから正確に検出
-    const storeFieldMatch = body.match(/店舗[：:]\s*HALLEL\s*([^\s\n]+)/);
+    // "HALLEL 渋谷店", "HALLEL 代々木上原店", "HALLEL / OLBET 中目黒店" のパターンに対応
+    const storeFieldMatch = body.match(/店舗[：:]\s*HALLEL\s*(?:\/\s*OLBET\s*)?(.+?)店/);
 
     if (storeFieldMatch) {
       const storeName = storeFieldMatch[1];
