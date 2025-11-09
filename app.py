@@ -170,11 +170,35 @@ def add_reservation():
     finally:
         return_db_conn(conn)
 
+@app.route('/api/debug/env')
+def debug_env():
+    """デバッグ用：環境変数とDB接続確認"""
+    try:
+        postgres_url_exists = bool(os.environ.get('POSTGRES_URL'))
+        conn = get_db_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM reservations")
+        count = cur.fetchone()[0]
+        return_db_conn(conn)
+
+        return jsonify({
+            'postgres_url_exists': postgres_url_exists,
+            'db_connection_successful': True,
+            'reservations_count': count,
+            'code_version': 'v2_with_debug'
+        })
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'postgres_url_exists': bool(os.environ.get('POSTGRES_URL'))
+        }), 500
+
 @app.route('/api/gas/webhook', methods=['POST'])
 def gas_webhook():
     """GASからの予約データを受信"""
     try:
         print('[DEBUG] gas_webhook called')
+        print(f'[DEBUG] POSTGRES_URL exists: {bool(os.environ.get("POSTGRES_URL"))}')
         data = request.json
         if not data:
             return jsonify({'error': 'No JSON data provided'}), 400
@@ -229,7 +253,9 @@ def gas_webhook():
                 'debug': {
                     'received': len(reservations),
                     'db_count_after_insert': db_count,
-                    'commit_successful': True
+                    'commit_successful': True,
+                    'postgres_url_exists': bool(os.environ.get('POSTGRES_URL')),
+                    'connection_type': str(type(conn).__name__)
                 }
             }), 200
 
