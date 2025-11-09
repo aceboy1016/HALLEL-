@@ -111,9 +111,16 @@ def change_password():
 @app.route('/api/reservations')
 def get_reservations():
     """予約データを取得（日付でグループ化）"""
+    debug_mode = request.args.get('debug') == '1'
+
     conn = get_db_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # デバッグモード：総件数を取得
+            if debug_mode:
+                cur.execute("SELECT COUNT(*) as total FROM reservations")
+                total_count = cur.fetchone()['total']
+
             cur.execute("""
                 SELECT date, start_time, end_time, customer_name, type, is_cancellation
                 FROM reservations
@@ -134,6 +141,18 @@ def get_reservations():
                 'start': row['start_time'].strftime('%H:%M'),
                 'end': row['end_time'].strftime('%H:%M'),
                 'customer_name': row['customer_name']
+            })
+
+        # デバッグ情報を追加
+        if debug_mode:
+            return jsonify({
+                'debug': {
+                    'postgres_url_exists': bool(os.environ.get('POSTGRES_URL')),
+                    'total_reservations': total_count,
+                    'shibuya_reservations': len(rows),
+                    'code_version': 'v4_debug_in_reservations'
+                },
+                'reservations': reservations_db
             })
 
         return jsonify(reservations_db)
