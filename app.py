@@ -2,16 +2,34 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import os
-from datetime import datetime
+from datetime import datetime, date
 import logging
+import psycopg2
+from psycopg2.pool import SimpleConnectionPool
+from psycopg2.extras import RealDictCursor
 
 # --- App Initialization ---
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 PASSWORD_FILE = 'password.txt'
 
+# --- Database Connection Pool ---
+DATABASE_URL = os.environ.get('POSTGRES_URL')
+if not DATABASE_URL:
+    raise Exception("POSTGRES_URL environment variable not set")
+
+db_pool = SimpleConnectionPool(1, 20, DATABASE_URL)
+
+def get_db_conn():
+    """Get database connection from pool"""
+    return db_pool.getconn()
+
+def return_db_conn(conn):
+    """Return database connection to pool"""
+    db_pool.putconn(conn)
+
 # --- Logging Setup ---
-logging.basicConfig(filename='activity.log', level=logging.INFO, 
+logging.basicConfig(filename='activity.log', level=logging.INFO,
                     format='%(asctime)s - %(message)s')
 
 def log_activity(action):
@@ -23,10 +41,6 @@ def set_initial_password():
         hashed_password = generate_password_hash('hallel0000admin', method='pbkdf2:sha256')
         with open(PASSWORD_FILE, 'w') as f:
             f.write(hashed_password)
-
-# --- In-memory database ---
-# 空の状態で開始（GASから渋谷店のデータのみ受信）
-reservations_db = {}
 
 # --- Frontend Routes (Public) ---
 @app.route('/')
@@ -40,7 +54,7 @@ def login():
         password = request.form.get('password')
         with open(PASSWORD_FILE, 'r') as f:
             hashed_password = f.read().strip()
-        
+
         if check_password_hash(hashed_password, password):
             session['logged_in'] = True
             log_activity('Admin login successful')
@@ -66,20 +80,14 @@ def is_logged_in():
 def admin_page():
     if not is_logged_in():
         return redirect(url_for('login'))
-    
+
     try:
         with open('activity.log', 'r') as f:
             logs = f.readlines()
     except FileNotFoundError:
         logs = []
-        
-    return render_template('admin.html', logs=reversed(logs))
 
-@app.route('/admin/calendar')
-def admin_calendar_page():
-    if not is_logged_in():
-        return redirect(url_for('login'))
-    return render_template('admin-calendar.html')
+    return render_template('admin.html', logs=reversed(logs))
 
 @app.route('/admin/change_password', methods=['POST'])
 def change_password():
@@ -94,154 +102,132 @@ def change_password():
     hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
     with open(PASSWORD_FILE, 'w') as f:
         f.write(hashed_password)
-    
+
     log_activity('Password changed')
     flash('パスワードが正常に変更されました。', 'success')
     return redirect(url_for('admin_page'))
 
-# --- API Endpoints (Mostly for admin) ---
+# --- API Endpoints ---
 @app.route('/api/reservations')
 def get_reservations():
-    return jsonify(reservations_db)
+    """予約データを取得（日付でグループ化）"""
+    conn = get_db_conn()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT date, start_time, end_time, customer_name, type, is_cancellation
+                FROM reservations
+                WHERE store = 'shibuya'
+                ORDER BY date, start_time
+            """)
+            rows = cur.fetchall()
+
+        # 日付でグループ化
+        reservations_db = {}
+        for row in rows:
+            date_str = row['date'].strftime('%Y-%m-%d')
+            if date_str not in reservations_db:
+                reservations_db[date_str] = []
+
+            reservations_db[date_str].append({
+                'type': row['type'],
+                'start': row['start_time'].strftime('%H:%M'),
+                'end': row['end_time'].strftime('%H:%M'),
+                'customer_name': row['customer_name']
+            })
+
+        return jsonify(reservations_db)
+    finally:
+        return_db_conn(conn)
 
 @app.route('/api/reservations', methods=['POST'])
 def add_reservation():
+    """手動で予約を追加"""
     if not is_logged_in():
         return jsonify({'error': 'Unauthorized'}), 401
-    data = request.json
-    date = data.get('date')
-    if date not in reservations_db:
-        reservations_db[date] = []
-    reservations_db[date].append(data)
-    log_activity(f"Manual reservation added: {data}")
-    return jsonify({'message': 'Reservation added'})
 
-@app.route('/api/reservations/delete', methods=['POST'])
-def delete_reservation_api():
-    if not is_logged_in():
-        return jsonify({'error': 'Unauthorized'}), 401
     data = request.json
-    date = data.get('date')
-    index = data.get('index')
-    if date in reservations_db and 0 <= index < len(reservations_db[date]):
-        removed = reservations_db[date].pop(index)
-        log_activity(f"Reservation deleted: {removed}")
-        return jsonify({'message': 'Reservation deleted'})
-    return jsonify({'error': 'Invalid data'}), 400
-
-@app.route('/api/process_email', methods=['POST'])
-def process_email():
-    """
-    Gmail連携用エンドポイント
-    GASまたはPythonスクリプトから呼び出される
-    """
+    conn = get_db_conn()
     try:
-        # リクエストデータの取得
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO reservations (date, start_time, end_time, customer_name, store, type)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                data.get('date'),
+                data.get('start'),
+                data.get('end'),
+                data.get('customer_name', 'N/A'),
+                'shibuya',
+                data.get('type', 'manual')
+            ))
+        conn.commit()
+        log_activity(f"Manual reservation added: {data}")
+        return jsonify({'message': 'Reservation added'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        return_db_conn(conn)
+
+@app.route('/api/gas/webhook', methods=['POST'])
+def gas_webhook():
+    """GASからの予約データを受信"""
+    try:
         data = request.json
         if not data:
-            log_activity('process_email: No JSON data received')
             return jsonify({'error': 'No JSON data provided'}), 400
 
-        # 必須フィールドの確認
-        action_type = data.get('action_type')  # 'booking' or 'cancellation'
-        date = data.get('date')
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')  # Only for booking
+        reservations = data.get('reservations', [])
+        if not reservations:
+            return jsonify({'error': 'No reservations provided'}), 400
 
-        log_activity(f"process_email: Received {action_type} for {date} {start_time}")
-
-        if not all([action_type, date, start_time]):
-            log_activity('process_email: Missing required fields')
-            return jsonify({
-                'error': 'Missing required fields',
-                'required': ['action_type', 'date', 'start_time']
-            }), 400
-
-        # 日付フォーマットの検証
+        conn = get_db_conn()
         try:
-            datetime.strptime(date, '%Y-%m-%d')
-        except ValueError:
-            log_activity(f'process_email: Invalid date format: {date}')
-            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+            with conn.cursor() as cur:
+                for res in reservations:
+                    # キャンセルの場合は削除
+                    if res.get('is_cancellation'):
+                        cur.execute("""
+                            DELETE FROM reservations
+                            WHERE date = %s AND start_time = %s AND store = %s AND type = 'gmail'
+                        """, (res['date'], res['start'], res.get('store', 'shibuya')))
+                        log_activity(f"Gmail cancellation: {res['date']} {res['start']}")
+                    else:
+                        # 予約を追加（重複チェック）
+                        cur.execute("""
+                            INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
+                            VALUES (%s, %s, %s, %s, %s, 'gmail', %s, %s)
+                            ON CONFLICT DO NOTHING
+                        """, (
+                            res['date'],
+                            res['start'],
+                            res['end'],
+                            res.get('customer_name', 'N/A'),
+                            res.get('store', 'shibuya'),
+                            res.get('source', 'gas_sync'),
+                            res.get('email_id')
+                        ))
+                        log_activity(f"Gmail booking added: {res['date']} {res['start']}-{res['end']}")
 
-        # 時刻フォーマットの検証
-        time_pattern = re.compile(r'^\d{1,2}:\d{2}$')
-        if not time_pattern.match(start_time):
-            log_activity(f'process_email: Invalid start_time format: {start_time}')
-            return jsonify({'error': 'Invalid start_time format. Use HH:MM'}), 400
-
-        # 予約処理
-        if action_type == 'booking':
-            if not end_time:
-                log_activity('process_email: Missing end_time for booking')
-                return jsonify({'error': 'End time is required for booking'}), 400
-
-            if not time_pattern.match(end_time):
-                log_activity(f'process_email: Invalid end_time format: {end_time}')
-                return jsonify({'error': 'Invalid end_time format. Use HH:MM'}), 400
-
-            # 予約を追加
-            if date not in reservations_db:
-                reservations_db[date] = []
-
-            new_booking = {'type': 'gmail', 'start': start_time, 'end': end_time}
-            reservations_db[date].append(new_booking)
-            log_activity(f"Gmail booking added: {date} {start_time}-{end_time}")
-
+            conn.commit()
             return jsonify({
                 'status': 'success',
-                'message': f"予約を追加しました: {date} {start_time} - {end_time}",
-                'booking': new_booking
+                'message': f'{len(reservations)}件の予約を処理しました'
             }), 200
 
-        # キャンセル処理
-        elif action_type == 'cancellation':
-            if date not in reservations_db:
-                log_activity(f'process_email: No reservations found for date: {date}')
-                return jsonify({
-                    'error': f'{date}の予約が見つかりませんでした。'
-                }), 404
-
-            # 該当予約を検索して削除
-            found_and_removed = False
-            removed_booking = None
-
-            for i, r in enumerate(reservations_db[date]):
-                if r['start'] == start_time and r['type'] == 'gmail':
-                    removed_booking = reservations_db[date].pop(i)
-                    found_and_removed = True
-                    break
-
-            if found_and_removed:
-                log_activity(f"Gmail cancellation: {date} {start_time}")
-                return jsonify({
-                    'status': 'success',
-                    'message': f"予約をキャンセルしました: {date} {start_time}",
-                    'cancelled': removed_booking
-                }), 200
-            else:
-                log_activity(f'process_email: Matching reservation not found: {date} {start_time}')
-                return jsonify({
-                    'error': f'該当の予約が見つかりませんでした: {date} {start_time}'
-                }), 404
-
-        # 未知のアクションタイプ
-        else:
-            log_activity(f'process_email: Unknown action_type: {action_type}')
-            return jsonify({
-                'error': f'不明なアクションタイプです: {action_type}',
-                'valid_types': ['booking', 'cancellation']
-            }), 400
+        except Exception as e:
+            conn.rollback()
+            log_activity(f'gas_webhook error: {str(e)}')
+            return jsonify({'error': str(e)}), 500
+        finally:
+            return_db_conn(conn)
 
     except Exception as e:
-        log_activity(f'process_email: Exception occurred: {str(e)}')
-        return jsonify({
-            'error': 'Internal server error',
-            'details': str(e)
-        }), 500
+        log_activity(f'gas_webhook exception: {str(e)}')
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 if __name__ == '__main__':
     with app.app_context():
         set_initial_password()
     app.run(debug=True, host='0.0.0.0', port=5001)
-
