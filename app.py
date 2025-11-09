@@ -174,24 +174,28 @@ def add_reservation():
 def gas_webhook():
     """GASからの予約データを受信"""
     try:
+        print('[DEBUG] gas_webhook called')
         data = request.json
         if not data:
             return jsonify({'error': 'No JSON data provided'}), 400
 
         reservations = data.get('reservations', [])
+        print(f'[DEBUG] Received {len(reservations)} reservations')
         if not reservations:
             return jsonify({'error': 'No reservations provided'}), 400
 
         conn = get_db_conn()
+        print(f'[DEBUG] Got DB connection: {conn}')
         try:
             with conn.cursor() as cur:
-                for res in reservations:
+                for i, res in enumerate(reservations):
                     # キャンセルの場合は削除
                     if res.get('is_cancellation'):
                         cur.execute("""
                             DELETE FROM reservations
                             WHERE date = %s AND start_time = %s AND store = %s AND type = 'gmail'
                         """, (res['date'], res['start'], res.get('store', 'shibuya')))
+                        print(f'[DEBUG] Deleted cancellation: {res["date"]} {res["start"]}')
                         log_activity(f"Gmail cancellation: {res['date']} {res['start']}")
                     else:
                         # 予約を追加
@@ -207,20 +211,25 @@ def gas_webhook():
                             res.get('source', 'gas_sync'),
                             res.get('email_id')
                         ))
+                        print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
                         log_activity(f"Gmail booking added: {res['date']} {res['start']}-{res['end']}")
 
+            print(f'[DEBUG] About to commit {len(reservations)} records')
             conn.commit()
+            print('[DEBUG] Commit successful!')
             return jsonify({
                 'status': 'success',
                 'message': f'{len(reservations)}件の予約を処理しました'
             }), 200
 
         except Exception as e:
+            print(f'[DEBUG] Error occurred: {str(e)}')
             conn.rollback()
             log_activity(f'gas_webhook error: {str(e)}')
             return jsonify({'error': str(e)}), 500
         finally:
             return_db_conn(conn)
+            print('[DEBUG] Connection returned to pool')
 
     except Exception as e:
         log_activity(f'gas_webhook exception: {str(e)}')
