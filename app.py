@@ -217,9 +217,20 @@ def gas_webhook():
             print(f'[DEBUG] About to commit {len(reservations)} records')
             conn.commit()
             print('[DEBUG] Commit successful!')
+
+            # データベースから件数を確認
+            cur.execute("SELECT COUNT(*) FROM reservations WHERE store = 'shibuya'")
+            count_result = cur.fetchone()
+            db_count = count_result[0] if count_result else 0
+
             return jsonify({
                 'status': 'success',
-                'message': f'{len(reservations)}件の予約を処理しました'
+                'message': f'{len(reservations)}件の予約を処理しました',
+                'debug': {
+                    'received': len(reservations),
+                    'db_count_after_insert': db_count,
+                    'commit_successful': True
+                }
             }), 200
 
         except Exception as e:
