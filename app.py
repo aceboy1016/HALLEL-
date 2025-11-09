@@ -179,18 +179,21 @@ def debug_env():
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM reservations")
         count = cur.fetchone()[0]
-        return_db_conn(conn)
 
-        return jsonify({
+        result = {
             'postgres_url_exists': postgres_url_exists,
             'db_connection_successful': True,
             'reservations_count': count,
-            'code_version': 'v2_with_debug'
-        })
+            'code_version': 'v3_fixed'
+        }
+
+        return_db_conn(conn)
+        return jsonify(result)
     except Exception as e:
         return jsonify({
             'error': str(e),
-            'postgres_url_exists': bool(os.environ.get('POSTGRES_URL'))
+            'postgres_url_exists': bool(os.environ.get('POSTGRES_URL')),
+            'code_version': 'v3_fixed_error'
         }), 500
 
 @app.route('/api/gas/webhook', methods=['POST'])
