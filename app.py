@@ -194,11 +194,10 @@ def gas_webhook():
                         """, (res['date'], res['start'], res.get('store', 'shibuya')))
                         log_activity(f"Gmail cancellation: {res['date']} {res['start']}")
                     else:
-                        # 予約を追加（重複チェック）
+                        # 予約を追加
                         cur.execute("""
                             INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
                             VALUES (%s, %s, %s, %s, %s, 'gmail', %s, %s)
-                            ON CONFLICT DO NOTHING
                         """, (
                             res['date'],
                             res['start'],
