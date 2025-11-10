@@ -14,19 +14,27 @@ app.config['SECRET_KEY'] = os.urandom(24)
 PASSWORD_FILE = 'password.txt'
 
 # --- Database Connection Pool ---
-DATABASE_URL = os.environ.get('POSTGRES_URL')
-if not DATABASE_URL:
-    raise Exception("POSTGRES_URL environment variable not set")
+db_pool = None
 
-db_pool = SimpleConnectionPool(1, 20, DATABASE_URL)
+def init_db_pool():
+    """Initialize database connection pool"""
+    global db_pool
+    if db_pool is None:
+        DATABASE_URL = os.environ.get('POSTGRES_URL')
+        if not DATABASE_URL:
+            raise Exception("POSTGRES_URL environment variable not set")
+        db_pool = SimpleConnectionPool(1, 20, DATABASE_URL)
+    return db_pool
 
 def get_db_conn():
     """Get database connection from pool"""
-    return db_pool.getconn()
+    pool = init_db_pool()
+    return pool.getconn()
 
 def return_db_conn(conn):
     """Return database connection to pool"""
-    db_pool.putconn(conn)
+    pool = init_db_pool()
+    pool.putconn(conn)
 
 # --- Logging Setup ---
 logging.basicConfig(filename='activity.log', level=logging.INFO,
