@@ -268,14 +268,14 @@ def gas_webhook():
                         print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
                         log_activity(f"Gmail booking added: {res['date']} {res['start']}-{res['end']}")
 
-            print(f'[DEBUG] About to commit {len(reservations)} records')
-            conn.commit()
-            print('[DEBUG] Commit successful!')
+                print(f'[DEBUG] About to commit {len(reservations)} records')
+                conn.commit()
+                print('[DEBUG] Commit successful!')
 
-            # データベースから件数を確認
-            cur.execute("SELECT COUNT(*) FROM reservations WHERE store = 'shibuya'")
-            count_result = cur.fetchone()
-            db_count = count_result[0] if count_result else 0
+                # データベースから件数を確認
+                cur.execute("SELECT COUNT(*) FROM reservations WHERE store = 'shibuya'")
+                count_result = cur.fetchone()
+                db_count = count_result[0] if count_result else 0
 
             return jsonify({
                 'status': 'success',
