@@ -55,6 +55,36 @@ def set_initial_password():
 def booking_status_page():
     return render_template('booking-status.html')
 
+@app.route('/download/template')
+def download_template():
+    """予約状況ページのテンプレートをダウンロード"""
+    try:
+        # テンプレートファイルを読み込み
+        template_path = os.path.join('templates', 'booking-status.html')
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+
+        # スタンドアロン版に変換（相対URLを絶対URLに）
+        # APIエンドポイントを現在のホストに置き換え
+        host = request.host_url.rstrip('/')
+        standalone_html = html_content.replace(
+            "fetch('/api/reservations')",
+            f"fetch('{host}/api/reservations')"
+        )
+
+        # レスポンスとして返す
+        from flask import Response
+        return Response(
+            standalone_html,
+            mimetype='text/html',
+            headers={
+                'Content-Disposition': 'attachment; filename=hallel-shibuya-booking.html',
+                'Content-Type': 'text/html; charset=utf-8'
+            }
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
