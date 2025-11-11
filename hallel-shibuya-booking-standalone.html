@@ -401,15 +401,19 @@
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-color status-available"></div>
-                <span>空いてる (1~3人)</span>
+                <span>空いています</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color status-warning"></div>
-                <span>普通 (4~5人)</span>
+                <span>混雑</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color status-danger"></div>
-                <span>混んでる (6~7人)</span>
+                <span>満席</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color status-charter"></div>
+                <span>貸切</span>
             </div>
         </div>
 
@@ -461,7 +465,7 @@
 
             async function fetchReservations() {
                 try {
-                    const response = await fetch('/api/reservations');
+                    const response = await fetch('https://hallel-shibuya.vercel.app/api/reservations');
                     reservationsByDate = await response.json();
                     renderTimeline(currentDate);
                 } catch (error) {
@@ -497,7 +501,11 @@
                         const resStart = timeToMinutes(res.start);
                         const resEnd = timeToMinutes(res.end);
                         if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
-                            slot.count++;
+                            if(res.type === 'charter') {
+                                slot.isCharter = true;
+                            } else {
+                                slot.count++;
+                            }
                         }
                     });
                 });
@@ -508,10 +516,13 @@
                     let colorClass = 'status-available';
                     let label = `${slot.count} / ${MAX_CAPACITY}`;
 
-                    // 1~3人: 空いてる, 4~5人: 普通, 6~7人: 混んでる
-                    if (slot.count >= 6) {
+                    if (slot.isCharter) {
+                        percentage = 100;
+                        colorClass = 'status-charter';
+                        label = '貸切';
+                    } else if (percentage >= 85) {
                         colorClass = 'status-danger';
-                    } else if (slot.count >= 4) {
+                    } else if (percentage >= 50) {
                         colorClass = 'status-warning';
                     }
 
@@ -521,7 +532,7 @@
                             <div class="occupancy-bar-container">
                                 <div class="occupancy-bar">
                                     <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
-                                        ${slot.count > 0 ? slot.count : ''}
+                                        ${slot.isCharter ? '貸切' : (slot.count > 0 ? slot.count : '')}
                                     </div>
                                 </div>
                             </div>
