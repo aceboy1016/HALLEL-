@@ -359,24 +359,25 @@
             z-index: 1;
         }
         .flatpickr-current-month .flatpickr-monthDropdown-months {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
+            background: transparent;
             color: var(--text-light);
-            border-radius: 8px;
-            padding: 0.4rem 0.8rem;
+            border: none;
+            padding: 0;
             font-weight: 700;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 1.1rem;
+            font-size: 1.5rem;
+            appearance: none;
         }
         .flatpickr-current-month input.cur-year {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
+            background: transparent;
             color: var(--text-light);
-            border-radius: 8px;
-            padding: 0.4rem 0.8rem;
+            border: none;
+            padding: 0;
             font-weight: 700;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 1.1rem;
+            font-size: 1.5rem;
+            width: 4.5em;
+        }
+        .flatpickr-current-month input.cur-year:focus {
+            outline: none;
         }
         .flatpickr-prev-month, .flatpickr-next-month {
             fill: var(--text-light) !important;
@@ -493,6 +494,7 @@
                     <button id="prev-day" class="btn">‹ 前日</button>
                     <input type="date" id="date-picker" class="form-control">
                     <button id="next-day" class="btn">翌日 ›</button>
+                    <button id="today-btn" class="btn" style="background: linear-gradient(135deg, #0052CC 0%, #667eea 100%); color: white; border: none; font-weight: 600;">📅 今月</button>
                 </div>
                 <p class="lead" id="current-date"></p>
                 <div class="reservation-count" id="reservation-count">📊 予約件数: 0件</div>
@@ -577,6 +579,12 @@
                     localStorage.setItem('hallel-booking-date', currentDate.toISOString());
                     renderTimeline(currentDate);
                 }
+            });
+
+            // 今月ボタン
+            const todayBtn = document.getElementById('today-btn');
+            todayBtn.addEventListener('click', () => {
+                fp.setDate(new Date());
             });
 
             function timeToMinutes(time) {
