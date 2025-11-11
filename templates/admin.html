@@ -414,24 +414,25 @@
             z-index: 1;
         }
         .flatpickr-current-month .flatpickr-monthDropdown-months {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
+            background: transparent;
             color: var(--text-light);
-            border-radius: 8px;
-            padding: 0.4rem 0.8rem;
+            border: none;
+            padding: 0;
             font-weight: 700;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 1.1rem;
+            font-size: 1.5rem;
+            appearance: none;
         }
         .flatpickr-current-month input.cur-year {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
+            background: transparent;
             color: var(--text-light);
-            border-radius: 8px;
-            padding: 0.4rem 0.8rem;
+            border: none;
+            padding: 0;
             font-weight: 700;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 1.1rem;
+            font-size: 1.5rem;
+            width: 4.5em;
+        }
+        .flatpickr-current-month input.cur-year:focus {
+            outline: none;
         }
         .flatpickr-prev-month, .flatpickr-next-month {
             fill: var(--text-light) !important;
@@ -581,9 +582,12 @@
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <label for="date-filter" class="form-label">日付を選択</label>
-                        <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
+                    <div class="d-flex align-items-end gap-2">
+                        <div>
+                            <label for="date-filter" class="form-label">日付を選択</label>
+                            <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
+                        </div>
+                        <button id="today-btn" class="btn btn-primary">📅 今月</button>
                     </div>
                     <div>
                         <button id="cleanup-btn" class="btn btn-danger">
@@ -671,13 +675,19 @@
             dateFilter.value = today.toISOString().split('T')[0];
 
             // Flatpickr初期化
-            flatpickr(dateFilter, {
+            const datePickerInstance = flatpickr(dateFilter, {
                 locale: 'ja',
                 defaultDate: today,
                 dateFormat: 'Y-m-d',
                 onChange: function(selectedDates, dateStr, instance) {
                     loadReservations();
                 }
+            });
+
+            // 今月ボタン
+            const todayBtn = document.getElementById('today-btn');
+            todayBtn.addEventListener('click', () => {
+                datePickerInstance.setDate(new Date());
             });
 
             // 予約データを取得して表示
