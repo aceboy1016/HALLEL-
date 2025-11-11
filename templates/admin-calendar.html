@@ -453,12 +453,14 @@
                     const resEnd = timeToMinutes(res.end);
                     if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
                         let displayName = '';
+                        let customerName = res.customer_name || 'N/A';
+
                         if (res.type === 'charter') {
-                            displayName = `<strong>貸切予約</strong>`;
+                            displayName = `<strong>🔒 貸切予約</strong>`;
                         } else if (res.type === 'manual') {
-                            displayName = '手動予約';
+                            displayName = `📝 手動予約: ${customerName}`;
                         } else { // gmail
-                            displayName = '予約あり';
+                            displayName = `✉️ Gmail予約: ${customerName}`;
                         }
 
                         bookingsHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
@@ -466,7 +468,11 @@
                                             ${displayName}<br>
                                             <small class="text-muted">${res.start} - ${res.end}</small>
                                         </div>
-                                        <button class="btn btn-sm btn-outline-danger" data-index="${index}">削除</button>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                data-date="${dateString}"
+                                                data-start="${res.start}"
+                                                data-end="${res.end}"
+                                                data-customer="${customerName}">削除</button>
                                      </li>`;
                         hasBookings = true;
                     }
@@ -482,13 +488,20 @@
             async function addDeleteListeners() {
                 document.querySelectorAll('#existing-bookings .btn-outline-danger').forEach(button => {
                     button.addEventListener('click', async (e) => {
-                        const index = e.target.dataset.index;
-                        const dateString = formatDate(currentDate);
-                        
+                        if (!confirm('この予約を削除しますか？')) return;
+
+                        const btn = e.target;
+                        const deleteData = {
+                            date: btn.dataset.date,
+                            start: btn.dataset.start,
+                            end: btn.dataset.end,
+                            customer_name: btn.dataset.customer
+                        };
+
                         await fetch('/api/reservations/delete', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ date: dateString, index: parseInt(index) })
+                            body: JSON.stringify(deleteData)
                         });
                         await fetchReservations();
                         showExistingBookings();
