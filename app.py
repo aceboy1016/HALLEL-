@@ -46,7 +46,7 @@ def log_activity(action):
 # --- Password Management ---
 def set_initial_password():
     if not os.path.exists(PASSWORD_FILE):
-        hashed_password = generate_password_hash('hallel0000admin', method='pbkdf2:sha256')
+        hashed_password = generate_password_hash('hallel', method='pbkdf2:sha256')
         with open(PASSWORD_FILE, 'w') as f:
             f.write(hashed_password)
 
