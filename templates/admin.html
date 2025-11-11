@@ -443,9 +443,16 @@
                 📅 予約管理
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <label for="date-filter" class="form-label">日付を選択</label>
-                    <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <label for="date-filter" class="form-label">日付を選択</label>
+                        <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
+                    </div>
+                    <div>
+                        <button id="cleanup-btn" class="btn btn-danger">
+                            🗑️ 重複データを削除
+                        </button>
+                    </div>
                 </div>
                 <div id="reservations-list"></div>
             </div>
@@ -625,6 +632,39 @@
 
             // 日付変更時に再読み込み
             dateFilter.addEventListener('change', loadReservations);
+
+            // 重複削除ボタン
+            const cleanupBtn = document.getElementById('cleanup-btn');
+            cleanupBtn.addEventListener('click', async () => {
+                if (!confirm('重複している予約データを削除します。\n※各予約の最新データのみが残ります。\n\n実行しますか？')) {
+                    return;
+                }
+
+                cleanupBtn.disabled = true;
+                cleanupBtn.innerHTML = '🔄 処理中...';
+
+                try {
+                    const response = await fetch('/api/admin/cleanup-duplicates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        alert(`エラー: ${result.error || 'Unknown error'}`);
+                        return;
+                    }
+
+                    alert(result.message);
+                    loadReservations(); // 再読み込み
+                } catch (error) {
+                    alert(`エラーが発生しました: ${error.message}`);
+                } finally {
+                    cleanupBtn.disabled = false;
+                    cleanupBtn.innerHTML = '🗑️ 重複データを削除';
+                }
+            });
 
             // 初回読み込み
             loadReservations();
