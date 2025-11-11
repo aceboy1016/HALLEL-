@@ -412,6 +412,9 @@
             color: var(--text-light);
             position: relative;
             z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .flatpickr-current-month .flatpickr-monthDropdown-months {
             background: transparent;
@@ -421,6 +424,8 @@
             font-weight: 700;
             font-size: 1.5rem;
             appearance: none;
+            text-align: center;
+            margin: 0 0.5rem;
         }
         .flatpickr-current-month input.cur-year {
             background: transparent;
@@ -430,9 +435,13 @@
             font-weight: 700;
             font-size: 1.5rem;
             width: 4.5em;
+            text-align: center;
         }
         .flatpickr-current-month input.cur-year:focus {
             outline: none;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-month {
+            background: transparent;
         }
         .flatpickr-prev-month, .flatpickr-next-month {
             fill: var(--text-light) !important;
@@ -468,6 +477,10 @@
             border: 2px solid transparent;
             margin: 2px;
             font-size: 0.95rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
         }
         .flatpickr-day:hover {
             background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
@@ -519,6 +532,30 @@
         .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
             color: var(--neutral-300);
             opacity: 0.5;
+        }
+
+        /* 今月ボタンのカスタムアイコン */
+        #today-btn {
+            position: relative;
+            padding-left: 2.5rem !important;
+        }
+        #today-btn::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>');
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>');
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
         }
 
         /* Responsive Design */
@@ -587,7 +624,7 @@
                             <label for="date-filter" class="form-label">日付を選択</label>
                             <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
                         </div>
-                        <button id="today-btn" class="btn btn-primary">📅 今月</button>
+                        <button id="today-btn" class="btn btn-primary">今月</button>
                     </div>
                     <div>
                         <button id="cleanup-btn" class="btn btn-danger">
