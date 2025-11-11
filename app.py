@@ -210,24 +210,57 @@ def delete_reservation():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data = request.json
+    print(f'[DELETE] Received data: {data}')
+
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
+            # まず該当する予約を検索
             cur.execute("""
-                DELETE FROM reservations
+                SELECT id, customer_name, date, start_time, end_time
+                FROM reservations
                 WHERE date = %s AND start_time = %s AND end_time = %s
-                AND customer_name = %s AND store = 'shibuya'
+                AND store = 'shibuya'
             """, (
                 data.get('date'),
                 data.get('start'),
-                data.get('end'),
-                data.get('customer_name')
+                data.get('end')
             ))
+            found_reservations = cur.fetchall()
+            print(f'[DELETE] Found {len(found_reservations)} matching reservations')
+
+            if not found_reservations:
+                return jsonify({'error': 'Reservation not found'}), 404
+
+            # customer_nameでフィルタリング（完全一致またはNULL対応）
+            target_customer = data.get('customer_name')
+            reservation_to_delete = None
+
+            for res in found_reservations:
+                if res['customer_name'] == target_customer or (res['customer_name'] is None and target_customer == 'N/A'):
+                    reservation_to_delete = res
+                    break
+
+            if not reservation_to_delete:
+                print(f'[DELETE] No reservation matched customer_name: {target_customer}')
+                # customer_nameが一致しない場合、最初の予約を削除
+                reservation_to_delete = found_reservations[0]
+
+            # IDで削除
+            cur.execute("""
+                DELETE FROM reservations
+                WHERE id = %s
+            """, (reservation_to_delete['id'],))
+
+            deleted_count = cur.rowcount
+            print(f'[DELETE] Deleted {deleted_count} reservation(s) with ID {reservation_to_delete["id"]}')
+
         conn.commit()
-        log_activity(f"Reservation deleted: {data}")
-        return jsonify({'message': 'Reservation deleted'})
+        log_activity(f"Reservation deleted: {data}, deleted_count: {deleted_count}")
+        return jsonify({'message': 'Reservation deleted', 'deleted_count': deleted_count})
     except Exception as e:
         conn.rollback()
+        print(f'[DELETE ERROR] {str(e)}')
         return jsonify({'error': str(e)}), 500
     finally:
         return_db_conn(conn)
