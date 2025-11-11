@@ -437,6 +437,20 @@
             {% endif %}
         {% endwith %}
 
+        <!-- 予約管理セクション -->
+        <div class="card mb-4">
+            <div class="card-header">
+                📅 予約管理
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="date-filter" class="form-label">日付を選択</label>
+                    <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
+                </div>
+                <div id="reservations-list"></div>
+            </div>
+        </div>
+
         <div class="row">
             <!-- Left Column: Password Change -->
             <div class="col-lg-6">
@@ -500,6 +514,120 @@
             if (logContainer) {
                 logContainer.scrollTop = logContainer.scrollHeight;
             }
+
+            // 予約管理の初期化
+            const dateFilter = document.getElementById('date-filter');
+            const reservationsList = document.getElementById('reservations-list');
+
+            // 今日の日付をデフォルトに設定
+            const today = new Date();
+            dateFilter.value = today.toISOString().split('T')[0];
+
+            // 予約データを取得して表示
+            async function loadReservations() {
+                try {
+                    const response = await fetch('/api/reservations');
+                    const data = await response.json();
+                    displayReservations(data);
+                } catch (error) {
+                    console.error('予約データの取得に失敗:', error);
+                    reservationsList.innerHTML = '<div class="alert alert-danger">予約データの取得に失敗しました</div>';
+                }
+            }
+
+            function displayReservations(allReservations) {
+                const selectedDate = dateFilter.value;
+                const reservations = allReservations[selectedDate] || [];
+
+                if (reservations.length === 0) {
+                    reservationsList.innerHTML = `
+                        <div class="alert alert-info">
+                            ${selectedDate} の予約はありません
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 時間でソート
+                reservations.sort((a, b) => a.start.localeCompare(b.start));
+
+                let html = '<div class="table-responsive"><table class="table table-hover">';
+                html += '<thead><tr><th>時間</th><th>種別</th><th>顧客名</th><th>操作</th></tr></thead><tbody>';
+
+                reservations.forEach((res) => {
+                    let typeLabel = '';
+                    let typeClass = '';
+                    const customerName = res.customer_name || 'N/A';
+
+                    if (res.type === 'charter') {
+                        typeLabel = '<span class="badge bg-secondary">🔒 貸切</span>';
+                    } else if (res.type === 'manual') {
+                        typeLabel = '<span class="badge bg-primary">📝 手動</span>';
+                    } else {
+                        typeLabel = '<span class="badge bg-success">✉️ Gmail</span>';
+                    }
+
+                    html += `
+                        <tr>
+                            <td><strong>${res.start} - ${res.end}</strong></td>
+                            <td>${typeLabel}</td>
+                            <td>${customerName}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger delete-btn"
+                                        data-date="${selectedDate}"
+                                        data-start="${res.start}"
+                                        data-end="${res.end}"
+                                        data-customer="${customerName}">
+                                    🗑️ 削除
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                reservationsList.innerHTML = html;
+
+                // 削除ボタンにイベントリスナーを追加
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        if (!confirm('この予約を削除しますか？')) return;
+
+                        const deleteData = {
+                            date: btn.dataset.date,
+                            start: btn.dataset.start,
+                            end: btn.dataset.end,
+                            customer_name: btn.dataset.customer
+                        };
+
+                        try {
+                            const response = await fetch('/api/reservations/delete', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(deleteData)
+                            });
+
+                            const result = await response.json();
+
+                            if (!response.ok) {
+                                alert(`削除に失敗しました: ${result.error || 'Unknown error'}`);
+                                return;
+                            }
+
+                            // 成功したら再読み込み
+                            loadReservations();
+                        } catch (error) {
+                            alert(`エラーが発生しました: ${error.message}`);
+                        }
+                    });
+                });
+            }
+
+            // 日付変更時に再読み込み
+            dateFilter.addEventListener('change', loadReservations);
+
+            // 初回読み込み
+            loadReservations();
         });
     </script>
 </body>
