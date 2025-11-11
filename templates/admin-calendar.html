@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         :root {
             /* Atlassian-inspired Color Palette */
@@ -328,6 +329,89 @@
             border-color: var(--danger);
         }
 
+        /* Flatpickr Custom Styling */
+        .flatpickr-calendar {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+            border: none;
+            font-family: var(--font-family);
+        }
+        .flatpickr-months {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: 1rem;
+        }
+        .flatpickr-month, .flatpickr-current-month {
+            color: var(--text-light);
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
+            border-radius: var(--radius-sm);
+            padding: 0.25rem 0.5rem;
+            font-weight: 600;
+        }
+        .flatpickr-current-month input.cur-year {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
+            border-radius: var(--radius-sm);
+            padding: 0.25rem 0.5rem;
+            font-weight: 600;
+        }
+        .flatpickr-prev-month, .flatpickr-next-month {
+            fill: var(--text-light) !important;
+        }
+        .flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+        .flatpickr-weekdays {
+            background: var(--neutral-50);
+            padding: 0.5rem 0;
+        }
+        .flatpickr-weekday {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .flatpickr-days {
+            border: none;
+        }
+        .flatpickr-day {
+            color: var(--text-primary);
+            border-radius: 50%;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .flatpickr-day:hover {
+            background: var(--neutral-100);
+            border-color: var(--neutral-100);
+        }
+        .flatpickr-day.today {
+            background: var(--success-light);
+            color: var(--text-light);
+            border-color: var(--success-light);
+            font-weight: 700;
+        }
+        .flatpickr-day.today:hover {
+            background: var(--success);
+            border-color: var(--success);
+        }
+        .flatpickr-day.selected {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            border-color: var(--primary-blue);
+            font-weight: 700;
+        }
+        .flatpickr-day.selected:hover {
+            background: var(--primary-blue-hover);
+            border-color: var(--primary-blue-hover);
+        }
+        .flatpickr-day.disabled {
+            color: var(--neutral-300);
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .header h1 {
@@ -404,6 +488,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const MAX_CAPACITY = 7;
@@ -426,6 +512,19 @@
 
             let selectedSlot = null;
             let reservationsByDate = {};
+
+            // Flatpickr初期化
+            const fp = flatpickr(datePicker, {
+                locale: 'ja',
+                defaultDate: currentDate,
+                dateFormat: 'Y-m-d',
+                onChange: function(selectedDates, dateStr, instance) {
+                    currentDate = selectedDates[0];
+                    currentDate.setHours(0, 0, 0, 0);
+                    localStorage.setItem('hallel-booking-date', currentDate.toISOString());
+                    renderTimeline(currentDate);
+                }
+            });
 
             function timeToMinutes(time) {
                 const [hours, minutes] = time.split(':').map(Number);
@@ -654,18 +753,14 @@
 
             prevDayBtn.addEventListener('click', () => {
                 currentDate.setDate(currentDate.getDate() - 1);
+                fp.setDate(currentDate);
                 localStorage.setItem('hallel-booking-date', currentDate.toISOString());
                 renderTimeline(currentDate);
             });
 
             nextDayBtn.addEventListener('click', () => {
                 currentDate.setDate(currentDate.getDate() + 1);
-                localStorage.setItem('hallel-booking-date', currentDate.toISOString());
-                renderTimeline(currentDate);
-            });
-
-            datePicker.addEventListener('change', (e) => {
-                currentDate = new Date(e.target.value + 'T00:00:00');
+                fp.setDate(currentDate);
                 localStorage.setItem('hallel-booking-date', currentDate.toISOString());
                 renderTimeline(currentDate);
             });
