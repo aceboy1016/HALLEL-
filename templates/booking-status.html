@@ -401,19 +401,15 @@
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-color status-available"></div>
-                <span>空いています</span>
+                <span>空いてる (1~3人)</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color status-warning"></div>
-                <span>混雑</span>
+                <span>普通 (4~5人)</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color status-danger"></div>
-                <span>満席</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color status-charter"></div>
-                <span>貸切</span>
+                <span>混んでる (6~7人)</span>
             </div>
         </div>
 
@@ -501,11 +497,7 @@
                         const resStart = timeToMinutes(res.start);
                         const resEnd = timeToMinutes(res.end);
                         if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
-                            if(res.type === 'charter') {
-                                slot.isCharter = true;
-                            } else {
-                                slot.count++;
-                            }
+                            slot.count++;
                         }
                     });
                 });
@@ -516,13 +508,10 @@
                     let colorClass = 'status-available';
                     let label = `${slot.count} / ${MAX_CAPACITY}`;
 
-                    if (slot.isCharter) {
-                        percentage = 100;
-                        colorClass = 'status-charter';
-                        label = '貸切';
-                    } else if (percentage >= 85) {
+                    // 1~3人: 空いてる, 4~5人: 普通, 6~7人: 混んでる
+                    if (slot.count >= 6) {
                         colorClass = 'status-danger';
-                    } else if (percentage >= 50) {
+                    } else if (slot.count >= 4) {
                         colorClass = 'status-warning';
                     }
 
@@ -532,7 +521,7 @@
                             <div class="occupancy-bar-container">
                                 <div class="occupancy-bar">
                                     <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
-                                        ${slot.isCharter ? '貸切' : (slot.count > 0 ? slot.count : '')}
+                                        ${slot.count > 0 ? slot.count : ''}
                                     </div>
                                 </div>
                             </div>
