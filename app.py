@@ -265,6 +265,62 @@ def delete_reservation():
     finally:
         return_db_conn(conn)
 
+@app.route('/api/admin/cleanup-duplicates', methods=['POST'])
+def cleanup_duplicates():
+    """重複した予約を削除（管理者専用）"""
+    if not is_logged_in():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            # email_idベースの重複を削除（最新のみ残す）
+            cur.execute("""
+                DELETE FROM reservations
+                WHERE id NOT IN (
+                    SELECT MAX(id)
+                    FROM reservations
+                    WHERE email_id IS NOT NULL AND type = 'gmail'
+                    GROUP BY email_id, store
+                )
+                AND email_id IS NOT NULL
+                AND type = 'gmail'
+            """)
+            email_duplicates = cur.rowcount
+
+            # email_idがないGmail予約の重複を削除（日付・時間・顧客名・店舗が同じもの）
+            cur.execute("""
+                DELETE FROM reservations
+                WHERE id NOT IN (
+                    SELECT MAX(id)
+                    FROM reservations
+                    WHERE email_id IS NULL AND type = 'gmail'
+                    GROUP BY date, start_time, end_time, customer_name, store
+                )
+                AND email_id IS NULL
+                AND type = 'gmail'
+            """)
+            time_duplicates = cur.rowcount
+
+        conn.commit()
+        total_deleted = email_duplicates + time_duplicates
+        log_activity(f"Cleaned up {total_deleted} duplicate reservations (email: {email_duplicates}, time: {time_duplicates})")
+
+        return jsonify({
+            'status': 'success',
+            'message': f'{total_deleted}件の重複予約を削除しました',
+            'deleted': {
+                'by_email_id': email_duplicates,
+                'by_time': time_duplicates,
+                'total': total_deleted
+            }
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        return_db_conn(conn)
+
 @app.route('/api/debug/env')
 def debug_env():
     """デバッグ用：環境変数とDB接続確認"""
@@ -309,34 +365,109 @@ def gas_webhook():
         conn = get_db_conn()
         print(f'[DEBUG] Got DB connection: {conn}')
         try:
+            inserted_count = 0
+            updated_count = 0
+            deleted_count = 0
+
             with conn.cursor() as cur:
                 for i, res in enumerate(reservations):
                     # キャンセルの場合は削除
                     if res.get('is_cancellation'):
-                        cur.execute("""
-                            DELETE FROM reservations
-                            WHERE date = %s AND start_time = %s AND store = %s AND type = 'gmail'
-                        """, (res['date'], res['start'], res.get('store', 'shibuya')))
+                        email_id = res.get('email_id')
+                        if email_id:
+                            cur.execute("""
+                                DELETE FROM reservations
+                                WHERE email_id = %s AND store = %s AND type = 'gmail'
+                            """, (email_id, res.get('store', 'shibuya')))
+                        else:
+                            # email_idがない場合は日付・時間で削除
+                            cur.execute("""
+                                DELETE FROM reservations
+                                WHERE date = %s AND start_time = %s AND store = %s AND type = 'gmail'
+                            """, (res['date'], res['start'], res.get('store', 'shibuya')))
+                        deleted_count += cur.rowcount
                         print(f'[DEBUG] Deleted cancellation: {res["date"]} {res["start"]}')
                         log_activity(f"Gmail cancellation: {res['date']} {res['start']}")
                     else:
-                        # 予約を追加
-                        cur.execute("""
-                            INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
-                            VALUES (%s, %s, %s, %s, %s, 'gmail', %s, %s)
-                        """, (
-                            res['date'],
-                            res['start'],
-                            res['end'],
-                            res.get('customer_name', 'N/A'),
-                            res.get('store', 'shibuya'),
-                            res.get('source', 'gas_sync'),
-                            res.get('email_id')
-                        ))
-                        print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
-                        log_activity(f"Gmail booking added: {res['date']} {res['start']}-{res['end']}")
+                        email_id = res.get('email_id')
 
-                print(f'[DEBUG] About to commit {len(reservations)} records')
+                        # email_idがある場合は重複チェック
+                        if email_id:
+                            cur.execute("""
+                                SELECT id FROM reservations
+                                WHERE email_id = %s AND store = %s
+                            """, (email_id, res.get('store', 'shibuya')))
+                            existing = cur.fetchone()
+
+                            if existing:
+                                # 既存の予約を更新
+                                cur.execute("""
+                                    UPDATE reservations
+                                    SET date = %s, start_time = %s, end_time = %s, customer_name = %s
+                                    WHERE email_id = %s AND store = %s
+                                """, (
+                                    res['date'],
+                                    res['start'],
+                                    res['end'],
+                                    res.get('customer_name', 'N/A'),
+                                    email_id,
+                                    res.get('store', 'shibuya')
+                                ))
+                                updated_count += 1
+                                print(f'[DEBUG] Updated [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                            else:
+                                # 新規予約を追加
+                                cur.execute("""
+                                    INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
+                                    VALUES (%s, %s, %s, %s, %s, 'gmail', %s, %s)
+                                """, (
+                                    res['date'],
+                                    res['start'],
+                                    res['end'],
+                                    res.get('customer_name', 'N/A'),
+                                    res.get('store', 'shibuya'),
+                                    res.get('source', 'gas_sync'),
+                                    email_id
+                                ))
+                                inserted_count += 1
+                                print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                        else:
+                            # email_idがない場合は日付・時間・顧客名で重複チェック
+                            cur.execute("""
+                                SELECT id FROM reservations
+                                WHERE date = %s AND start_time = %s AND end_time = %s
+                                AND customer_name = %s AND store = %s AND type = 'gmail'
+                            """, (
+                                res['date'],
+                                res['start'],
+                                res['end'],
+                                res.get('customer_name', 'N/A'),
+                                res.get('store', 'shibuya')
+                            ))
+                            existing = cur.fetchone()
+
+                            if not existing:
+                                # 重複がない場合のみ追加
+                                cur.execute("""
+                                    INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
+                                    VALUES (%s, %s, %s, %s, %s, 'gmail', %s, %s)
+                                """, (
+                                    res['date'],
+                                    res['start'],
+                                    res['end'],
+                                    res.get('customer_name', 'N/A'),
+                                    res.get('store', 'shibuya'),
+                                    res.get('source', 'gas_sync'),
+                                    None
+                                ))
+                                inserted_count += 1
+                                print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                            else:
+                                print(f'[DEBUG] Skipped duplicate [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]}')
+
+                        log_activity(f"Gmail booking processed: {res['date']} {res['start']}-{res['end']}")
+
+                print(f'[DEBUG] About to commit - inserted: {inserted_count}, updated: {updated_count}, deleted: {deleted_count}')
                 conn.commit()
                 print('[DEBUG] Commit successful!')
 
@@ -347,9 +478,12 @@ def gas_webhook():
 
             return jsonify({
                 'status': 'success',
-                'message': f'{len(reservations)}件の予約を処理しました',
+                'message': f'予約を処理しました（追加:{inserted_count}, 更新:{updated_count}, 削除:{deleted_count}）',
                 'debug': {
                     'received': len(reservations),
+                    'inserted': inserted_count,
+                    'updated': updated_count,
+                    'deleted': deleted_count,
                     'db_count_after_insert': db_count,
                     'commit_successful': True,
                     'postgres_url_exists': bool(os.environ.get('POSTGRES_URL')),
