@@ -415,9 +415,16 @@
             border: 2px solid transparent;
             margin: 2px;
             font-size: 0.95rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0 !important;
+            line-height: 39px !important;
+        }
+        .flatpickr-day span {
+            display: inline-block;
+            width: 100%;
             text-align: center;
         }
         .flatpickr-day:hover {
@@ -494,6 +501,31 @@
             -webkit-mask-size: contain;
             -webkit-mask-repeat: no-repeat;
             -webkit-mask-position: center;
+        }
+
+        /* flatpickrカレンダー内の今月ボタン */
+        .flatpickr-calendar .flatpickr-today-btn {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.5rem;
+            background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 82, 204, 0.3);
+        }
+        .flatpickr-calendar .flatpickr-today-btn:hover {
+            background: linear-gradient(135deg, #0041a8 0%, #5568d3 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.4);
+        }
+        .flatpickr-calendar .flatpickr-today-btn:active {
+            transform: translateY(0);
         }
 
         /* Responsive Design */
@@ -627,6 +659,20 @@
                     currentDate.setHours(0, 0, 0, 0);
                     localStorage.setItem('hallel-booking-date', currentDate.toISOString());
                     renderTimeline(currentDate);
+                },
+                onReady: function(selectedDates, dateStr, instance) {
+                    // カレンダー内に今月ボタンを追加
+                    const calendarContainer = instance.calendarContainer;
+                    if (!calendarContainer.querySelector('.flatpickr-today-btn')) {
+                        const todayButton = document.createElement('button');
+                        todayButton.className = 'flatpickr-today-btn';
+                        todayButton.textContent = '今月';
+                        todayButton.type = 'button';
+                        todayButton.addEventListener('click', function() {
+                            instance.setDate(new Date());
+                        });
+                        calendarContainer.appendChild(todayButton);
+                    }
                 }
             });
 
