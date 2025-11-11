@@ -440,7 +440,7 @@
         <!-- 予約管理セクション -->
         <div class="card mb-4">
             <div class="card-header">
-                📅 予約管理
+                📅 予約管理 <span id="total-reservations" class="badge bg-light text-dark ms-2">0件</span>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -525,6 +525,7 @@
             // 予約管理の初期化
             const dateFilter = document.getElementById('date-filter');
             const reservationsList = document.getElementById('reservations-list');
+            const totalReservationsBadge = document.getElementById('total-reservations');
 
             // 今日の日付をデフォルトに設定
             const today = new Date();
@@ -545,6 +546,9 @@
             function displayReservations(allReservations) {
                 const selectedDate = dateFilter.value;
                 const reservations = allReservations[selectedDate] || [];
+
+                // 予約件数を更新
+                totalReservationsBadge.textContent = `${reservations.length}件`;
 
                 if (reservations.length === 0) {
                     reservationsList.innerHTML = `

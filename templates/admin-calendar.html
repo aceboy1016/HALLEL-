@@ -3,144 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HALLEL 渋谷店 予約状況 (管理者用)</title>
+    <title>HALLEL 渋谷店 予約編集 (管理者用)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --dark-bg: #1a1a1a;
-            --dark-card-bg: #222222;
-            --light-text: #e0e0e0;
-            --medium-text: #b0b0b0;
-            --border-color: #333333;
-            --accent-color: #ffffff; /* White for HALLEL logo style */
-            --font-family: 'Oswald', sans-serif;
+            /* Atlassian-inspired Color Palette */
+            --primary-blue: #0052CC;
+            --primary-blue-hover: #0065FF;
+            --neutral-900: #091E42;
+            --neutral-800: #172B4D;
+            --neutral-700: #253858;
+            --neutral-600: #344563;
+            --neutral-500: #42526E;
+            --neutral-400: #5E6C84;
+            --neutral-300: #7A869A;
+            --neutral-200: #97A0AF;
+            --neutral-100: #DFE1E6;
+            --neutral-50: #F4F5F7;
 
-            /* Status Colors on Dark Background */
-            --status-available: #28a745; /* Green */
-            --status-warning: #ffc107; /* Yellow */
-            --status-danger: #dc3545; /* Red */
-            --status-charter: #6c757d; /* Grey */
+            /* Status Colors */
+            --success: #00875A;
+            --success-light: #36B37E;
+            --warning: #FF8B00;
+            --warning-light: #FFAB00;
+            --danger: #DE350B;
+            --danger-light: #FF5630;
+
+            /* Surface Colors */
+            --surface-bg: #F4F5F7;
+            --card-bg: #FFFFFF;
+            --header-bg: #253858;
+
+            /* Text Colors */
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --text-light: #FFFFFF;
+
+            /* Font Family */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+            /* Shadows (Atlassian Elevation) */
+            --shadow-low: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-medium: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-high: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+
+            /* Border Radius */
+            --radius-sm: 3px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--dark-bg);
-            color: var(--light-text);
+            background: linear-gradient(135deg, var(--surface-bg) 0%, #E6E9EF 100%);
+            color: var(--text-primary);
             font-family: var(--font-family);
             line-height: 1.6;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 900px;
-            padding: 0 15px;
+            max-width: 1000px;
+            padding: 0 20px;
         }
 
+        /* Header Styling */
         .header {
-            background-color: var(--dark-bg);
-            padding: 2rem 0;
+            background: linear-gradient(135deg, var(--header-bg) 0%, var(--neutral-700) 100%);
+            padding: 3rem 0;
             text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.5;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
         }
 
         .header h1 {
-            font-weight: 600;
-            color: var(--accent-color);
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-light);
+            letter-spacing: -0.02em;
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .header h1 .badge {
-            font-size: 0.8rem;
-            font-weight: 400;
-            letter-spacing: normal;
-            text-transform: none;
-            vertical-align: middle;
-            margin-left: 10px;
-            background-color: rgba(255,255,255,0.1);
-            color: var(--light-text);
+        .header .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            background-color: var(--warning);
+            color: var(--neutral-900);
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            box-shadow: var(--shadow-low);
         }
 
+        .lead {
+            color: var(--neutral-100);
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        /* Date Controls */
         .date-controls {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 1rem;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
         }
 
         .date-controls .btn {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--light-text);
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
             border-radius: 50px;
-            padding: 0.5rem 1rem;
-            transition: all 0.3s ease;
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
         }
 
         .date-controls .btn:hover {
-            background-color: var(--border-color);
-            color: var(--accent-color);
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-low);
+        }
+
+        .date-controls .btn:active {
+            transform: translateY(0);
         }
 
         #date-picker {
-            background-color: var(--dark-card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--light-text);
-            border-radius: 0.5rem;
-            padding: 0.375rem 0.75rem;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            padding: 0.6rem 1rem;
             text-align: center;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
         }
 
-        #date-picker::-webkit-calendar-picker-indicator {
-            filter: invert(1); /* Make calendar icon white */
+        #date-picker:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2);
         }
 
-        .lead {
-            color: var(--medium-text);
-            font-size: 1.1rem;
+        /* Reservation Count Badge */
+        .reservation-count {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            margin-top: 1rem;
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.95rem;
         }
 
-        .legend {
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-            color: var(--medium-text);
+        /* Timeline Card */
+        .timeline-card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
 
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .legend-color {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
+        .timeline-card:hover {
+            box-shadow: 0 12px 24px -6px rgba(9, 30, 66, 0.3), 0 0 1px rgba(9, 30, 66, 0.31);
         }
 
         .timeline {
             list-style: none;
             padding: 0;
-            border-radius: 0.75rem;
-            background-color: var(--dark-card-bg);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            overflow: hidden;
+            margin: 0;
         }
 
         .time-slot {
             display: flex;
             align-items: center;
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s ease;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--neutral-100);
+            transition: all 0.2s ease;
+            position: relative;
             cursor: pointer;
         }
 
@@ -149,143 +226,147 @@
         }
 
         .time-slot:hover {
-            background-color: #333333;
+            background-color: var(--neutral-50);
         }
 
         .time-label {
-            font-weight: 500;
-            width: 100px;
+            font-weight: 600;
+            width: 120px;
             flex-shrink: 0;
-            color: var(--accent-color);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .occupancy-bar-container {
+            flex-grow: 1;
+            margin: 0 1.5rem;
         }
 
         .occupancy-bar {
-            flex-grow: 1;
-            height: 24px;
-            background-color: #333333;
+            height: 32px;
+            background-color: var(--neutral-50);
             border-radius: 50px;
             overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(9, 30, 66, 0.1);
+            position: relative;
         }
 
         .occupancy-fill {
             height: 100%;
-            transition: width 0.5s ease, background-color 0.5s ease;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--dark-bg);
-            font-size: 0.8rem;
-            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            font-weight: 700;
         }
 
         .occupancy-text {
-            width: 90px;
+            width: 100px;
             text-align: right;
-            font-weight: 500;
+            font-weight: 600;
             flex-shrink: 0;
-            color: var(--medium-text);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
         }
 
-        /* Custom Status Colors */
-        .bg-success { background-color: var(--status-available) !important; color: var(--dark-bg); }
-        .bg-warning { background-color: var(--status-warning) !important; color: var(--dark-bg); }
-        .bg-danger { background-color: var(--status-danger) !important; color: var(--dark-bg); }
-        .bg-dark { background-color: var(--status-charter) !important; color: var(--light-text); }
+        /* Status Colors */
+        .status-available { background: linear-gradient(135deg, var(--success) 0%, var(--success-light) 100%); }
+        .status-warning { background: linear-gradient(135deg, var(--warning) 0%, var(--warning-light) 100%); }
+        .status-danger { background: linear-gradient(135deg, var(--danger) 0%, var(--danger-light) 100%); }
 
         /* Modal Customization */
         .modal-content {
-            border-radius: 0.75rem;
+            border-radius: var(--radius-lg);
             border: none;
-            background-color: var(--dark-card-bg);
-            color: var(--light-text);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: var(--shadow-high);
         }
         .modal-header {
-            background-color: var(--dark-bg);
-            color: var(--accent-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-        .modal-header .btn-close {
-            filter: invert(1); /* Make close button white */
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            border-bottom: none;
+            padding: 1.5rem;
         }
         .modal-title {
-            font-weight: 600;
-            color: var(--accent-color);
+            font-weight: 700;
         }
-        .modal-body .form-label {
-            color: var(--medium-text);
-        }
-        .modal-body .form-control, .modal-body .form-select {
-            background-color: var(--dark-bg);
-            border: 1px solid var(--border-color);
-            color: var(--light-text);
-        }
-        .modal-body .form-control:focus, .modal-body .form-select:focus {
-            background-color: var(--dark-bg);
-            border-color: var(--accent-color);
-            color: var(--light-text);
-            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+        .modal-body {
+            padding: 1.5rem;
         }
         .modal-footer {
-            border-top: 1px solid var(--border-color);
-            background-color: var(--dark-card-bg);
+            border-top: 1px solid var(--neutral-100);
+            padding: 1rem 1.5rem;
         }
-        .modal-footer .btn-primary {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-            color: var(--dark-bg);
-        }
-        .btn-primary:hover {
-            background-color: var(--medium-text);
-            border-color: var(--medium-text);
-            color: var(--dark-bg);
-        }
-        .btn-secondary {
-            background-color: var(--border-color);
-            border-color: var(--border-color);
-            color: var(--light-text);
-        }
-        .btn-secondary:hover {
-            background-color: var(--medium-text);
-            border-color: var(--medium-text);
-            color: var(--dark-bg);
-        }
+
         .list-group-item {
-            background-color: var(--dark-bg);
-            border-color: var(--border-color);
-            color: var(--light-text);
+            border-color: var(--neutral-100);
         }
         .list-group-item strong {
-            color: var(--accent-color);
+            color: var(--primary-blue);
         }
-        .list-group-item small {
-            color: var(--medium-text) !important;
+
+        /* Button Styling */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
         }
         .btn-outline-danger {
-            color: var(--status-danger);
-            border-color: var(--status-danger);
+            color: var(--danger);
+            border-color: var(--danger);
         }
         .btn-outline-danger:hover {
-            background-color: var(--status-danger);
-            color: var(--light-text);
+            background-color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.75rem;
+            }
+            .time-label {
+                width: 80px;
+                font-size: 0.85rem;
+            }
+            .occupancy-bar-container {
+                margin: 0 1rem;
+            }
+            .occupancy-text {
+                width: 70px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container my-5">
         <header class="header">
-            <h1>HALLEL 渋谷店 予約状況 <span class="badge bg-success">管理者用</span></h1>
-            <div class="date-controls">
-                <button id="prev-day" class="btn">‹</button>
-                <input type="date" id="date-picker" class="form-control">
-                <button id="next-day" class="btn">›</button>
+            <div class="header-content">
+                <h1>HALLEL 渋谷店 <span class="badge">管理者用</span></h1>
+                <div class="date-controls">
+                    <button id="prev-day" class="btn">‹ 前日</button>
+                    <input type="date" id="date-picker" class="form-control">
+                    <button id="next-day" class="btn">翌日 ›</button>
+                </div>
+                <p class="lead" id="current-date"></p>
+                <div class="reservation-count" id="reservation-count">📊 予約件数: 0件</div>
             </div>
-            <p class="lead mt-2 mb-0" id="current-date"></p>
         </header>
 
-        <ul class="timeline" id="timeline">
-            <!-- Time slots will be generated by JavaScript -->
-        </ul>
+        <div class="timeline-card">
+            <ul class="timeline" id="timeline">
+                <!-- Time slots will be generated by JavaScript -->
+            </ul>
+        </div>
     </div>
 
     <!-- Booking Modal -->
@@ -294,7 +375,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modal-title"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="form-check form-switch mb-3">
@@ -328,6 +409,7 @@
             const MAX_CAPACITY = 7;
             const timeline = document.getElementById('timeline');
             const currentDateEl = document.getElementById('current-date');
+            const reservationCountEl = document.getElementById('reservation-count');
             const datePicker = document.getElementById('date-picker');
             const prevDayBtn = document.getElementById('prev-day');
             const nextDayBtn = document.getElementById('next-day');
@@ -340,7 +422,7 @@
 
             let savedDate = localStorage.getItem('hallel-booking-date');
             let currentDate = savedDate ? new Date(savedDate) : new Date();
-            currentDate.setHours(0, 0, 0, 0); // Normalize time
+            currentDate.setHours(0, 0, 0, 0);
 
             let selectedSlot = null;
             let reservationsByDate = {};
@@ -371,11 +453,14 @@
 
                 const reservations = reservationsByDate[dateString] || [];
 
+                // 予約件数を表示
+                reservationCountEl.textContent = `📊 予約件数: ${reservations.length}件`;
+
                 const timeSlots = [];
                 for (let h = 0; h < 24; h++) {
                     for (let m = 0; m < 60; m += 30) {
                         const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                        timeSlots.push({ timeLabel: `${startTime} - ...`, start: startTime, count: 0, isCharter: false });
+                        timeSlots.push({ timeLabel: startTime, start: startTime, count: 0, isCharter: false });
                     }
                 }
 
@@ -398,25 +483,27 @@
                 let html = '';
                 timeSlots.forEach(slot => {
                     let percentage = (slot.count / MAX_CAPACITY) * 100;
-                    let colorClass = 'bg-success';
+                    let colorClass = 'status-available';
                     let label = `${slot.count} / ${MAX_CAPACITY}`;
 
                     if (slot.isCharter) {
                         percentage = 100;
-                        colorClass = 'bg-dark';
+                        colorClass = 'status-danger';
                         label = '貸切';
-                    } else if (percentage >= 70) {
-                        colorClass = 'bg-danger';
-                    } else if (percentage >= 40) {
-                        colorClass = 'bg-warning';
+                    } else if (slot.count >= 6) {
+                        colorClass = 'status-danger';
+                    } else if (slot.count >= 4) {
+                        colorClass = 'status-warning';
                     }
 
                     html += `
                         <li class="time-slot" data-start="${slot.start}">
                             <div class="time-label">${slot.start}</div>
-                            <div class="occupancy-bar">
-                                <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
-                                    ${slot.isCharter ? '' : (slot.count > 0 ? slot.count : '')}
+                            <div class="occupancy-bar-container">
+                                <div class="occupancy-bar">
+                                    <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
+                                        ${slot.count > 0 || slot.isCharter ? label : ''}
+                                    </div>
                                 </div>
                             </div>
                             <div class="occupancy-text">${label}</div>
@@ -459,7 +546,7 @@
                             displayName = `<strong>🔒 貸切予約</strong>`;
                         } else if (res.type === 'manual') {
                             displayName = `📝 手動予約: ${customerName}`;
-                        } else { // gmail
+                        } else {
                             displayName = `✉️ Gmail予約: ${customerName}`;
                         }
 
