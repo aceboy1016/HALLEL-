@@ -760,7 +760,8 @@
                         todayButton.textContent = '今月';
                         todayButton.type = 'button';
                         todayButton.addEventListener('click', function() {
-                            instance.setDate(new Date());
+                            instance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
+                            instance.close(); // カレンダーを閉じる
                         });
                         calendarContainer.appendChild(todayButton);
                     }
@@ -770,7 +771,7 @@
             // 今月ボタン
             const todayBtn = document.getElementById('today-btn');
             todayBtn.addEventListener('click', () => {
-                datePickerInstance.setDate(new Date());
+                datePickerInstance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
             });
 
             // 予約データを取得して表示

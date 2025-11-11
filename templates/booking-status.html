@@ -669,7 +669,8 @@
                         todayButton.textContent = '今月';
                         todayButton.type = 'button';
                         todayButton.addEventListener('click', function() {
-                            instance.setDate(new Date());
+                            instance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
+                            instance.close(); // カレンダーを閉じる
                         });
                         calendarContainer.appendChild(todayButton);
                     }
@@ -679,7 +680,7 @@
             // 今月ボタン
             const todayBtn = document.getElementById('today-btn');
             todayBtn.addEventListener('click', () => {
-                fp.setDate(new Date());
+                fp.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
             });
 
             function timeToMinutes(time) {
