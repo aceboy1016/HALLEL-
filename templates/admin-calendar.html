@@ -498,13 +498,28 @@
                             customer_name: btn.dataset.customer
                         };
 
-                        await fetch('/api/reservations/delete', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(deleteData)
-                        });
-                        await fetchReservations();
-                        showExistingBookings();
+                        try {
+                            const response = await fetch('/api/reservations/delete', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(deleteData)
+                            });
+
+                            const result = await response.json();
+
+                            if (!response.ok) {
+                                alert(`削除に失敗しました: ${result.error || 'Unknown error'}`);
+                                console.error('Delete failed:', result);
+                                return;
+                            }
+
+                            console.log('Delete successful:', result);
+                            await fetchReservations();
+                            showExistingBookings();
+                        } catch (error) {
+                            alert(`エラーが発生しました: ${error.message}`);
+                            console.error('Delete error:', error);
+                        }
                     });
                 });
             }
@@ -526,14 +541,28 @@
                     end: endTime
                 };
 
-                await fetch('/api/reservations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newBooking)
-                });
+                try {
+                    const response = await fetch('/api/reservations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newBooking)
+                    });
 
-                bookingModal.hide();
-                await fetchReservations();
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        alert(`予約登録に失敗しました: ${result.error || 'Unknown error'}`);
+                        console.error('Save failed:', result);
+                        return;
+                    }
+
+                    console.log('Save successful:', result);
+                    bookingModal.hide();
+                    await fetchReservations();
+                } catch (error) {
+                    alert(`エラーが発生しました: ${error.message}`);
+                    console.error('Save error:', error);
+                }
             });
 
             prevDayBtn.addEventListener('click', () => {
