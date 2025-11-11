@@ -97,6 +97,12 @@ def admin_page():
 
     return render_template('admin.html', logs=reversed(logs))
 
+@app.route('/admin/calendar')
+def admin_calendar():
+    if not is_logged_in():
+        return redirect(url_for('login'))
+    return render_template('admin-calendar.html')
+
 @app.route('/admin/change_password', methods=['POST'])
 def change_password():
     if not is_logged_in():
@@ -191,6 +197,35 @@ def add_reservation():
         conn.commit()
         log_activity(f"Manual reservation added: {data}")
         return jsonify({'message': 'Reservation added'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        return_db_conn(conn)
+
+@app.route('/api/reservations/delete', methods=['POST'])
+def delete_reservation():
+    """予約を削除"""
+    if not is_logged_in():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                DELETE FROM reservations
+                WHERE date = %s AND start_time = %s AND end_time = %s
+                AND customer_name = %s AND store = 'shibuya'
+            """, (
+                data.get('date'),
+                data.get('start'),
+                data.get('end'),
+                data.get('customer_name')
+            ))
+        conn.commit()
+        log_activity(f"Reservation deleted: {data}")
+        return jsonify({'message': 'Reservation deleted'})
     except Exception as e:
         conn.rollback()
         return jsonify({'error': str(e)}), 500
