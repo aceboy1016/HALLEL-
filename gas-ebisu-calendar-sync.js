@@ -249,56 +249,6 @@ function removeDuplicateReservation(calendar, fullName, eventTime, studio) {
   }
 }
 
-/**
- * 利用可能な枠数をチェック
- */
-function checkAvailableSlots(calendar, eventTime, newStudio) {
-  // 完全に重なる時間帯の予約を検索
-  const events = calendar.getEvents(eventTime.startTime, eventTime.endTime);
-
-  const existingReservations = [];
-
-  for (let event of events) {
-    const eventTitle = event.getTitle();
-    const eventStart = event.getStartTime();
-    const eventEnd = event.getEndTime();
-
-    // HALLEL予約のみカウント
-    if (!eventTitle.includes('HALLEL-')) {
-      continue;
-    }
-
-    // 時間が重なっているかチェック
-    const hasOverlap = checkTimeOverlap(
-      eventStart, eventEnd,
-      eventTime.startTime, eventTime.endTime
-    );
-
-    if (hasOverlap) {
-      existingReservations.push(eventTitle);
-    }
-  }
-
-  const currentSlots = existingReservations.length;
-  const available = currentSlots < CONFIG_EBISU.MAX_SLOTS;
-
-  return {
-    available: available,
-    currentSlots: currentSlots,
-    maxSlots: CONFIG_EBISU.MAX_SLOTS,
-    existingReservations: existingReservations,
-    message: `現在 ${currentSlots}/${CONFIG_EBISU.MAX_SLOTS}枠使用中`
-  };
-}
-
-/**
- * 時間の重なりをチェック
- */
-function checkTimeOverlap(start1, end1, start2, end2) {
-  // 開始時間が終了時間より前にある場合は重なりあり
-  return start1 < end2 && start2 < end1;
-}
-
 // ============================================================
 // データ抽出関数
 // ============================================================
@@ -441,7 +391,7 @@ function formatTime(date) {
 // ============================================================
 
 /**
- * 定期実行トリガーを設定（5分ごと）
+ * 定期実行トリガーを設定（30分ごと）
  */
 function setupEbisuTrigger() {
   console.log('⚡ 恵比寿店トリガーを設定します...');
@@ -455,18 +405,18 @@ function setupEbisuTrigger() {
     }
   });
 
-  // 新しいトリガーを作成（5分ごと）
+  // 新しいトリガーを作成（30分ごと）
   ScriptApp.newTrigger('manageHallelReservations')
     .timeBased()
-    .everyMinutes(5)
+    .everyMinutes(30)
     .create();
 
-  console.log('✅ 定期実行トリガー設定完了（5分ごと）');
+  console.log('✅ 定期実行トリガー設定完了（30分ごと）');
 
   return {
     success: true,
-    interval: '5分ごと',
-    message: '恵比寿店の予約を5分ごとに自動同期します'
+    interval: '30分ごと',
+    message: '恵比寿店の予約を30分ごとに自動同期します'
   };
 }
 
