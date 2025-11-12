@@ -691,7 +691,7 @@ function checkLabelStatus() {
 // ============================================================
 
 /**
- * カレンダーの全HALLEL予約を削除
+ * カレンダーの全HALLEL予約を削除（レート制限対応版）
  * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
  * 注意: この操作は元に戻せません！
  */
@@ -718,8 +718,10 @@ function clearAllEbisuCalendarEvents() {
     console.log(`📊 削除対象: ${events.length}件のイベント`);
 
     let deletedCount = 0;
+    const batchSize = 10; // 10件ずつ処理
 
-    for (let event of events) {
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
       const title = event.getTitle();
 
       // HALLEL予約のみ削除（他のイベントは残す）
@@ -727,6 +729,12 @@ function clearAllEbisuCalendarEvents() {
         console.log(`🗑️ 削除: ${title} [${formatDateTime(event.getStartTime())}]`);
         event.deleteEvent();
         deletedCount++;
+
+        // 10件ごとに1秒待機（レート制限回避）
+        if (deletedCount % batchSize === 0) {
+          console.log(`⏸️ ${deletedCount}件削除完了。1秒待機中...`);
+          Utilities.sleep(1000);
+        }
       }
     }
 
