@@ -718,7 +718,7 @@ function clearAllEbisuCalendarEvents() {
     console.log(`📊 削除対象: ${events.length}件のイベント`);
 
     let deletedCount = 0;
-    const batchSize = 10; // 10件ずつ処理
+    const batchSize = 5; // 5件ずつ処理（レート制限対策）
 
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
@@ -727,13 +727,36 @@ function clearAllEbisuCalendarEvents() {
       // HALLEL予約のみ削除（他のイベントは残す）
       if (title.includes('HALLEL-')) {
         console.log(`🗑️ 削除: ${title} [${formatDateTime(event.getStartTime())}]`);
-        event.deleteEvent();
-        deletedCount++;
 
-        // 10件ごとに1秒待機（レート制限回避）
-        if (deletedCount % batchSize === 0) {
-          console.log(`⏸️ ${deletedCount}件削除完了。1秒待機中...`);
-          Utilities.sleep(1000);
+        try {
+          event.deleteEvent();
+          deletedCount++;
+
+          // 5件ごとに3秒待機（レート制限回避）
+          if (deletedCount % batchSize === 0) {
+            console.log(`⏸️ ${deletedCount}件削除完了。3秒待機中...`);
+            Utilities.sleep(3000);
+          }
+        } catch (error) {
+          console.error(`❌ 削除エラー (${title}): ${error.message}`);
+
+          // レート制限エラーの場合は処理を中断
+          if (error.message.includes('too many')) {
+            console.log(`⚠️ レート制限に達しました。${deletedCount}件削除済み。`);
+            console.log(`💡 数時間後に再度 resetAndReprocessAll() を実行してください。`);
+
+            return {
+              success: false,
+              deleted: deletedCount,
+              total: events.length,
+              remaining: events.length - i - 1,
+              error: 'レート制限エラー',
+              message: `${deletedCount}件削除済み。残り約${events.length - i - 1}件。数時間後に再実行してください。`
+            };
+          }
+
+          // その他のエラーは続行
+          continue;
         }
       }
     }
