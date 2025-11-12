@@ -2,49 +2,224 @@
 
 HALLEL渋谷店の予約状況を管理・表示するWebアプリケーションです。
 
+## 🌐 本番環境
+
+**公開ページ（お客様向け）:**
+https://hallel-shibuya.vercel.app/
+
+**管理者ページ:**
+https://hallel-shibuya.vercel.app/admin
+パスワード: `hallel0000admin`
+
 ## 📋 機能
 
 ### 🌐 公開ページ
 - リアルタイムの予約状況確認
 - 30分単位のタイムスロット表示
 - カレンダーで日付切り替え
+- 混雑度を視覚的に表示：
+  - **緑（空いてる）**: 0-2人
+  - **黄（普通）**: 3-5人
+  - **赤（混んでる）**: 6-7人
+  - **グレー（貸切）**: 貸切予約
 - ダークテーマのスタイリッシュなデザイン
 - レスポンシブ対応（スマホ・PC）
 
 ### 🔐 管理者機能
-- 管理者ログイン認証
-- 予約の手動追加・削除
-- 貸切予約の管理
+
+**ダッシュボード（/admin）:**
+- 日付別の予約一覧表示
+- 顧客名・予約種別の確認（Gmail/手動/貸切）
+- 予約の削除
+- 重複データの一括削除
 - アクティビティログの閲覧
 - パスワード変更機能
 
-### 📧 Gmail自動連携
-- Gmailから予約メールを自動検知
-- 予約・キャンセルの自動反映
-- **メール数過多対策実装済み**
-  - 日付・キーワードフィルタリング
-  - 処理件数制限
-  - ラベル使用を最小化
+**編集カレンダー（/admin/calendar）:**
+- 時間軸に沿った予約の視覚的表示
+- タイムスロットをクリックして予約追加
+- 既存予約の削除
+- 貸切予約の設定
+- 日付ごとの予約件数表示
 
-## 🚀 クイックスタート
+### 📧 Gmail自動連携（GAS Webhook）
+- Gmailから予約メールを自動検知
+- Google Apps Scriptから予約データをWebhookで送信
+- 予約・キャンセルの自動反映
+- email_idによる重複防止機能
+- 同じメールの重複登録を自動検出・更新
+
+## 🚀 技術スタック
+
+- **バックエンド**: Flask (Python)
+- **データベース**: PostgreSQL (Neon)
+- **デプロイ**: Vercel (Serverless)
+- **フロントエンド**: Bootstrap 5, flatpickr
+- **Gmail連携**: Google Apps Script → Webhook
+
+## 🗃️ データベース
+
+本システムはPostgreSQL（Neon）を使用してデータを永続化しています。
+
+### テーブル構成
+
+**reservations テーブル:**
+```sql
+CREATE TABLE reservations (
+    id SERIAL PRIMARY KEY,
+    store VARCHAR(50),
+    date DATE,
+    start_time TIME,
+    end_time TIME,
+    type VARCHAR(20),
+    customer_name VARCHAR(255),
+    email_id VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### データベース接続
+
+環境変数 `DATABASE_URL` にNeonのPostgreSQL接続文字列を設定します。
+
+```bash
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+```
+
+## 📡 API エンドポイント
+
+### GET /api/reservations
+すべての予約データを日付別に取得します。
+
+**レスポンス例:**
+```json
+{
+  "2024-12-01": [
+    {
+      "type": "gmail",
+      "start": "14:00",
+      "end": "15:00",
+      "customer_name": "山田太郎"
+    },
+    {
+      "type": "charter",
+      "start": "11:00",
+      "end": "13:00",
+      "customer_name": null
+    }
+  ]
+}
+```
+
+### POST /api/reservations
+予約を追加します（管理者のみ）。
+
+**リクエスト例:**
+```json
+{
+  "date": "2024-12-01",
+  "type": "manual",
+  "start": "16:00",
+  "end": "17:00",
+  "customer_name": "田中花子"
+}
+```
+
+### POST /api/reservations/delete
+予約を削除します（管理者のみ）。
+
+**リクエスト例:**
+```json
+{
+  "date": "2024-12-01",
+  "start": "16:00",
+  "end": "17:00",
+  "customer_name": "田中花子"
+}
+```
+
+### POST /api/gas/webhook
+Google Apps ScriptからのWebhook受信エンドポイント。
+
+**リクエスト例（予約）:**
+```json
+{
+  "reservations": [
+    {
+      "store": "shibuya",
+      "date": "2024-12-05",
+      "start_time": "14:00",
+      "end_time": "15:30",
+      "customer_name": "佐藤一郎",
+      "email_id": "abc123xyz",
+      "is_cancellation": false
+    }
+  ]
+}
+```
+
+**リクエスト例（キャンセル）:**
+```json
+{
+  "reservations": [
+    {
+      "email_id": "abc123xyz",
+      "is_cancellation": true,
+      "store": "shibuya"
+    }
+  ]
+}
+```
+
+### POST /api/admin/cleanup-duplicates
+重複した予約データを削除します（管理者のみ）。
+
+## 📁 ファイル構成
+
+```
+HALLEL-/
+├── app.py                      # メインアプリケーション（Flask）
+├── requirements.txt            # Python依存パッケージ
+├── vercel.json                 # Vercelデプロイ設定
+├── password.txt                # 管理者パスワード（ハッシュ化）
+├── activity.log                # アクティビティログ
+│
+├── templates/                  # HTMLテンプレート
+│   ├── booking-status.html     # 公開予約状況ページ
+│   ├── admin.html              # 管理ダッシュボード
+│   ├── admin-calendar.html     # カレンダー編集ページ
+│   └── login.html              # ログインページ
+│
+└── README.md                   # このファイル
+```
+
+## 🛠️ ローカル開発
 
 ### 1. 必要なソフトウェア
 
-- Python 3.8以上
+- Python 3.9以上
 - pip
+- PostgreSQL（または、Neonアカウント）
 
 ### 2. インストール
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/yourusername/HALLEL-.git
+git clone https://github.com/aceboy1016/HALLEL-.git
 cd HALLEL-
 
 # 依存パッケージのインストール
 pip install -r requirements.txt
 ```
 
-### 3. アプリケーションの起動
+### 3. 環境変数の設定
+
+```bash
+# .env ファイルを作成
+echo "DATABASE_URL=postgresql://user:password@host/database?sslmode=require" > .env
+```
+
+### 4. アプリケーションの起動
 
 ```bash
 python app.py
@@ -52,89 +227,59 @@ python app.py
 
 アプリケーションは http://localhost:5001 で起動します。
 
-### 4. 初期ログイン
+### 5. 初期ログイン
 
-- URL: http://localhost:5001/login
-- 初期パスワード: `hallel0000admin`
+- URL: http://localhost:5001/admin
+- パスワード: `hallel0000admin`
 
-**重要: 初回ログイン後、必ずパスワードを変更してください！**
+**重要: 本番環境では必ずパスワードを変更してください！**
 
-## 📁 ファイル構成
+## 📧 Gmail連携（Google Apps Script）
+
+Gmail連携はGoogle Apps Script (GAS) を使用して実装されています。
+
+### セットアップ手順
+
+1. Google Apps Scriptプロジェクトを作成
+2. 以下のトリガーを設定：
+   - 関数: `processReservationEmails`
+   - イベントソース: 時間主導型
+   - 時間ベースのトリガー: 5分おき
+3. スクリプトプロパティに以下を設定：
+   - `WEBHOOK_URL`: `https://hallel-shibuya.vercel.app/api/gas/webhook`
+
+### GASスクリプトの概要
+
+GASスクリプトは以下の処理を実行します：
+
+1. Gmailから予約メールを検索（過去7日間、未読のみ）
+2. メール内容から予約情報を抽出（日付、時間、顧客名など）
+3. Webhookエンドポイントにデータ送信
+4. 処理済みメールを既読にする
+
+## 🚀 デプロイ（Vercel）
+
+本システムはVercelにデプロイされています。
+
+### デプロイ方法
+
+1. GitHubリポジトリをVercelに接続
+2. 環境変数 `DATABASE_URL` を設定
+3. mainブランチにプッシュすると自動デプロイ
+
+### 環境変数
+
+Vercelの環境変数設定で以下を追加：
 
 ```
-HALLEL-/
-├── app.py                      # メインアプリケーション
-├── requirements.txt            # Python依存パッケージ
-├── password.txt                # 管理者パスワード（ハッシュ化）
-├── activity.log                # アクティビティログ
-│
-├── templates/                  # HTMLテンプレート
-│   ├── booking-status.html     # 公開予約状況ページ
-│   ├── admin.html              # 管理ダッシュボード
-│   ├── admin-calendar.html     # カレンダー管理
-│   └── login.html              # ログインページ
-│
-├── gmail_booking_sync.py       # Gmail連携スクリプト（Python版）
-├── google-apps-script.js       # Gmail連携スクリプト（GAS版）
-├── get_gmail_token.py          # Gmail認証トークン取得
-│
-├── config.example.py           # 設定ファイルの例
-├── README.md                   # このファイル
-└── GMAIL_SETUP.md              # Gmail連携セットアップガイド
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
 ```
-
-## 📧 Gmail連携のセットアップ
-
-Gmail連携を使用すると、予約メールを自動的に検知してシステムに反映できます。
-
-詳しいセットアップ方法は **[GMAIL_SETUP.md](GMAIL_SETUP.md)** を参照してください。
-
-### メール数過多問題について
-
-Gmail APIでは、大量のメールにラベルを付けようとするとAPIの制限に引っかかります。
-本システムでは以下の対策を実装しています：
-
-- ✅ 過去7日間のメールのみ対象
-- ✅ 未読メールのみ処理
-- ✅ 件名キーワードでフィルタリング
-- ✅ 一度に最大50件まで処理
-- ✅ ラベル不使用（既読マークのみ）
-
-詳細は [GMAIL_SETUP.md](GMAIL_SETUP.md) の「メール数過多対策について」を参照。
-
-## 🎨 画面説明
-
-### 公開ページ（/）
-一般客が予約状況を確認できるページです。
-
-- **緑**: 空いています（0-40%）
-- **黄**: やや混雑（40-70%）
-- **赤**: 混雑（70%以上）
-- **グレー**: 貸切
-
-### 管理者ページ（/admin）
-ログイン後にアクセスできる管理画面です。
-
-- アクティビティログの閲覧
-- パスワード変更
-- カレンダー管理へのリンク
-
-### カレンダー管理（/admin/calendar）
-予約の追加・削除を行えます。
-
-- タイムスロットをクリックして予約追加
-- 既存予約の削除
-- 貸切予約の設定
 
 ## 🔧 設定
 
 ### 最大収容人数の変更
 
-`app.py` と各HTMLファイルの `MAX_CAPACITY` を変更してください。
-
-```python
-# app.py (該当なし、HTMLファイルで設定)
-```
+HTMLファイルの `MAX_CAPACITY` を変更してください。
 
 ```javascript
 // templates/booking-status.html
@@ -146,123 +291,24 @@ const MAX_CAPACITY = 7;  // ここを変更
 
 管理者画面（/admin）からパスワードを変更できます。
 
-または、初期パスワードを変更したい場合は：
-
-1. `password.txt` を削除
-2. `app.py` の `set_initial_password()` 関数内のパスワードを変更
-3. アプリケーションを再起動
-
-## 📡 API エンドポイント
-
-### GET /api/reservations
-すべての予約データを取得します。
-
-**レスポンス例:**
-```json
-{
-  "2025-08-01": [
-    { "type": "gmail", "start": "14:00", "end": "15:00" },
-    { "type": "charter", "start": "11:00", "end": "13:00" }
-  ]
-}
-```
-
-### POST /api/reservations
-予約を追加します（管理者のみ）。
-
-**リクエスト例:**
-```json
-{
-  "date": "2025-08-01",
-  "type": "manual",
-  "start": "16:00",
-  "end": "17:00"
-}
-```
-
-### POST /api/reservations/delete
-予約を削除します（管理者のみ）。
-
-**リクエスト例:**
-```json
-{
-  "date": "2025-08-01",
-  "index": 0
-}
-```
-
-### POST /api/process_email
-Gmail連携用のエンドポイントです（外部スクリプトから呼び出し）。
-
-**予約の追加:**
-```json
-{
-  "action_type": "booking",
-  "date": "2025-08-05",
-  "start_time": "14:00",
-  "end_time": "15:30"
-}
-```
-
-**予約のキャンセル:**
-```json
-{
-  "action_type": "cancellation",
-  "date": "2025-08-05",
-  "start_time": "14:00"
-}
-```
-
-## 🗃️ データの永続化
-
-現在、予約データはメモリ上に保存されているため、サーバーを再起動するとデータが消えます。
-
-### 本番環境での推奨事項
-
-1. **データベースの導入**
-   - SQLite（小規模）
-   - PostgreSQL（中〜大規模）
-
-2. **バックアップ機能の追加**
-   - 定期的なデータのJSONエクスポート
-   - データベースのバックアップ
-
-3. **本番用サーバーの使用**
-   - Gunicorn + Nginx
-   - または、PaaSサービス（Heroku、Railway等）
-
 ## 🛡️ セキュリティ
 
 ### 本番環境での注意点
 
-1. **SECRET_KEYの変更**
-   ```python
-   app.config['SECRET_KEY'] = os.urandom(24)  # 固定値に変更
-   ```
+1. **パスワードの変更**
+   - 初期パスワード `hallel0000admin` を必ず変更
 
 2. **HTTPS の使用**
-   - SSL証明書の設定
-   - Let's Encrypt等の無料証明書を推奨
+   - Vercelは自動的にHTTPSを提供
 
-3. **パスワードポリシー**
-   - 最低8文字以上（実装済み）
-   - 定期的な変更を推奨
+3. **認証情報の管理**
+   - データベース接続文字列を環境変数で管理
+   - Gitにコミットしない
 
-4. **認証情報の管理**
-   - credentials.json と token.json をGitにコミットしない
-   - .gitignore に追加済み
+4. **セッション管理**
+   - FlaskのセッションはSECRET_KEYで暗号化
 
 ## 🐛 トラブルシューティング
-
-### アプリが起動しない
-
-**原因:** ポート5001が使用中
-
-```bash
-# 別のポートで起動
-python app.py
-# app.py内のポート番号を変更
-```
 
 ### ログインできない
 
@@ -270,24 +316,29 @@ python app.py
 2. アプリケーションを再起動
 3. 初期パスワード `hallel0000admin` でログイン
 
+### データベースに接続できない
+
+1. 環境変数 `DATABASE_URL` が正しく設定されているか確認
+2. Neonのデータベースが起動しているか確認
+3. SSL接続が有効になっているか確認（`?sslmode=require`）
+
 ### Gmail連携がうまく動かない
 
-[GMAIL_SETUP.md](GMAIL_SETUP.md) の「トラブルシューティング」を参照してください。
+1. GASスクリプトのトリガーが正しく設定されているか確認
+2. Webhookエンドポイントが正しいか確認
+3. GASの実行ログでエラーを確認
+
+## 📅 運用スケジュール
+
+- **11月中**: テスト運用（約1週間）
+  - 実際の予約データで動作確認
+  - 不具合があれば修正
+
+- **12月1日～**: 本格運用開始
 
 ## 📝 ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。
-
-## 🤝 コントリビューション
-
-バグ報告や機能追加の提案は、GitHubのIssueからお願いします。
-
-## 📞 サポート
-
-質問や問題がある場合は、以下の方法でお問い合わせください：
-
-- GitHub Issues
-- Email: support@hallel.example.com
+このプロジェクトは内部使用のために開発されました。
 
 ---
 
