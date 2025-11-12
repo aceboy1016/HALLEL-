@@ -421,6 +421,37 @@ function setupEbisuTrigger() {
 }
 
 /**
+ * 定期実行トリガーを設定（10分ごと）
+ * 明日以降はこちらを使用
+ */
+function setupEbisuTrigger10min() {
+  console.log('⚡ 恵比寿店トリガーを設定します（10分ごと）...');
+
+  // 既存のトリガーを削除
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'manageHallelReservations') {
+      console.log('🗑️ 既存のトリガーを削除');
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // 新しいトリガーを作成（10分ごと）
+  ScriptApp.newTrigger('manageHallelReservations')
+    .timeBased()
+    .everyMinutes(10)
+    .create();
+
+  console.log('✅ 定期実行トリガー設定完了（10分ごと）');
+
+  return {
+    success: true,
+    interval: '10分ごと',
+    message: '恵比寿店の予約を10分ごとに自動同期します'
+  };
+}
+
+/**
  * トリガーを削除
  */
 function deleteEbisuTriggers() {
