@@ -214,7 +214,7 @@ def delete_reservation():
 
     conn = get_db_conn()
     try:
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # まず該当する予約を検索
             cur.execute("""
                 SELECT id, customer_name, date, start_time, end_time
@@ -432,21 +432,32 @@ def gas_webhook():
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
                         else:
-                            # email_idがない場合は日付・時間・顧客名で重複チェック
+                            # email_idがない場合は日付・時間・店舗で重複チェック（より厳格）
                             cur.execute("""
-                                SELECT id FROM reservations
+                                SELECT id, customer_name FROM reservations
                                 WHERE date = %s AND start_time = %s AND end_time = %s
-                                AND customer_name = %s AND store = %s AND type = 'gmail'
+                                AND store = %s AND type = 'gmail'
                             """, (
                                 res['date'],
                                 res['start'],
                                 res['end'],
-                                res.get('customer_name', 'N/A'),
                                 res.get('store', 'shibuya')
                             ))
                             existing = cur.fetchone()
 
-                            if not existing:
+                            if existing:
+                                # 既存の予約を更新（顧客名を最新に）
+                                cur.execute("""
+                                    UPDATE reservations
+                                    SET customer_name = %s
+                                    WHERE id = %s
+                                """, (
+                                    res.get('customer_name', 'N/A'),
+                                    existing[0]
+                                ))
+                                updated_count += 1
+                                print(f'[DEBUG] Updated (no email_id) [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                            else:
                                 # 重複がない場合のみ追加
                                 cur.execute("""
                                     INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
@@ -462,8 +473,6 @@ def gas_webhook():
                                 ))
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
-                            else:
-                                print(f'[DEBUG] Skipped duplicate [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]}')
 
                         log_activity(f"Gmail booking processed: {res['date']} {res['start']}-{res['end']}")
 
