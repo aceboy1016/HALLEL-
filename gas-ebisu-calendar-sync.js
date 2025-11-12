@@ -685,3 +685,192 @@ function checkLabelStatus() {
     newLabel: newLabel ? newLabel.getThreads().length : 0
   };
 }
+
+// ============================================================
+// カレンダー全削除＆再処理機能
+// ============================================================
+
+/**
+ * カレンダーの全HALLEL予約を削除
+ * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
+ * 注意: この操作は元に戻せません！
+ */
+function clearAllEbisuCalendarEvents() {
+  console.log('🗑️ カレンダーの全HALLEL予約を削除します...');
+
+  try {
+    const calendar = CalendarApp.getCalendarById(CONFIG_EBISU.CALENDAR_ID);
+
+    if (!calendar) {
+      console.error('❌ カレンダーが見つかりません');
+      return { success: false, error: 'Calendar not found' };
+    }
+
+    // 過去1年〜未来1年の範囲で削除
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    const oneYearLater = new Date();
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+    const events = calendar.getEvents(oneYearAgo, oneYearLater);
+
+    console.log(`📊 削除対象: ${events.length}件のイベント`);
+
+    let deletedCount = 0;
+
+    for (let event of events) {
+      const title = event.getTitle();
+
+      // HALLEL予約のみ削除（他のイベントは残す）
+      if (title.includes('HALLEL-')) {
+        console.log(`🗑️ 削除: ${title} [${formatDateTime(event.getStartTime())}]`);
+        event.deleteEvent();
+        deletedCount++;
+      }
+    }
+
+    console.log(`✅ 削除完了: ${deletedCount}件のHALLEL予約を削除しました`);
+
+    return {
+      success: true,
+      deleted: deletedCount,
+      total: events.length,
+      message: `${deletedCount}件のHALLEL予約を削除しました`
+    };
+
+  } catch (error) {
+    console.error(`❌ 削除エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 全ての処理済みラベルを外す
+ * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
+ */
+function removeAllProcessedLabels() {
+  console.log('🔄 全ての処理済みラベルを外します...');
+
+  try {
+    const label = GmailApp.getUserLabelByName(CONFIG_EBISU.LABEL_PROCESSED);
+
+    if (!label) {
+      console.log('⚠️ 処理済みラベルが見つかりません');
+      return { success: false, message: 'ラベルが存在しません' };
+    }
+
+    const threads = label.getThreads();
+    console.log(`📧 対象: ${threads.length}件のスレッド`);
+
+    // バッチ処理（100件ずつ）
+    const batchSize = 100;
+    let removedCount = 0;
+
+    for (let i = 0; i < threads.length; i += batchSize) {
+      const batch = threads.slice(i, Math.min(i + batchSize, threads.length));
+
+      for (let thread of batch) {
+        thread.removeLabel(label);
+        removedCount++;
+      }
+
+      console.log(`📈 進行状況: ${Math.min(i + batchSize, threads.length)}/${threads.length}`);
+    }
+
+    console.log(`✅ 完了: ${removedCount}件のスレッドからラベルを外しました`);
+
+    return {
+      success: true,
+      removed: removedCount,
+      message: `${removedCount}件のスレッドからラベルを外しました`
+    };
+
+  } catch (error) {
+    console.error(`❌ エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 処理済みメッセージの記録を全削除
+ */
+function clearProcessedMessagesRecord() {
+  console.log('🗑️ 処理済みメッセージの記録を削除します...');
+
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const allProps = props.getProperties();
+
+    let deletedCount = 0;
+
+    for (let key in allProps) {
+      if (key.startsWith('processed_')) {
+        props.deleteProperty(key);
+        deletedCount++;
+      }
+    }
+
+    console.log(`✅ 完了: ${deletedCount}件の記録を削除しました`);
+
+    return {
+      success: true,
+      deleted: deletedCount,
+      message: `${deletedCount}件の記録を削除しました`
+    };
+
+  } catch (error) {
+    console.error(`❌ エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 【統合関数】カレンダークリア＆全メール再処理
+ * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
+ * 注意: カレンダーの全HALLEL予約が削除されます！
+ */
+function resetAndReprocessAll() {
+  console.log('🔄 カレンダーリセット＆全メール再処理を開始します...\n');
+
+  try {
+    // ステップ1: カレンダーの全HALLEL予約を削除
+    console.log('=== ステップ1: カレンダー削除 ===');
+    const clearResult = clearAllEbisuCalendarEvents();
+    console.log(`結果: ${clearResult.message}\n`);
+
+    // ステップ2: ラベルを外す
+    console.log('=== ステップ2: ラベル削除 ===');
+    const labelResult = removeAllProcessedLabels();
+    console.log(`結果: ${labelResult.message}\n`);
+
+    // ステップ3: 処理済み記録をクリア
+    console.log('=== ステップ3: 処理済み記録クリア ===');
+    const recordResult = clearProcessedMessagesRecord();
+    console.log(`結果: ${recordResult.message}\n`);
+
+    // ステップ4: 全メール再処理
+    console.log('=== ステップ4: 全メール再処理 ===');
+    console.log('5秒待機してから再処理を開始します...');
+    Utilities.sleep(5000);
+
+    const processResult = manageHallelReservations();
+    console.log(`結果: 成功 ${processResult.processed}件 / エラー ${processResult.errors}件\n`);
+
+    console.log('✅ 全処理完了！');
+
+    return {
+      success: true,
+      calendarCleared: clearResult.deleted,
+      labelsRemoved: labelResult.removed,
+      recordsCleared: recordResult.deleted,
+      reprocessed: processResult.processed,
+      errors: processResult.errors,
+      message: 'カレンダーリセット＆再処理が完了しました'
+    };
+
+  } catch (error) {
+    console.error(`❌ 統合処理エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
