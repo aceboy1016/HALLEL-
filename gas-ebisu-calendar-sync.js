@@ -539,3 +539,149 @@ function checkEbisuReservations() {
 
   return { totalEvents: events.length };
 }
+
+// ============================================================
+// マイグレーション関数
+// ============================================================
+
+/**
+ * 古い「Processed」ラベルから新しい「HALLEL_Ebisu/Processed」ラベルへ移行
+ * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
+ */
+function migrateOldProcessedLabel() {
+  console.log('🔄 ラベル移行開始: Processed → HALLEL_Ebisu/Processed');
+
+  try {
+    const oldLabel = GmailApp.getUserLabelByName('Processed');
+    const newLabel = GmailApp.getUserLabelByName(CONFIG_EBISU.LABEL_PROCESSED);
+
+    if (!oldLabel) {
+      console.log('⚠️ 古い「Processed」ラベルが見つかりません');
+      return { success: false, message: '古いラベルが存在しません' };
+    }
+
+    if (!newLabel) {
+      console.log('📝 新しいラベルを作成します...');
+      GmailApp.createLabel(CONFIG_EBISU.LABEL_PROCESSED);
+    }
+
+    // 古いラベルが付いているスレッドを検索
+    const threads = oldLabel.getThreads();
+    console.log(`📧 移行対象: ${threads.length}件のスレッド`);
+
+    let migratedCount = 0;
+    const batchSize = 100;
+
+    for (let i = 0; i < threads.length; i += batchSize) {
+      const batch = threads.slice(i, Math.min(i + batchSize, threads.length));
+
+      for (let thread of batch) {
+        // 恵比寿店のメールかチェック
+        const messages = thread.getMessages();
+        let isEbisuThread = false;
+
+        for (let message of messages) {
+          const body = message.getPlainBody();
+          if (body.includes('恵比寿')) {
+            isEbisuThread = true;
+            break;
+          }
+        }
+
+        if (isEbisuThread) {
+          // 新しいラベルを追加
+          const newLabelObj = GmailApp.getUserLabelByName(CONFIG_EBISU.LABEL_PROCESSED);
+          thread.addLabel(newLabelObj);
+          migratedCount++;
+
+          console.log(`✅ 移行完了: ${thread.getFirstMessageSubject()}`);
+        }
+      }
+
+      // 進行状況を表示
+      console.log(`📈 進行状況: ${Math.min(i + batchSize, threads.length)}/${threads.length}`);
+    }
+
+    console.log(`\n✅ 移行完了: ${migratedCount}件を新しいラベルに移行しました`);
+    console.log(`ℹ️ 古い「Processed」ラベルは残っています（手動で削除してください）`);
+
+    return {
+      success: true,
+      migrated: migratedCount,
+      total: threads.length,
+      message: `${migratedCount}件のスレッドを移行しました`
+    };
+
+  } catch (error) {
+    console.error(`❌ 移行エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 古い「Processed」ラベルを削除
+ * 使い方: migrateOldProcessedLabel()を実行した後に使用
+ * 注意: この操作は元に戻せません！
+ */
+function deleteOldProcessedLabel() {
+  console.log('🗑️ 古い「Processed」ラベルを削除します...');
+
+  try {
+    const oldLabel = GmailApp.getUserLabelByName('Processed');
+
+    if (!oldLabel) {
+      console.log('⚠️ 古い「Processed」ラベルが見つかりません（既に削除済み）');
+      return { success: false, message: 'ラベルが存在しません' };
+    }
+
+    // ラベルが付いているスレッド数を確認
+    const threads = oldLabel.getThreads();
+    console.log(`⚠️ このラベルは ${threads.length}件のスレッドに付いています`);
+
+    // 確認
+    console.log('📝 ラベルを削除します（スレッド自体は削除されません）');
+    oldLabel.deleteLabel();
+
+    console.log('✅ 古い「Processed」ラベルを削除しました');
+
+    return {
+      success: true,
+      message: '古いラベルを削除しました'
+    };
+
+  } catch (error) {
+    console.error(`❌ 削除エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ラベル状況を確認
+ */
+function checkLabelStatus() {
+  console.log('📊 ラベル状況を確認中...\n');
+
+  const oldLabel = GmailApp.getUserLabelByName('Processed');
+  const newLabel = GmailApp.getUserLabelByName(CONFIG_EBISU.LABEL_PROCESSED);
+
+  console.log('=== 古いラベル「Processed」 ===');
+  if (oldLabel) {
+    const oldThreads = oldLabel.getThreads();
+    console.log(`✅ 存在する: ${oldThreads.length}件のスレッドに付与`);
+  } else {
+    console.log('❌ 存在しない');
+  }
+
+  console.log('\n=== 新しいラベル「HALLEL_Ebisu/Processed」 ===');
+  if (newLabel) {
+    const newThreads = newLabel.getThreads();
+    console.log(`✅ 存在する: ${newThreads.length}件のスレッドに付与`);
+  } else {
+    console.log('❌ 存在しない');
+  }
+
+  return {
+    oldLabel: oldLabel ? oldLabel.getThreads().length : 0,
+    newLabel: newLabel ? newLabel.getThreads().length : 0
+  };
+}

@@ -30,6 +30,26 @@ GmailからHALLEL恵比寿店の予約完了・キャンセルメールを自動
 
 ## セットアップ
 
+### 0. 既存のラベルがある場合（重要！）
+
+既に旧スクリプトで「Processed」ラベルを使用していた場合、まず**ラベルの移行**を行ってください：
+
+```javascript
+// 1. ラベル状況を確認
+checkLabelStatus();
+
+// 2. 古いラベルから新しいラベルへ移行（恵比寿店のメールのみ）
+migrateOldProcessedLabel();
+
+// 3. 移行完了後、古いラベルを削除（任意）
+deleteOldProcessedLabel();
+```
+
+**なぜ移行が必要？**
+- 旧ラベル: `Processed`
+- 新ラベル: `HALLEL_Ebisu/Processed`
+- 移行しないと既存の処理済みメールが再処理される可能性があります
+
 ### 1. Google Apps Scriptにコピー
 
 1. [Google Apps Script](https://script.google.com/)を開く
@@ -115,6 +135,14 @@ deleteEbisuTriggers();
 | `checkEbisuReservations()` | 今後7日間の予約状況を確認 |
 | `cleanupProcessedMessages()` | 30日以上前の処理済み記録を削除 |
 
+### マイグレーション
+
+| 関数名 | 説明 |
+|--------|------|
+| `checkLabelStatus()` | 古いラベルと新しいラベルの状況を確認 |
+| `migrateOldProcessedLabel()` | 古い「Processed」から新しい「HALLEL_Ebisu/Processed」へ移行 |
+| `deleteOldProcessedLabel()` | 古い「Processed」ラベルを削除（移行後に実行） |
+
 ## 設定項目
 
 ```javascript
@@ -153,6 +181,22 @@ const CONFIG_EBISU = {
 8. スレッドに「Processed」ラベル付与
 
 ## トラブルシューティング
+
+### 既に処理済みのメールが再処理される
+
+**原因**: 古い「Processed」ラベルと新しい「HALLEL_Ebisu/Processed」ラベルが混在
+
+**対処法**:
+```javascript
+// 1. ラベル状況を確認
+checkLabelStatus();
+
+// 2. 移行を実行
+migrateOldProcessedLabel();
+
+// 3. 古いラベルを削除（任意）
+deleteOldProcessedLabel();
+```
 
 ### キャンセルが反映されない
 
@@ -209,6 +253,12 @@ GASエディタの「実行ログ」で以下を確認：
 このスクリプトはHALLEL社内用です。
 
 ## 変更履歴
+
+### v2.1.0 (2025-11-12)
+- マイグレーション機能追加
+  - `migrateOldProcessedLabel()`: 古いラベルから新しいラベルへ移行
+  - `deleteOldProcessedLabel()`: 古いラベルを削除
+  - `checkLabelStatus()`: ラベル状況確認
 
 ### v2.0.0 (2025-11-12)
 - キャンセル処理の精度向上
