@@ -706,14 +706,13 @@ function clearAllEbisuCalendarEvents() {
       return { success: false, error: 'Calendar not found' };
     }
 
-    // 過去1年〜未来1年の範囲で削除
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    // 2024年11月〜2026年1月の範囲で削除（重要な期間のみ）
+    const startDate = new Date('2024-11-01');
+    const endDate = new Date('2026-01-31');
 
-    const oneYearLater = new Date();
-    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    console.log(`📅 削除範囲: ${startDate.toLocaleDateString('ja-JP')} 〜 ${endDate.toLocaleDateString('ja-JP')}`);
 
-    const events = calendar.getEvents(oneYearAgo, oneYearLater);
+    const events = calendar.getEvents(startDate, endDate);
 
     console.log(`📊 削除対象: ${events.length}件のイベント`);
 
