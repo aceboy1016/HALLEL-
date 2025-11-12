@@ -912,3 +912,51 @@ function resetAndReprocessAll() {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * 【推奨】カレンダーはそのままで全メール再処理
+ * カレンダー削除をスキップして、改善版スクリプトで処理を開始
+ * 重複イベントは新しいメール処理時に自動的に削除される
+ * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
+ */
+function reprocessAllWithoutCalendarReset() {
+  console.log('🔄 全メール再処理を開始します（カレンダーはそのまま）...\n');
+
+  try {
+    // ステップ1: ラベルを外す
+    console.log('=== ステップ1: 処理済みラベル削除 ===');
+    const labelResult = removeAllProcessedLabels();
+    console.log(`結果: ${labelResult.message}\n`);
+
+    // ステップ2: 処理済み記録をクリア
+    console.log('=== ステップ2: 処理済み記録クリア ===');
+    const recordResult = clearProcessedMessagesRecord();
+    console.log(`結果: ${recordResult.message}\n`);
+
+    // ステップ3: 全メール再処理
+    console.log('=== ステップ3: 全メール再処理 ===');
+    console.log('⚡ 改善版スクリプトで処理を開始します...');
+    console.log('💡 重複イベントは自動的に削除されます\n');
+    console.log('5秒待機してから再処理を開始します...');
+    Utilities.sleep(5000);
+
+    const processResult = manageHallelReservations();
+    console.log(`\n結果: 成功 ${processResult.processed}件 / エラー ${processResult.errors}件\n`);
+
+    console.log('✅ 全処理完了！');
+    console.log('📝 今後のメール処理で、徐々に重複が解消されていきます');
+
+    return {
+      success: true,
+      labelsRemoved: labelResult.removed,
+      recordsCleared: recordResult.deleted,
+      reprocessed: processResult.processed,
+      errors: processResult.errors,
+      message: '全メール再処理が完了しました。重複は徐々に解消されます。'
+    };
+
+  } catch (error) {
+    console.error(`❌ 処理エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
