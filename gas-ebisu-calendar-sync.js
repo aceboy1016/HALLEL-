@@ -3,9 +3,9 @@
  *
  * 改善点：
  * 1. キャンセル処理の精度向上（時間範囲検索、柔軟なマッチング）
- * 2. 2枠制限の実装（STUDIO A/B合わせて最大2枠）
- * 3. 重複予約チェックの強化
- * 4. メッセージ単位での処理済み管理
+ * 2. 重複予約チェックの強化（Unknown/個室A/個室Bを同一予約として扱う）
+ * 3. メッセージ単位での処理済み管理
+ * 4. スタジオ名不明時の柔軟な処理
  */
 
 // ============================================================
@@ -15,7 +15,6 @@ const CONFIG_EBISU = {
   CALENDAR_ID: 'ebisu@topform.jp',
   LABEL_PROCESSED: 'HALLEL_Ebisu/Processed',
   LABEL_ERROR: 'HALLEL_Ebisu/Error',
-  MAX_SLOTS: 2, // 同時間帯の最大予約枠数
   TIME_TOLERANCE_MS: 60000, // 時間マッチングの許容範囲（1分）
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 恵比寿'
 };
@@ -136,20 +135,10 @@ function handleReservationComplete(body, calendar) {
 
     const eventTitle = `${fullName} - HALLEL-${studio}`;
 
-    // 1. 同じ人の同じ時間帯の重複予約を削除
+    // 同じ人の同じ時間帯の重複予約を削除（Unknown含む全バリエーション）
     removeDuplicateReservation(calendar, fullName, eventTime, studio);
 
-    // 2. 枠数チェック（2枠制限）
-    const slotCheck = checkAvailableSlots(calendar, eventTime, studio);
-    if (!slotCheck.available) {
-      console.warn(`⚠️ 予約枠超過: ${eventTitle} - ${slotCheck.message}`);
-      return {
-        success: false,
-        error: `予約枠超過（最大${CONFIG_EBISU.MAX_SLOTS}枠）: ${slotCheck.existingReservations.join(', ')}`
-      };
-    }
-
-    // 3. イベント作成
+    // イベント作成
     try {
       calendar.createEvent(eventTitle, eventTime.startTime, eventTime.endTime);
       return {
@@ -167,6 +156,7 @@ function handleReservationComplete(body, calendar) {
 
 /**
  * 予約キャンセル処理（改善版）
+ * スタジオ名に関わらず、同じ人・同じ時間のイベントを全て削除
  */
 function handleReservationCancel(body, calendar) {
   try {
@@ -190,17 +180,18 @@ function handleReservationCancel(body, calendar) {
       const eventStart = event.getStartTime();
       const eventEnd = event.getEndTime();
 
-      // マッチング条件を緩和
+      // 名前が一致し、HALLELイベントであるかチェック
       const nameMatch = eventTitle.includes(fullName);
-      const studioMatch = studio === 'Unknown' || eventTitle.includes(studio);
+      const isHallelEvent = eventTitle.includes('HALLEL-');
 
       // 時間の一致（±1分の許容範囲）
       const startMatch = Math.abs(eventStart.getTime() - eventTime.startTime.getTime()) < CONFIG_EBISU.TIME_TOLERANCE_MS;
       const endMatch = Math.abs(eventEnd.getTime() - eventTime.endTime.getTime()) < CONFIG_EBISU.TIME_TOLERANCE_MS;
 
-      if (nameMatch && studioMatch && startMatch && endMatch) {
+      // スタジオ名に関わらず、名前と時間が一致すれば削除
+      if (nameMatch && isHallelEvent && startMatch && endMatch) {
         try {
-          console.log(`🗑️ 削除: ${eventTitle} [${formatDateTime(eventStart)} - ${formatTime(eventEnd)}]`);
+          console.log(`🗑️ キャンセル削除: ${eventTitle} [${formatDateTime(eventStart)} - ${formatTime(eventEnd)}]`);
           event.deleteEvent();
           deletedCount++;
         } catch (error) {
@@ -212,7 +203,7 @@ function handleReservationCancel(body, calendar) {
     if (deletedCount > 0) {
       return {
         success: true,
-        message: `${fullName} (${studio}) - ${deletedCount}件削除`
+        message: `${fullName} - ${deletedCount}件削除`
       };
     } else {
       console.warn(`⚠️ キャンセル対象が見つかりません: ${fullName} (${studio})`);
@@ -228,14 +219,31 @@ function handleReservationCancel(body, calendar) {
 }
 
 /**
- * 重複予約を削除
+ * 重複予約を削除（Unknown/個室A/個室B全て削除）
+ * 同じ人、同じ時間帯の予約があれば、スタジオ名に関わらず全て削除
  */
 function removeDuplicateReservation(calendar, fullName, eventTime, studio) {
-  const events = calendar.getEvents(eventTime.startTime, eventTime.endTime, { search: fullName });
+  // 時間範囲を少し広げて検索（±1分）
+  const searchStart = new Date(eventTime.startTime.getTime() - CONFIG_EBISU.TIME_TOLERANCE_MS);
+  const searchEnd = new Date(eventTime.endTime.getTime() + CONFIG_EBISU.TIME_TOLERANCE_MS);
+
+  const events = calendar.getEvents(searchStart, searchEnd);
 
   for (let event of events) {
-    if (event.getTitle().includes(fullName) && event.getTitle().includes(studio)) {
-      console.log(`🔄 重複削除: ${event.getTitle()}`);
+    const eventTitle = event.getTitle();
+    const eventStart = event.getStartTime();
+    const eventEnd = event.getEndTime();
+
+    // 名前が一致し、HALLELイベントであるかチェック
+    const nameMatch = eventTitle.includes(fullName);
+    const isHallelEvent = eventTitle.includes('HALLEL-');
+
+    // 時間の一致（±1分の許容範囲）
+    const startMatch = Math.abs(eventStart.getTime() - eventTime.startTime.getTime()) < CONFIG_EBISU.TIME_TOLERANCE_MS;
+    const endMatch = Math.abs(eventEnd.getTime() - eventTime.endTime.getTime()) < CONFIG_EBISU.TIME_TOLERANCE_MS;
+
+    if (nameMatch && isHallelEvent && startMatch && endMatch) {
+      console.log(`🔄 重複削除: ${eventTitle} [${formatDateTime(eventStart)}]`);
       event.deleteEvent();
     }
   }
