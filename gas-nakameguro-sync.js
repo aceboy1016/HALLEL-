@@ -16,7 +16,7 @@
 // 設定
 // ============================================================
 const CONFIG = {
-  WEBHOOK_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
+  WEBHOOK_URL: 'https://hallel.vercel.app/api/gas/webhook',
   STORE_NAME: 'nakameguro',
   STORE_NAME_JP: '中目黒店',
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 中目黒',

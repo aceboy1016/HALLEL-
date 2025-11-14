@@ -12,7 +12,7 @@
 // 設定
 // ============================================================
 const CONFIG = {
-  WEBHOOK_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
+  WEBHOOK_URL: 'https://hallel.vercel.app/api/gas/webhook',
   STORE_NAME: 'yoyogi-uehara',
   STORE_NAME_JP: '代々木上原店',
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 代々木上原',

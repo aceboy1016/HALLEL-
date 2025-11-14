@@ -314,7 +314,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 const STORE_APIS = {
   ebisu: 'https://script.google.com/macros/s/YOUR_EBISU_DEPLOY_ID/exec',
   hanzomon: 'https://script.google.com/macros/s/YOUR_HANZOMON_DEPLOY_ID/exec',
-  shibuya: 'https://hallel-shibuya.vercel.app/api/availability',
+  shibuya: 'https://hallel.vercel.app/api/availability',
   yoyogiuehara: 'https://hallel-yoyogiuehara.vercel.app/api/availability',
   nakameguro: 'https://hallel-nakameguro.vercel.app/api/availability',
 };

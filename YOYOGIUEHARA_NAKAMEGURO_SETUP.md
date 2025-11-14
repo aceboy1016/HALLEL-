@@ -34,7 +34,7 @@
                 v
 ┌────────────────────────────────────┐
 │  Vercel (app.py)                   │
-│  https://hallel-shibuya.vercel.app │
+│  https://hallel.vercel.app │
 └──────────────┬─────────────────────┘
                v
         [PostgreSQL]
@@ -117,12 +117,12 @@
    ```
 
 2. **Webhook エンドポイント**
-   - URL: `https://hallel-shibuya.vercel.app/api/gas/webhook`
+   - URL: `https://hallel.vercel.app/api/gas/webhook`
    - GASからのデータを自動受信
    - 店舗別にデータベースに保存
 
 3. **空き状況API**
-   - URL: `https://hallel-shibuya.vercel.app/api/availability`
+   - URL: `https://hallel.vercel.app/api/availability`
    - パラメータ: `date`, `start_time`, `end_time`, `store`
 
 #### デプロイ手順
@@ -189,10 +189,10 @@ GASでメール処理を実行すると、VercelにWebhookが送信されます�
 
 ```bash
 # 代々木上原店の空き状況
-curl "https://hallel-shibuya.vercel.app/api/availability?date=2025-12-01&start_time=10:00&end_time=12:00&store=yoyogi-uehara"
+curl "https://hallel.vercel.app/api/availability?date=2025-12-01&start_time=10:00&end_time=12:00&store=yoyogi-uehara"
 
 # 中目黒店の空き状況
-curl "https://hallel-shibuya.vercel.app/api/availability?date=2025-12-01&start_time=10:00&end_time=12:00&store=nakameguro"
+curl "https://hallel.vercel.app/api/availability?date=2025-12-01&start_time=10:00&end_time=12:00&store=nakameguro"
 ```
 
 **期待されるレスポンス:**
@@ -227,7 +227,7 @@ curl "https://hallel-shibuya.vercel.app/api/availability?date=2025-12-01&start_t
 
 **解決策:**
 1. `gas-yoyogiuehara-sync.js` の `WEBHOOK_URL` を確認
-2. 正しいURL: `https://hallel-shibuya.vercel.app/api/gas/webhook`
+2. 正しいURL: `https://hallel.vercel.app/api/gas/webhook`
 
 ### 中目黒で格闘技エリアが処理される
 
