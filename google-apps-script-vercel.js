@@ -8,7 +8,7 @@
 
 // 設定
 const CONFIG = {
-  WEBHOOK_URL: 'https://hallelshibuyabooking.vercel.app/api/gas/webhook',
+  WEBHOOK_URL: 'https://hallel.vercel.app/api/gas/webhook',
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',
   BATCH_SIZE: 50,
   MAX_EXECUTION_TIME: 300000, // 5分
