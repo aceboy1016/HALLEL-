@@ -111,8 +111,8 @@
         }
 
         .search-card {
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
-            color: white;
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            color: var(--text-primary);
             border-radius: 8px;
             padding: 2rem;
             text-align: center;
@@ -126,24 +126,30 @@
 
         .search-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0, 82, 204, 0.3);
-            color: white;
+            box-shadow: 0 8px 16px rgba(100, 150, 200, 0.2);
+            background: linear-gradient(135deg, #BBDEFB 0%, #90CAF9 100%);
         }
 
         .search-card h2 {
             font-size: 1.8rem;
             font-weight: 600;
             margin-bottom: 0.5rem;
+            color: var(--primary-blue);
         }
 
         .search-card p {
             font-size: 1rem;
-            opacity: 0.95;
+            color: var(--text-secondary);
         }
 
         .icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto;
         }
 
         @media (max-width: 768px) {
@@ -175,7 +181,13 @@
         </div>
 
         <a href="/search" class="search-card">
-            <div class="icon">🔍</div>
+            <div class="icon">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="7" stroke="#0052CC" stroke-width="2"/>
+                    <path d="M20 20L16 16" stroke="#0052CC" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="11" cy="11" r="4" fill="#90CAF9" opacity="0.3"/>
+                </svg>
+            </div>
             <h2>全店舗横断検索</h2>
             <p>複数店舗の空き状況を一度に確認できます</p>
         </a>
