@@ -76,8 +76,47 @@ def set_initial_password():
 
 # --- Frontend Routes (Public) ---
 @app.route('/')
-def booking_status_page():
-    return render_template('booking-status.html')
+def store_select():
+    """店舗選択画面"""
+    stores = [
+        {
+            'id': store_id,
+            'name': info['name_jp'],
+            'max_slots': info['max_slots']
+        }
+        for store_id, info in STORE_CONFIG.items()
+    ]
+    return render_template('store-select.html', stores=stores)
+
+@app.route('/<store>')
+def store_page(store):
+    """各店舗の予約状況ページ"""
+    if store == 'search':
+        # 統合検索ページ
+        return integrated_search()
+
+    if store not in STORE_CONFIG:
+        flash(f'店舗が見つかりません: {store}', 'danger')
+        return redirect(url_for('store_select'))
+
+    store_info = STORE_CONFIG[store]
+    return render_template('booking-status.html',
+                         store=store,
+                         store_name=store_info['name_jp'],
+                         max_slots=store_info['max_slots'])
+
+@app.route('/search')
+def integrated_search():
+    """統合検索ページ（全店舗横断）"""
+    stores = [
+        {
+            'id': store_id,
+            'name': info['name_jp'],
+            'max_slots': info['max_slots']
+        }
+        for store_id, info in STORE_CONFIG.items()
+    ]
+    return render_template('integrated-search.html', stores=stores)
 
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
@@ -150,21 +189,26 @@ def change_password():
 def get_reservations():
     """予約データを取得（日付でグループ化）"""
     debug_mode = request.args.get('debug') == '1'
+    store = request.args.get('store', 'shibuya')  # 店舗パラメータ取得（デフォルト: shibuya）
+
+    # 店舗バリデーション
+    if store not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store}'}), 400
 
     conn = get_db_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # デバッグモード：総件数を取得
             if debug_mode:
-                cur.execute("SELECT COUNT(*) as total FROM reservations")
+                cur.execute("SELECT COUNT(*) as total FROM reservations WHERE store = %s", (store,))
                 total_count = cur.fetchone()['total']
 
             cur.execute("""
                 SELECT date, start_time, end_time, customer_name, type, is_cancellation
                 FROM reservations
-                WHERE store = 'shibuya'
+                WHERE store = %s
                 ORDER BY date, start_time
-            """)
+            """, (store,))
             rows = cur.fetchall()
 
         # 日付でグループ化
@@ -204,6 +248,12 @@ def add_reservation():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data = request.json
+    store = data.get('store', 'shibuya')  # 店舗パラメータ取得
+
+    # 店舗バリデーション
+    if store not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store}'}), 400
+
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
@@ -215,7 +265,7 @@ def add_reservation():
                 data.get('start'),
                 data.get('end'),
                 data.get('customer_name', 'N/A'),
-                'shibuya',
+                store,
                 data.get('type', 'manual')
             ))
         conn.commit()
@@ -234,7 +284,12 @@ def delete_reservation():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data = request.json
+    store = data.get('store', 'shibuya')  # 店舗パラメータ取得
     print(f'[DELETE] Received data: {data}')
+
+    # 店舗バリデーション
+    if store not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store}'}), 400
 
     conn = get_db_conn()
     try:
@@ -244,11 +299,12 @@ def delete_reservation():
                 SELECT id, customer_name, date, start_time, end_time
                 FROM reservations
                 WHERE date = %s AND start_time = %s AND end_time = %s
-                AND store = 'shibuya'
+                AND store = %s
             """, (
                 data.get('date'),
                 data.get('start'),
-                data.get('end')
+                data.get('end'),
+                store
             ))
             found_reservations = cur.fetchall()
             print(f'[DELETE] Found {len(found_reservations)} matching reservations')
