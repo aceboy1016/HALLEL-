@@ -1,9 +1,10 @@
 /**
- * Google Apps Script用Gmail自動同期
+ * Google Apps Script用Gmail自動同期 - 統合版（全店舗対応）
  * HALLEL予約システム - Vercel連携版
  *
- * 既存のシステムで使用中のコード
- * URL: https://hallelshibuyabooking.vercel.app/
+ * 【特徴】
+ * - 全5店舗を1つのGASで処理：渋谷、代々木上原、中目黒、恵比寿、半蔵門
+ * - 全店舗のデータをVercel PostgreSQLに送信
  */
 
 // 設定
@@ -90,6 +91,7 @@ function processBatchEmails(startIndex = 0) {
     }
 
     if (reservations.length > 0) {
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
       sendToVercel(reservations);
     }
 
@@ -146,10 +148,11 @@ function scheduledSync() {
     }
 
     if (reservations.length > 0) {
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
       sendToVercel(reservations);
     }
 
-    console.log(`✅ 定期同期完了: ${reservations.length}件`);
+    console.log(`✅ 定期同期完了: ${reservations.length}件（全店舗）`);
 
   } catch (error) {
     console.error(`❌ 定期同期エラー: ${error.message}`);
