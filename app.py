@@ -76,6 +76,15 @@ def set_initial_password():
 
 # --- Frontend Routes (Public) ---
 @app.route('/')
+def shibuya_home():
+    """渋谷店の予約状況ページ（デフォルト）"""
+    store_info = STORE_CONFIG['shibuya']
+    return render_template('booking-status.html',
+                         store='shibuya',
+                         store_name=store_info['name_jp'],
+                         max_slots=store_info['max_slots'])
+
+@app.route('/stores')
 def store_select():
     """店舗選択画面"""
     stores = [
@@ -95,9 +104,13 @@ def store_page(store):
         # 統合検索ページ
         return integrated_search()
 
+    if store == 'stores':
+        # 店舗選択ページ（/stores と /<store> の競合回避）
+        return store_select()
+
     if store not in STORE_CONFIG:
         flash(f'店舗が見つかりません: {store}', 'danger')
-        return redirect(url_for('store_select'))
+        return redirect(url_for('shibuya_home'))
 
     store_info = STORE_CONFIG[store]
     return render_template('booking-status.html',
