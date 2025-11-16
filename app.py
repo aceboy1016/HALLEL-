@@ -215,26 +215,37 @@ def change_password():
 def get_reservations():
     """予約データを取得（日付でグループ化）"""
     debug_mode = request.args.get('debug') == '1'
-    store = request.args.get('store', 'shibuya')  # 店舗パラメータ取得（デフォルト: shibuya）
+    store_filter = request.args.get('store')  # 店舗パラメータ（オプション）
 
-    # 店舗バリデーション
-    if store not in STORE_CONFIG:
-        return jsonify({'error': f'Invalid store: {store}'}), 400
+    # 店舗バリデーション（指定されている場合のみ）
+    if store_filter and store_filter not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store_filter}'}), 400
 
     conn = get_db_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # デバッグモード：総件数を取得
             if debug_mode:
-                cur.execute("SELECT COUNT(*) as total FROM reservations WHERE store = %s", (store,))
+                if store_filter:
+                    cur.execute("SELECT COUNT(*) as total FROM reservations WHERE store = %s", (store_filter,))
+                else:
+                    cur.execute("SELECT COUNT(*) as total FROM reservations")
                 total_count = cur.fetchone()['total']
 
-            cur.execute("""
-                SELECT date, start_time, end_time, customer_name, type, is_cancellation
-                FROM reservations
-                WHERE store = %s
-                ORDER BY date, start_time
-            """, (store,))
+            # クエリ：店舗フィルタがあれば特定店舗、なければ全店舗
+            if store_filter:
+                cur.execute("""
+                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store
+                    FROM reservations
+                    WHERE store = %s
+                    ORDER BY date, start_time
+                """, (store_filter,))
+            else:
+                cur.execute("""
+                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store
+                    FROM reservations
+                    ORDER BY date, start_time
+                """)
             rows = cur.fetchall()
 
         # 日付でグループ化
@@ -244,11 +255,17 @@ def get_reservations():
             if date_str not in reservations_db:
                 reservations_db[date_str] = []
 
+            # 店舗情報を含める
+            store_id = row['store']
+            store_name = STORE_CONFIG.get(store_id, {}).get('name_jp', store_id)
+
             reservations_db[date_str].append({
                 'type': row['type'],
                 'start': row['start_time'].strftime('%H:%M'),
                 'end': row['end_time'].strftime('%H:%M'),
-                'customer_name': row['customer_name']
+                'customer_name': row['customer_name'],
+                'store_id': store_id,
+                'store_name': store_name
             })
 
         # デバッグ情報を追加
@@ -257,8 +274,9 @@ def get_reservations():
                 'debug': {
                     'postgres_url_exists': bool(os.environ.get('POSTGRES_URL')),
                     'total_reservations': total_count,
-                    'shibuya_reservations': len(rows),
-                    'code_version': 'v4_debug_in_reservations'
+                    'filtered_reservations': len(rows),
+                    'store_filter': store_filter or 'all',
+                    'code_version': 'v5_multi_store_support'
                 },
                 'reservations': reservations_db
             })
@@ -310,7 +328,8 @@ def delete_reservation():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data = request.json
-    store = data.get('store', 'shibuya')  # 店舗パラメータ取得
+    # store_id または store パラメータ取得（両方に対応）
+    store = data.get('store_id') or data.get('store', 'shibuya')
     print(f'[DELETE] Received data: {data}')
 
     # 店舗バリデーション
