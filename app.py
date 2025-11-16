@@ -420,6 +420,79 @@ def change_password():
 
     return redirect(url_for('admin_page'))
 
+@app.route('/admin/run-migration', methods=['POST'])
+def run_migration_endpoint():
+    """Run database migration (admin only)"""
+    if not is_logged_in():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        conn = get_db_conn()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Check if tables already exist
+            cur.execute("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name IN ('admin_users', 'activity_logs', 'login_attempts')
+            """)
+            existing_tables = [row['table_name'] for row in cur.fetchall()]
+
+            if len(existing_tables) == 3:
+                return jsonify({
+                    'status': 'warning',
+                    'message': 'マイグレーションは既に実行されています。',
+                    'tables': existing_tables
+                })
+
+            # Read migration file
+            migration_file = 'migrations/001_add_security_tables.sql'
+            with open(migration_file, 'r') as f:
+                sql = f.read()
+
+            # Execute migration
+            cur.execute(sql)
+
+        conn.commit()
+
+        # Verify tables were created
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name IN ('admin_users', 'activity_logs', 'login_attempts')
+                ORDER BY table_name
+            """)
+            tables = [row['table_name'] for row in cur.fetchall()]
+
+            # Check default admin user
+            cur.execute("SELECT username, created_at FROM admin_users WHERE username = 'admin'")
+            admin = cur.fetchone()
+
+        return_db_conn(conn)
+
+        log_activity('Database migration completed', username=session.get('username'))
+
+        return jsonify({
+            'status': 'success',
+            'message': 'マイグレーションが正常に完了しました。',
+            'tables_created': tables,
+            'admin_user': dict(admin) if admin else None
+        })
+
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+            return_db_conn(conn)
+
+        log_activity(f'Migration failed: {str(e)}', username=session.get('username'))
+
+        return jsonify({
+            'status': 'error',
+            'message': f'マイグレーションに失敗しました: {str(e)}'
+        }), 500
+
 # --- API Endpoints ---
 @app.route('/api/reservations')
 def get_reservations():

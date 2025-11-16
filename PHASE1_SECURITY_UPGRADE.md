@@ -73,18 +73,7 @@ CREATE TABLE login_attempts (
 
 ## 🚀 デプロイ手順
 
-### ステップ1: マイグレーション実行
-
-```bash
-# 本番環境でマイグレーションを実行
-python run_migration.py
-```
-
-これにより：
-- 3つのテーブルが作成される
-- デフォルトadminユーザーが作成される（既存のパスワードを保持）
-
-### ステップ2: 環境変数設定
+### ステップ1: 環境変数設定
 
 Vercelで以下の環境変数を設定：
 
@@ -98,13 +87,24 @@ import secrets
 print(secrets.token_urlsafe(32))
 ```
 
-### ステップ3: デプロイ
-
-```bash
-git push origin claude/security-phase1-01EifwVJL53UzN9HAJAWfhQ3
+例：
+```
+SECRET_KEY=K26oe5JrWtKQsBdh_03IVoyQLp-TKFIxGAsQ4dxu7xE
 ```
 
-Vercelが自動的に新しいコードをデプロイします。
+### ステップ2: コードをデプロイ
+
+PRをマージしてVercelにデプロイします。
+
+### ステップ3: 管理画面でマイグレーション実行
+
+1. デプロイ完了後、管理画面にログイン
+2. ページ上部に「システム管理」カードが表示される
+3. 「🚀 マイグレーション実行」ボタンをクリック
+4. 確認ダイアログで「OK」をクリック
+5. 成功メッセージが表示されればOK
+
+**これで完了です！** ボタン1つでマイグレーションが実行されます。
 
 ### ステップ4: 動作確認
 

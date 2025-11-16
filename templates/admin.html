@@ -721,6 +721,23 @@
             {% endif %}
         {% endwith %}
 
+        <!-- システム管理（マイグレーション） -->
+        <div class="card mb-4" id="migration-card" style="border-left: 4px solid #FF8B00;">
+            <div class="card-header" style="background: linear-gradient(135deg, #FF8B00 0%, #FFAB00 100%);">
+                ⚙️ システム管理
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-3">
+                    <strong>📢 重要:</strong> セキュリティアップグレード フェーズ1のマイグレーションを実行してください。<br>
+                    このボタンは一度だけ実行してください。既に実行済みの場合は警告が表示されます。
+                </div>
+                <button id="run-migration-btn" class="btn btn-warning">
+                    🚀 マイグレーション実行
+                </button>
+                <div id="migration-result" class="mt-3" style="display: none;"></div>
+            </div>
+        </div>
+
         <!-- 予約管理セクション -->
         <div class="card mb-4">
             <div class="card-header">
@@ -1050,6 +1067,93 @@
                 } finally {
                     cleanupBtn.disabled = false;
                     cleanupBtn.innerHTML = '🗑️ 重複データを削除';
+                }
+            });
+
+            // マイグレーション実行ボタン
+            const runMigrationBtn = document.getElementById('run-migration-btn');
+            const migrationResult = document.getElementById('migration-result');
+
+            runMigrationBtn.addEventListener('click', async () => {
+                if (!confirm('セキュリティアップグレード フェーズ1のマイグレーションを実行しますか？\n\n※この操作は一度だけ実行してください。')) {
+                    return;
+                }
+
+                runMigrationBtn.disabled = true;
+                runMigrationBtn.innerHTML = '🔄 実行中...';
+                migrationResult.style.display = 'none';
+
+                try {
+                    const response = await fetch('/admin/run-migration', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await response.json();
+
+                    // 結果を表示
+                    migrationResult.style.display = 'block';
+
+                    if (result.status === 'success') {
+                        migrationResult.className = 'alert alert-success mt-3';
+                        migrationResult.innerHTML = `
+                            <h5>✅ ${result.message}</h5>
+                            <p><strong>作成されたテーブル:</strong></p>
+                            <ul>
+                                ${result.tables_created.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                            ${result.admin_user ? `
+                                <p><strong>管理者ユーザー:</strong> ${result.admin_user.username}</p>
+                                <p><small>作成日時: ${result.admin_user.created_at}</small></p>
+                            ` : ''}
+                            <hr>
+                            <p><strong>次のステップ:</strong></p>
+                            <ol>
+                                <li>Vercelの環境変数に SECRET_KEY を設定</li>
+                                <li>再デプロイ</li>
+                                <li>既存のパスワードでログイン確認</li>
+                            </ol>
+                        `;
+
+                        // 成功したらカードを非表示にする（数秒後）
+                        setTimeout(() => {
+                            document.getElementById('migration-card').style.display = 'none';
+                        }, 10000);
+
+                    } else if (result.status === 'warning') {
+                        migrationResult.className = 'alert alert-warning mt-3';
+                        migrationResult.innerHTML = `
+                            <h5>⚠️ ${result.message}</h5>
+                            <p>既存のテーブル:</p>
+                            <ul>
+                                ${result.tables.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                            <p>マイグレーションは既に完了しています。このカードは無視してください。</p>
+                        `;
+
+                        // 警告の場合もカードを非表示にする
+                        setTimeout(() => {
+                            document.getElementById('migration-card').style.display = 'none';
+                        }, 5000);
+
+                    } else {
+                        migrationResult.className = 'alert alert-danger mt-3';
+                        migrationResult.innerHTML = `
+                            <h5>❌ エラー</h5>
+                            <p>${result.message}</p>
+                        `;
+                    }
+
+                } catch (error) {
+                    migrationResult.style.display = 'block';
+                    migrationResult.className = 'alert alert-danger mt-3';
+                    migrationResult.innerHTML = `
+                        <h5>❌ エラーが発生しました</h5>
+                        <p>${error.message}</p>
+                    `;
+                } finally {
+                    runMigrationBtn.disabled = false;
+                    runMigrationBtn.innerHTML = '🚀 マイグレーション実行';
                 }
             });
 
