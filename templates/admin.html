@@ -590,6 +590,78 @@
             transform: translateY(0);
         }
 
+        /* タブスタイリング */
+        .store-tabs {
+            border-bottom: 2px solid var(--neutral-100);
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .store-tabs .nav-item {
+            margin-bottom: -2px;
+        }
+
+        .store-tabs .nav-link {
+            color: var(--text-secondary);
+            background: transparent;
+            border: 2px solid transparent;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .store-tabs .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .store-tabs .nav-link:hover {
+            color: var(--primary-blue);
+            background: rgba(0, 82, 204, 0.05);
+        }
+
+        .store-tabs .nav-link.active {
+            color: var(--primary-blue);
+            background: linear-gradient(135deg, rgba(0, 82, 204, 0.08) 0%, rgba(102, 126, 234, 0.08) 100%);
+            border-color: var(--primary-blue) var(--primary-blue) transparent;
+            font-weight: 700;
+        }
+
+        .store-tabs .nav-link.active::before {
+            transform: scaleX(1);
+        }
+
+        .tab-content {
+            padding-top: 1rem;
+        }
+
+        /* タブコンテンツアニメーション */
+        .tab-pane {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .navbar-brand {
@@ -607,6 +679,11 @@
 
             .quick-stats {
                 flex-direction: column;
+            }
+
+            .store-tabs .nav-link {
+                padding: 0.6rem 1rem;
+                font-size: 0.85rem;
             }
         }
     </style>
@@ -664,7 +741,34 @@
                         </button>
                     </div>
                 </div>
-                <div id="reservations-list"></div>
+
+                <!-- 店舗タブ -->
+                <ul class="nav nav-tabs store-tabs mb-4" id="storeTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="all-stores-tab" data-bs-toggle="tab" data-bs-target="#all-stores" type="button" role="tab" aria-controls="all-stores" aria-selected="true">
+                            🏢 全店舗
+                        </button>
+                    </li>
+                    {% for store in stores %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="{{ store.id }}-tab" data-bs-toggle="tab" data-bs-target="#{{ store.id }}" type="button" role="tab" aria-controls="{{ store.id }}" aria-selected="false" data-store="{{ store.id }}">
+                            {{ store.name }}
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <!-- タブコンテンツ -->
+                <div class="tab-content" id="storeTabContent">
+                    <div class="tab-pane fade show active" id="all-stores" role="tabpanel" aria-labelledby="all-stores-tab">
+                        <div id="reservations-list-all"></div>
+                    </div>
+                    {% for store in stores %}
+                    <div class="tab-pane fade" id="{{ store.id }}" role="tabpanel" aria-labelledby="{{ store.id }}-tab">
+                        <div id="reservations-list-{{ store.id }}"></div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
@@ -736,12 +840,21 @@
 
             // 予約管理の初期化
             const dateFilter = document.getElementById('date-filter');
-            const reservationsList = document.getElementById('reservations-list');
             const totalReservationsBadge = document.getElementById('total-reservations');
+            let currentStoreFilter = 'all'; // 現在選択されている店舗
 
             // 今日の日付をデフォルトに設定
             const today = new Date();
             dateFilter.value = today.toISOString().split('T')[0];
+
+            // タブ切り替えイベント
+            document.querySelectorAll('#storeTabs button[data-bs-toggle="tab"]').forEach(tabButton => {
+                tabButton.addEventListener('shown.bs.tab', (event) => {
+                    const targetId = event.target.getAttribute('data-bs-target');
+                    currentStoreFilter = targetId === '#all-stores' ? 'all' : targetId.replace('#', '');
+                    loadReservations();
+                });
+            });
 
             // Flatpickr初期化
             const datePickerInstance = flatpickr(dateFilter, {
@@ -788,10 +901,24 @@
 
             function displayReservations(allReservations) {
                 const selectedDate = dateFilter.value;
-                const reservations = allReservations[selectedDate] || [];
+                let reservations = allReservations[selectedDate] || [];
+
+                // 店舗でフィルタリング
+                if (currentStoreFilter !== 'all') {
+                    reservations = reservations.filter(res => res.store_id === currentStoreFilter);
+                }
 
                 // 予約件数を更新
                 totalReservationsBadge.textContent = `${reservations.length}件`;
+
+                // 現在のタブに対応するコンテナを取得
+                const containerId = currentStoreFilter === 'all' ? 'reservations-list-all' : `reservations-list-${currentStoreFilter}`;
+                const reservationsList = document.getElementById(containerId);
+
+                if (!reservationsList) {
+                    console.error('Container not found:', containerId);
+                    return;
+                }
 
                 if (reservations.length === 0) {
                     reservationsList.innerHTML = `
@@ -806,12 +933,19 @@
                 reservations.sort((a, b) => a.start.localeCompare(b.start));
 
                 let html = '<div class="table-responsive"><table class="table table-hover">';
-                html += '<thead><tr><th>時間</th><th>種別</th><th>顧客名</th><th>操作</th></tr></thead><tbody>';
+                html += '<thead><tr><th>時間</th><th>種別</th><th>顧客名</th>';
+
+                // 全店舗タブの場合は店舗名も表示
+                if (currentStoreFilter === 'all') {
+                    html += '<th>店舗</th>';
+                }
+
+                html += '<th>操作</th></tr></thead><tbody>';
 
                 reservations.forEach((res) => {
                     let typeLabel = '';
-                    let typeClass = '';
                     const customerName = res.customer_name || 'N/A';
+                    const storeName = res.store_name || res.store_id || 'N/A';
 
                     if (res.type === 'charter') {
                         typeLabel = '<span class="badge bg-secondary">🔒 貸切</span>';
@@ -825,13 +959,21 @@
                         <tr>
                             <td><strong>${res.start} - ${res.end}</strong></td>
                             <td>${typeLabel}</td>
-                            <td>${customerName}</td>
+                            <td>${customerName}</td>`;
+
+                    // 全店舗タブの場合は店舗名を表示
+                    if (currentStoreFilter === 'all') {
+                        html += `<td><span class="badge bg-info">${storeName}</span></td>`;
+                    }
+
+                    html += `
                             <td>
                                 <button class="btn btn-sm btn-outline-danger delete-btn"
                                         data-date="${selectedDate}"
                                         data-start="${res.start}"
                                         data-end="${res.end}"
-                                        data-customer="${customerName}">
+                                        data-customer="${customerName}"
+                                        data-store="${res.store_id || ''}">
                                     🗑️ 削除
                                 </button>
                             </td>
@@ -851,7 +993,8 @@
                             date: btn.dataset.date,
                             start: btn.dataset.start,
                             end: btn.dataset.end,
-                            customer_name: btn.dataset.customer
+                            customer_name: btn.dataset.customer,
+                            store_id: btn.dataset.store
                         };
 
                         try {
