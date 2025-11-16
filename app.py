@@ -330,6 +330,9 @@ def admin_page():
     if not is_logged_in():
         return redirect(url_for('login'))
 
+    # Log admin page access
+    log_activity('Admin page accessed')
+
     # Get logs from database
     logs = []
     try:
@@ -377,6 +380,7 @@ def admin_page():
 def admin_calendar():
     if not is_logged_in():
         return redirect(url_for('login'))
+    log_activity('Admin calendar accessed')
     return render_template('admin-calendar.html')
 
 @app.route('/admin/change_password', methods=['POST'])
