@@ -174,7 +174,17 @@ def admin_page():
     except FileNotFoundError:
         logs = []
 
-    return render_template('admin.html', logs=reversed(logs))
+    # 店舗情報を渡す（タブ生成用）
+    stores = [
+        {
+            'id': store_id,
+            'name': info['name_jp'],
+            'max_slots': info['max_slots']
+        }
+        for store_id, info in STORE_CONFIG.items()
+    ]
+
+    return render_template('admin.html', logs=reversed(logs), stores=stores)
 
 @app.route('/admin/calendar')
 def admin_calendar():
