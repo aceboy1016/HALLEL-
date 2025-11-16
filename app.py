@@ -10,8 +10,17 @@ from psycopg2.extras import RealDictCursor
 
 # --- App Initialization ---
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)
+# Use SECRET_KEY from environment variable, or generate one for development
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(24)
+if not os.environ.get('SECRET_KEY'):
+    print("⚠️  WARNING: SECRET_KEY not set in environment. Using random key (sessions will reset on restart)")
+
+# Legacy password file support (deprecated, will be removed)
 PASSWORD_FILE = 'password.txt'
+
+# Security settings
+MAX_LOGIN_ATTEMPTS = 5  # Maximum failed login attempts before account lockout
+LOCKOUT_DURATION_MINUTES = 15  # How long to lock account after max attempts
 
 # --- Store Configuration ---
 STORE_CONFIG = {
@@ -61,18 +70,126 @@ def return_db_conn(conn):
     pool.putconn(conn)
 
 # --- Logging Setup ---
+# Legacy file logging (deprecated)
 logging.basicConfig(filename='activity.log', level=logging.INFO,
                     format='%(asctime)s - %(message)s')
 
-def log_activity(action):
+def log_activity(action, user_id=None, username=None):
+    """Log activity to database and legacy file"""
+    # Legacy file logging
     logging.info(f"Action: {action}")
+
+    # Database logging
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            # Get request context if available
+            ip_address = None
+            user_agent = None
+            if request:
+                ip_address = request.remote_addr
+                user_agent = request.headers.get('User-Agent')
+
+            # If username not provided, try to get from session
+            if not username and 'username' in session:
+                username = session['username']
+
+            cur.execute("""
+                INSERT INTO activity_logs (user_id, username, action, ip_address, user_agent)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (user_id, username, action, ip_address, user_agent))
+        conn.commit()
+        return_db_conn(conn)
+    except Exception as e:
+        print(f"Failed to log to database: {e}")
+        # Continue even if database logging fails
 
 # --- Password Management ---
 def set_initial_password():
+    """Legacy function - kept for backwards compatibility"""
     if not os.path.exists(PASSWORD_FILE):
         hashed_password = generate_password_hash('hallel', method='pbkdf2:sha256')
         with open(PASSWORD_FILE, 'w') as f:
             f.write(hashed_password)
+
+def get_user_by_username(username):
+    """Get user from database by username"""
+    try:
+        conn = get_db_conn()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, username, password_hash, is_active, failed_login_attempts, locked_until
+                FROM admin_users
+                WHERE username = %s
+            """, (username,))
+            user = cur.fetchone()
+        return_db_conn(conn)
+        return dict(user) if user else None
+    except Exception as e:
+        print(f"Error getting user: {e}")
+        return None
+
+def check_account_locked(user):
+    """Check if account is locked due to failed login attempts"""
+    if not user or not user.get('locked_until'):
+        return False
+
+    from datetime import datetime, timezone
+    locked_until = user['locked_until']
+
+    # If locked_until is timezone-naive, make it aware
+    if locked_until.tzinfo is None:
+        locked_until = locked_until.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
+    return now < locked_until
+
+def record_login_attempt(username, success, ip_address=None):
+    """Record login attempt in database"""
+    try:
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            # Record attempt
+            cur.execute("""
+                INSERT INTO login_attempts (username, ip_address, success)
+                VALUES (%s, %s, %s)
+            """, (username, ip_address or request.remote_addr if request else None, success))
+
+            # Update user's failed attempt counter
+            if success:
+                # Reset failed attempts on successful login
+                cur.execute("""
+                    UPDATE admin_users
+                    SET failed_login_attempts = 0,
+                        locked_until = NULL,
+                        last_login = CURRENT_TIMESTAMP
+                    WHERE username = %s
+                """, (username,))
+            else:
+                # Increment failed attempts
+                cur.execute("""
+                    UPDATE admin_users
+                    SET failed_login_attempts = failed_login_attempts + 1
+                    WHERE username = %s
+                """, (username,))
+
+                # Check if we need to lock the account
+                cur.execute("""
+                    SELECT failed_login_attempts FROM admin_users WHERE username = %s
+                """, (username,))
+                result = cur.fetchone()
+                if result and result[0] >= MAX_LOGIN_ATTEMPTS:
+                    # Lock account
+                    cur.execute("""
+                        UPDATE admin_users
+                        SET locked_until = CURRENT_TIMESTAMP + INTERVAL '%s minutes'
+                        WHERE username = %s
+                    """, (LOCKOUT_DURATION_MINUTES, username))
+
+        conn.commit()
+        return_db_conn(conn)
+    except Exception as e:
+        print(f"Error recording login attempt: {e}")
 
 # --- Frontend Routes (Public) ---
 @app.route('/')
@@ -138,18 +255,63 @@ def integrated_search():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        username = request.form.get('username', 'admin')  # Default to 'admin' for backwards compatibility
         password = request.form.get('password')
-        with open(PASSWORD_FILE, 'r') as f:
-            hashed_password = f.read().strip()
 
-        if check_password_hash(hashed_password, password):
-            session['logged_in'] = True
-            log_activity('Admin login successful')
-            flash('ログインしました。', 'success')
-            return redirect(url_for('admin_page'))
+        # Try database authentication first
+        user = get_user_by_username(username)
+
+        if user:
+            # Check if account is locked
+            if check_account_locked(user):
+                remaining_time = (user['locked_until'] - datetime.now(user['locked_until'].tzinfo)).seconds // 60
+                flash(f'アカウントがロックされています。{remaining_time}分後に再試行してください。', 'danger')
+                log_activity(f'Login attempt on locked account: {username}')
+                return render_template('login.html')
+
+            # Check if account is active
+            if not user['is_active']:
+                flash('このアカウントは無効化されています。', 'danger')
+                log_activity(f'Login attempt on inactive account: {username}')
+                return render_template('login.html')
+
+            # Verify password
+            if check_password_hash(user['password_hash'], password):
+                session['logged_in'] = True
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                record_login_attempt(username, True)
+                log_activity(f'Admin login successful: {username}', user_id=user['id'], username=username)
+                flash('ログインしました。', 'success')
+                return redirect(url_for('admin_page'))
+            else:
+                # Password incorrect
+                record_login_attempt(username, False)
+                attempts_left = MAX_LOGIN_ATTEMPTS - (user.get('failed_login_attempts', 0) + 1)
+                if attempts_left > 0:
+                    flash(f'パスワードが違います。残り{attempts_left}回の試行でアカウントがロックされます。', 'danger')
+                else:
+                    flash(f'パスワードが違います。アカウントが{LOCKOUT_DURATION_MINUTES}分間ロックされました。', 'danger')
+                log_activity(f'Admin login failed: {username}')
         else:
-            log_activity('Admin login failed')
-            flash('パスワードが違います。', 'danger')
+            # User not found in database - try legacy file authentication
+            try:
+                if os.path.exists(PASSWORD_FILE):
+                    with open(PASSWORD_FILE, 'r') as f:
+                        hashed_password = f.read().strip()
+
+                    if check_password_hash(hashed_password, password):
+                        session['logged_in'] = True
+                        session['username'] = 'admin'
+                        log_activity('Admin login successful (legacy)')
+                        flash('ログインしました。', 'success')
+                        return redirect(url_for('admin_page'))
+            except Exception as e:
+                print(f"Legacy authentication failed: {e}")
+
+            flash('ユーザー名またはパスワードが違います。', 'danger')
+            log_activity(f'Login failed for unknown user: {username}')
+
     return render_template('login.html')
 
 @app.route('/logout')
@@ -168,11 +330,36 @@ def admin_page():
     if not is_logged_in():
         return redirect(url_for('login'))
 
+    # Get logs from database
+    logs = []
     try:
-        with open('activity.log', 'r') as f:
-            logs = f.readlines()
-    except FileNotFoundError:
-        logs = []
+        conn = get_db_conn()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT username, action, ip_address, created_at
+                FROM activity_logs
+                ORDER BY created_at DESC
+                LIMIT 100
+            """)
+            db_logs = cur.fetchall()
+
+            # Format logs for display
+            for log in db_logs:
+                timestamp = log['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                username = log['username'] or 'Unknown'
+                action = log['action']
+                ip = log['ip_address'] or 'N/A'
+                logs.append(f"{timestamp} - User: {username} - Action: {action} - IP: {ip}")
+
+        return_db_conn(conn)
+    except Exception as e:
+        print(f"Error loading logs from database: {e}")
+        # Fallback to file logs
+        try:
+            with open('activity.log', 'r') as f:
+                logs = f.readlines()
+        except FileNotFoundError:
+            logs = []
 
     # 店舗情報を渡す（タブ生成用）
     stores = [
@@ -184,7 +371,7 @@ def admin_page():
         for store_id, info in STORE_CONFIG.items()
     ]
 
-    return render_template('admin.html', logs=reversed(logs), stores=stores)
+    return render_template('admin.html', logs=logs, stores=stores)
 
 @app.route('/admin/calendar')
 def admin_calendar():
@@ -203,11 +390,34 @@ def change_password():
         return redirect(url_for('admin_page'))
 
     hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
-    with open(PASSWORD_FILE, 'w') as f:
-        f.write(hashed_password)
 
-    log_activity('Password changed')
-    flash('パスワードが正常に変更されました。', 'success')
+    # Update password in database
+    try:
+        username = session.get('username', 'admin')
+        conn = get_db_conn()
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE admin_users
+                SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE username = %s
+            """, (hashed_password, username))
+        conn.commit()
+        return_db_conn(conn)
+
+        log_activity('Password changed', username=username)
+        flash('パスワードが正常に変更されました。', 'success')
+    except Exception as e:
+        print(f"Error updating password in database: {e}")
+        # Fallback to file-based password
+        try:
+            with open(PASSWORD_FILE, 'w') as f:
+                f.write(hashed_password)
+            log_activity('Password changed (legacy)')
+            flash('パスワードが正常に変更されました。', 'success')
+        except Exception as file_error:
+            print(f"Error updating password file: {file_error}")
+            flash('パスワードの変更に失敗しました。', 'danger')
+
     return redirect(url_for('admin_page'))
 
 # --- API Endpoints ---
