@@ -1,5 +1,5 @@
 /**
- * Google Apps Script用Gmail自動同期 - 完全版（全店舗対応・渋谷優先）
+ * Google Apps Script用Gmail自動同期 - 完全統合版（全店舗対応）
  * HALLEL予約システム - 全メール確認対応
  *
  * 【管理機能追加版】
@@ -7,17 +7,18 @@
  * - ラベルクリーンアップ
  * - 明日朝の自動実行設定
  *
- * 【修正内容】
- * - 店舗判定ロジックを改善：「店舗：」フィールドを優先的に検出
+ * 【特徴】
+ * - 全5店舗を1つのGASで処理：渋谷、代々木上原、中目黒、恵比寿、半蔵門
+ * - 全店舗のデータをVercel PostgreSQLに送信
+ * - 店舗判定ロジック：「店舗：」フィールドを優先的に検出
  * - 渋谷を最優先で検出（他店舗より優先順位高）
- * - 全5店舗対応：渋谷、代々木上原、中目黒、恵比寿、半蔵門
  */
 
 // ============================================================
 // 設定
 // ============================================================
 const CONFIG = {
-  WEBHOOK_URL: 'https://hallelshibuyabooking.vercel.app/api/gas/webhook',
+  WEBHOOK_URL: 'https://hallel.vercel.app/api/gas/webhook',
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',
   BATCH_SIZE: 50, // バッチサイズ（実行時間制限回避）
   MAX_EXECUTION_TIME: 300000, // 5分（ミリ秒）
@@ -197,15 +198,10 @@ function processBatchEmails(startIndex = 0) {
       }
     }
 
-    // Vercelにデータを送信（渋谷店のみ）
+    // Vercelにデータを送信（全店舗）
     if (reservations.length > 0) {
-      const shibuyaReservations = reservations.filter(r => r.store === 'shibuya');
-      if (shibuyaReservations.length > 0) {
-        console.log(`📤 Vercel送信: ${shibuyaReservations.length}件（渋谷店のみ）/ 全${reservations.length}件処理`);
-        sendToVercel(shibuyaReservations);
-      } else {
-        console.log(`ℹ️ 渋谷店の予約なし（他店舗: ${reservations.length}件）`);
-      }
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
+      sendToVercel(reservations);
     }
 
     // 次のバッチがある場合はスケジュール
@@ -264,16 +260,11 @@ function scheduledSync() {
     }
 
     if (reservations.length > 0) {
-      const shibuyaReservations = reservations.filter(r => r.store === 'shibuya');
-      if (shibuyaReservations.length > 0) {
-        console.log(`📤 Vercel送信: ${shibuyaReservations.length}件（渋谷店のみ）/ 全${reservations.length}件処理`);
-        sendToVercel(shibuyaReservations);
-      } else {
-        console.log(`ℹ️ 渋谷店の予約なし（他店舗: ${reservations.length}件）`);
-      }
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
+      sendToVercel(reservations);
     }
 
-    console.log(`✅ 定期同期完了: 渋谷店${reservations.filter(r => r.store === 'shibuya').length}件 / 全${reservations.length}件`);
+    console.log(`✅ 定期同期完了: ${reservations.length}件（全店舗）`);
 
   } catch (error) {
     console.error(`❌ 定期同期エラー: ${error.message}`);

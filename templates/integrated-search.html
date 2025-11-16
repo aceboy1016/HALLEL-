@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HALLEL - 全店舗横断検索</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0052CC;
+            --primary-blue-hover: #0065FF;
+            --neutral-900: #091E42;
+            --neutral-800: #172B4D;
+            --neutral-100: #DFE1E6;
+            --neutral-50: #F4F5F7;
+            --success: #00875A;
+            --warning: #FF8B00;
+            --danger: #DE350B;
+            --surface-bg: #F4F5F7;
+            --card-bg: #FFFFFF;
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --shadow-medium: 0 4px 8px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--surface-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--neutral-800);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .search-form {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-medium);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--neutral-100);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn-search {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-search:hover {
+            background: var(--primary-blue-hover);
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .store-result {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-medium);
+            transition: transform 0.2s;
+        }
+
+        .store-result:hover {
+            transform: translateY(-2px);
+        }
+
+        .store-result.available {
+            border-left: 4px solid var(--success);
+        }
+
+        .store-result.unavailable {
+            border-left: 4px solid var(--danger);
+            opacity: 0.7;
+        }
+
+        .store-result h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .availability-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .availability-badge.available {
+            background: var(--success);
+            color: white;
+        }
+
+        .availability-badge.unavailable {
+            background: var(--danger);
+            color: white;
+        }
+
+        .store-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-book {
+            background: var(--primary-blue);
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn-book:hover {
+            background: var(--primary-blue-hover);
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--neutral-100);
+            border-top: 3px solid var(--primary-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            background: var(--card-bg);
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .results {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/stores" class="back-link">← 店舗選択に戻る</a>
+            <h1>🔍 全店舗横断検索</h1>
+            <p>希望の日時を入力すると、全店舗の空き状況を一度に確認できます</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="search-form">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">日付</label>
+                        <input type="date" id="search-date" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">開始時刻</label>
+                        <input type="time" id="search-start-time" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">終了時刻</label>
+                        <input type="time" id="search-end-time" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <button id="search-btn" class="btn-search w-100">検索</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const stores = {{ stores | tojson }};
+
+        document.getElementById('search-btn').addEventListener('click', searchAvailability);
+
+        // デフォルト値を設定
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            document.getElementById('search-date').value = dateStr;
+            document.getElementById('search-start-time').value = '10:00';
+            document.getElementById('search-end-time').value = '12:00';
+        });
+
+        async function searchAvailability() {
+            const date = document.getElementById('search-date').value;
+            const startTime = document.getElementById('search-start-time').value;
+            const endTime = document.getElementById('search-end-time').value;
+
+            if (!date || !startTime || !endTime) {
+                alert('日付と時刻を全て入力してください');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div><p>検索中...</p></div>';
+
+            try {
+                const promises = stores.map(store =>
+                    fetch(`/api/availability?date=${date}&start_time=${startTime}&end_time=${endTime}&store=${store.id}`)
+                        .then(res => res.json())
+                );
+
+                const results = await Promise.all(promises);
+
+                // 空き状況でソート（空きがある店舗を先に表示）
+                results.sort((a, b) => {
+                    if (a.available && !b.available) return -1;
+                    if (!a.available && b.available) return 1;
+                    return b.remaining_slots - a.remaining_slots;
+                });
+
+                renderResults(results);
+
+            } catch (error) {
+                console.error('検索エラー:', error);
+                resultsContainer.innerHTML = '<div class="no-results"><p>検索に失敗しました。もう一度お試しください。</p></div>';
+            }
+        }
+
+        function renderResults(results) {
+            const resultsContainer = document.getElementById('results');
+
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results"><p>結果が見つかりませんでした。</p></div>';
+                return;
+            }
+
+            const availableCount = results.filter(r => r.available).length;
+
+            let html = '';
+
+            if (availableCount === 0) {
+                html += '<div class="no-results"><p>すみません、指定の日時は全ての店舗で満室です。</p></div>';
+            }
+
+            results.forEach(result => {
+                const availableClass = result.available ? 'available' : 'unavailable';
+                const badgeText = result.available
+                    ? `予約可能（残り${result.remaining_slots}枠）`
+                    : '満室';
+
+                html += `
+                    <div class="store-result ${availableClass}">
+                        <h3>${result.store_name}</h3>
+                        <div class="availability-badge ${availableClass}">${badgeText}</div>
+                        <div class="store-info">最大枠数: ${result.total_slots}枠</div>
+                        <div class="store-info">使用中: ${result.occupied_slots}枠</div>
+                        ${result.available ? `<a href="/${result.store}" class="btn-book">この店舗の予約状況を見る →</a>` : ''}
+                    </div>
+                `;
+            });
+
+            resultsContainer.innerHTML = html;
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -13,6 +13,30 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 PASSWORD_FILE = 'password.txt'
 
+# --- Store Configuration ---
+STORE_CONFIG = {
+    'shibuya': {
+        'name_jp': '渋谷店',
+        'max_slots': 7
+    },
+    'yoyogi-uehara': {
+        'name_jp': '代々木上原店',
+        'max_slots': 2
+    },
+    'nakameguro': {
+        'name_jp': '中目黒店',
+        'max_slots': 1  # フリーウエイトエリアのみ
+    },
+    'ebisu': {
+        'name_jp': '恵比寿店',
+        'max_slots': 2  # 個室A + 個室B
+    },
+    'hanzomon': {
+        'name_jp': '半蔵門店',
+        'max_slots': 4  # 3枠 + 個室1枠
+    }
+}
+
 # --- Database Connection Pool ---
 db_pool = None
 
@@ -52,8 +76,63 @@ def set_initial_password():
 
 # --- Frontend Routes (Public) ---
 @app.route('/')
-def booking_status_page():
-    return render_template('booking-status.html')
+def shibuya_home():
+    """一時的に店舗選択ページにリダイレクト（スマホ確認用）"""
+    return redirect('/stores')
+
+    # 元に戻す時は下記のコードに戻す:
+    # store_info = STORE_CONFIG['shibuya']
+    # return render_template('booking-status.html',
+    #                      store='shibuya',
+    #                      store_name=store_info['name_jp'],
+    #                      max_slots=store_info['max_slots'])
+
+@app.route('/stores')
+def store_select():
+    """店舗選択画面"""
+    stores = [
+        {
+            'id': store_id,
+            'name': info['name_jp'],
+            'max_slots': info['max_slots']
+        }
+        for store_id, info in STORE_CONFIG.items()
+    ]
+    return render_template('store-select.html', stores=stores)
+
+@app.route('/<store>')
+def store_page(store):
+    """各店舗の予約状況ページ"""
+    if store == 'search':
+        # 統合検索ページ
+        return integrated_search()
+
+    if store == 'stores':
+        # 店舗選択ページ（/stores と /<store> の競合回避）
+        return store_select()
+
+    if store not in STORE_CONFIG:
+        flash(f'店舗が見つかりません: {store}', 'danger')
+        return redirect(url_for('shibuya_home'))
+
+    store_info = STORE_CONFIG[store]
+    return render_template('booking-status.html',
+                         store=store,
+                         store_name=store_info['name_jp'],
+                         max_slots=store_info['max_slots'])
+
+@app.route('/search')
+def integrated_search():
+    """統合検索ページ（全店舗横断）"""
+    stores = [
+        {
+            'id': store_id,
+            'name': info['name_jp'],
+            'max_slots': info['max_slots']
+        }
+        for store_id, info in STORE_CONFIG.items()
+    ]
+    return render_template('integrated-search.html', stores=stores)
 
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
@@ -126,21 +205,26 @@ def change_password():
 def get_reservations():
     """予約データを取得（日付でグループ化）"""
     debug_mode = request.args.get('debug') == '1'
+    store = request.args.get('store', 'shibuya')  # 店舗パラメータ取得（デフォルト: shibuya）
+
+    # 店舗バリデーション
+    if store not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store}'}), 400
 
     conn = get_db_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # デバッグモード：総件数を取得
             if debug_mode:
-                cur.execute("SELECT COUNT(*) as total FROM reservations")
+                cur.execute("SELECT COUNT(*) as total FROM reservations WHERE store = %s", (store,))
                 total_count = cur.fetchone()['total']
 
             cur.execute("""
                 SELECT date, start_time, end_time, customer_name, type, is_cancellation
                 FROM reservations
-                WHERE store = 'shibuya'
+                WHERE store = %s
                 ORDER BY date, start_time
-            """)
+            """, (store,))
             rows = cur.fetchall()
 
         # 日付でグループ化
@@ -180,6 +264,12 @@ def add_reservation():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data = request.json
+    store = data.get('store', 'shibuya')  # 店舗パラメータ取得
+
+    # 店舗バリデーション
+    if store not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store}'}), 400
+
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
@@ -191,7 +281,7 @@ def add_reservation():
                 data.get('start'),
                 data.get('end'),
                 data.get('customer_name', 'N/A'),
-                'shibuya',
+                store,
                 data.get('type', 'manual')
             ))
         conn.commit()
@@ -210,21 +300,27 @@ def delete_reservation():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data = request.json
+    store = data.get('store', 'shibuya')  # 店舗パラメータ取得
     print(f'[DELETE] Received data: {data}')
+
+    # 店舗バリデーション
+    if store not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store}'}), 400
 
     conn = get_db_conn()
     try:
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # まず該当する予約を検索
             cur.execute("""
                 SELECT id, customer_name, date, start_time, end_time
                 FROM reservations
                 WHERE date = %s AND start_time = %s AND end_time = %s
-                AND store = 'shibuya'
+                AND store = %s
             """, (
                 data.get('date'),
                 data.get('start'),
-                data.get('end')
+                data.get('end'),
+                store
             ))
             found_reservations = cur.fetchall()
             print(f'[DELETE] Found {len(found_reservations)} matching reservations')
@@ -432,21 +528,32 @@ def gas_webhook():
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
                         else:
-                            # email_idがない場合は日付・時間・顧客名で重複チェック
+                            # email_idがない場合は日付・時間・店舗で重複チェック（より厳格）
                             cur.execute("""
-                                SELECT id FROM reservations
+                                SELECT id, customer_name FROM reservations
                                 WHERE date = %s AND start_time = %s AND end_time = %s
-                                AND customer_name = %s AND store = %s AND type = 'gmail'
+                                AND store = %s AND type = 'gmail'
                             """, (
                                 res['date'],
                                 res['start'],
                                 res['end'],
-                                res.get('customer_name', 'N/A'),
                                 res.get('store', 'shibuya')
                             ))
                             existing = cur.fetchone()
 
-                            if not existing:
+                            if existing:
+                                # 既存の予約を更新（顧客名を最新に）
+                                cur.execute("""
+                                    UPDATE reservations
+                                    SET customer_name = %s
+                                    WHERE id = %s
+                                """, (
+                                    res.get('customer_name', 'N/A'),
+                                    existing[0]
+                                ))
+                                updated_count += 1
+                                print(f'[DEBUG] Updated (no email_id) [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                            else:
                                 # 重複がない場合のみ追加
                                 cur.execute("""
                                     INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
@@ -462,8 +569,6 @@ def gas_webhook():
                                 ))
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
-                            else:
-                                print(f'[DEBUG] Skipped duplicate [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]}')
 
                         log_activity(f"Gmail booking processed: {res['date']} {res['start']}-{res['end']}")
 
@@ -503,6 +608,134 @@ def gas_webhook():
     except Exception as e:
         log_activity(f'gas_webhook exception: {str(e)}')
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+# ============================================================
+# 空き状況API（統合検索システム用）
+# ============================================================
+
+@app.route('/api/availability', methods=['GET'])
+def check_availability():
+    """
+    空き状況取得API
+
+    Query Parameters:
+    - date: 日付 (YYYY-MM-DD)
+    - start_time: 開始時刻 (HH:MM)
+    - end_time: 終了時刻 (HH:MM)
+    - store: 店舗ID (shibuya, yoyogi-uehara, nakameguro, ebisu, hanzomon)
+
+    Response:
+    {
+        "store": "shibuya",
+        "store_name": "渋谷店",
+        "date": "2025-12-01",
+        "start_time": "10:00",
+        "end_time": "12:00",
+        "available": true,
+        "total_slots": 7,
+        "occupied_slots": 3,
+        "remaining_slots": 4
+    }
+    """
+    try:
+        # パラメータ取得
+        date = request.args.get('date')
+        start_time = request.args.get('start_time')
+        end_time = request.args.get('end_time')
+        store = request.args.get('store', 'shibuya')
+
+        # バリデーション
+        if not all([date, start_time, end_time]):
+            return jsonify({
+                'error': 'Missing required parameters',
+                'required': ['date', 'start_time', 'end_time']
+            }), 400
+
+        # 店舗情報取得
+        if store not in STORE_CONFIG:
+            return jsonify({
+                'error': 'Invalid store',
+                'valid_stores': list(STORE_CONFIG.keys())
+            }), 400
+
+        store_info = STORE_CONFIG[store]
+        max_slots = store_info['max_slots']
+        store_name = store_info['name_jp']
+
+        # データベースから予約数を取得
+        conn = get_db_conn()
+        try:
+            with conn.cursor() as cur:
+                # 指定日時に重なる予約を検索
+                cur.execute("""
+                    SELECT COUNT(*) FROM reservations
+                    WHERE date = %s
+                    AND start_time < %s
+                    AND end_time > %s
+                    AND store = %s
+                """, (date, end_time, start_time, store))
+
+                occupied_slots = cur.fetchone()[0]
+                remaining_slots = max_slots - occupied_slots
+
+                return jsonify({
+                    'store': store,
+                    'store_name': store_name,
+                    'date': date,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'available': remaining_slots > 0,
+                    'total_slots': max_slots,
+                    'occupied_slots': occupied_slots,
+                    'remaining_slots': remaining_slots
+                }), 200
+
+        finally:
+            return_db_conn(conn)
+
+    except Exception as e:
+        log_activity(f'availability_check error: {str(e)}')
+        return jsonify({
+            'error': 'Internal server error',
+            'details': str(e)
+        }), 500
+
+
+@app.route('/api/stores', methods=['GET'])
+def get_stores():
+    """
+    全店舗情報取得API
+
+    Response:
+    {
+        "stores": [
+            {"id": "shibuya", "name": "渋谷店", "max_slots": 7},
+            ...
+        ]
+    }
+    """
+    try:
+        stores = [
+            {
+                'id': store_id,
+                'name': info['name_jp'],
+                'max_slots': info['max_slots']
+            }
+            for store_id, info in STORE_CONFIG.items()
+        ]
+
+        return jsonify({
+            'stores': stores,
+            'total': len(stores)
+        }), 200
+
+    except Exception as e:
+        log_activity(f'get_stores error: {str(e)}')
+        return jsonify({
+            'error': 'Internal server error',
+            'details': str(e)
+        }), 500
+
 
 if __name__ == '__main__':
     with app.app_context():

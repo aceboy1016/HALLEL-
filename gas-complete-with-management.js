@@ -1,18 +1,22 @@
 /**
- * Google Apps Script用Gmail自動同期 - 完全版
- * HALLEL渋谷店予約システム - 全メール確認対応
+ * Google Apps Script用Gmail自動同期 - 完全統合版（全店舗対応）
+ * HALLEL予約システム - 全メール確認対応
  *
  * 【管理機能追加版】
  * - トリガー管理
  * - ラベルクリーンアップ
  * - 明日朝の自動実行設定
+ *
+ * 【特徴】
+ * - 全5店舗を1つのGASで処理：渋谷、代々木上原、中目黒、恵比寿、半蔵門
+ * - 全店舗のデータをVercel PostgreSQLに送信
  */
 
 // ============================================================
 // 設定
 // ============================================================
 const CONFIG = {
-  WEBHOOK_URL: 'https://hallelshibuyabooking.vercel.app/api/gas/webhook',
+  WEBHOOK_URL: 'https://hallel.vercel.app/api/gas/webhook',
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',
   BATCH_SIZE: 50, // バッチサイズ（実行時間制限回避）
   MAX_EXECUTION_TIME: 300000, // 5分（ミリ秒）
@@ -192,8 +196,9 @@ function processBatchEmails(startIndex = 0) {
       }
     }
 
-    // Vercelにデータを送信
+    // Vercelにデータを送信（全店舗）
     if (reservations.length > 0) {
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
       sendToVercel(reservations);
     }
 
@@ -253,10 +258,11 @@ function scheduledSync() {
     }
 
     if (reservations.length > 0) {
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
       sendToVercel(reservations);
     }
 
-    console.log(`✅ 定期同期完了: ${reservations.length}件`);
+    console.log(`✅ 定期同期完了: ${reservations.length}件（全店舗）`);
 
   } catch (error) {
     console.error(`❌ 定期同期エラー: ${error.message}`);

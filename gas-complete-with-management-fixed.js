@@ -1,21 +1,23 @@
 /**
- * Google Apps Script用Gmail自動同期 - 完全版（店舗判定修正版）
- * HALLEL渋谷店予約システム - 全メール確認対応
+ * Google Apps Script用Gmail自動同期 - 完全統合版（全店舗対応・店舗判定改善版）
+ * HALLEL予約システム - 全メール確認対応
  *
  * 【管理機能追加版】
  * - トリガー管理
  * - ラベルクリーンアップ
  * - 明日朝の自動実行設定
  *
- * 【修正内容】
- * - 店舗判定ロジックを改善：「店舗：」フィールドを優先的に検出
+ * 【特徴】
+ * - 全5店舗を1つのGASで処理：渋谷、代々木上原、中目黒、恵比寿、半蔵門
+ * - 全店舗のデータをVercel PostgreSQLに送信
+ * - 店舗判定ロジック改善：「店舗：」フィールドを優先的に検出
  */
 
 // ============================================================
 // 設定
 // ============================================================
 const CONFIG = {
-  WEBHOOK_URL: 'https://hallelshibuyabooking.vercel.app/api/gas/webhook',
+  WEBHOOK_URL: 'https://hallel.vercel.app/api/gas/webhook',
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',
   BATCH_SIZE: 50, // バッチサイズ（実行時間制限回避）
   MAX_EXECUTION_TIME: 300000, // 5分（ミリ秒）
@@ -195,8 +197,9 @@ function processBatchEmails(startIndex = 0) {
       }
     }
 
-    // Vercelにデータを送信
+    // Vercelにデータを送信（全店舗）
     if (reservations.length > 0) {
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
       sendToVercel(reservations);
     }
 
@@ -256,10 +259,11 @@ function scheduledSync() {
     }
 
     if (reservations.length > 0) {
+      console.log(`📤 Vercel送信: ${reservations.length}件（全店舗統合）`);
       sendToVercel(reservations);
     }
 
-    console.log(`✅ 定期同期完了: ${reservations.length}件`);
+    console.log(`✅ 定期同期完了: ${reservations.length}件（全店舗）`);
 
   } catch (error) {
     console.error(`❌ 定期同期エラー: ${error.message}`);
@@ -605,6 +609,37 @@ function setupTrigger() {
     .create();
 
   console.log('✅ 定期実行トリガー設定完了（1時間ごと）');
+}
+
+/**
+ * 高頻度トリガーを設定（5分ごと）
+ * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
+ */
+function setupFrequentTrigger() {
+  console.log('⚡ 5分ごとのトリガーを設定します...');
+
+  // 既存のトリガーを削除
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'scheduledSync') {
+      console.log('🗑️ 既存のscheduledSyncトリガーを削除');
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // 新しいトリガーを作成（5分ごと）
+  ScriptApp.newTrigger('scheduledSync')
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+
+  console.log('✅ 定期実行トリガー設定完了（5分ごと）');
+
+  return {
+    success: true,
+    interval: '5分ごと',
+    message: '新しいメールを5分ごとに自動チェック＆処理します'
+  };
 }
 
 /**
