@@ -612,6 +612,37 @@ function setupTrigger() {
 }
 
 /**
+ * 高頻度トリガーを設定（5分ごと）
+ * 使い方: GASエディタで関数を選択して実行ボタン（▶️）をクリック
+ */
+function setupFrequentTrigger() {
+  console.log('⚡ 5分ごとのトリガーを設定します...');
+
+  // 既存のトリガーを削除
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'scheduledSync') {
+      console.log('🗑️ 既存のscheduledSyncトリガーを削除');
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // 新しいトリガーを作成（5分ごと）
+  ScriptApp.newTrigger('scheduledSync')
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+
+  console.log('✅ 定期実行トリガー設定完了（5分ごと）');
+
+  return {
+    success: true,
+    interval: '5分ごと',
+    message: '新しいメールを5分ごとに自動チェック＆処理します'
+  };
+}
+
+/**
  * 進行状況確認
  */
 function checkProgress() {
