@@ -399,31 +399,32 @@ def cleanup_duplicates():
     conn = get_db_conn()
     try:
         with conn.cursor() as cur:
-            # email_idベースの重複を削除（最新のみ残す）
+            # まず、email_idが重複している予約を削除（email_idベース）
             cur.execute("""
-                DELETE FROM reservations
-                WHERE id NOT IN (
-                    SELECT MAX(id)
-                    FROM reservations
-                    WHERE email_id IS NOT NULL AND type = 'gmail'
-                    GROUP BY email_id, store
-                )
-                AND email_id IS NOT NULL
-                AND type = 'gmail'
+                DELETE FROM reservations r1
+                USING reservations r2
+                WHERE r1.id < r2.id
+                AND r1.email_id IS NOT NULL
+                AND r1.email_id != ''
+                AND r1.email_id = r2.email_id
+                AND r1.store = r2.store
+                AND r1.type = 'gmail'
+                AND r2.type = 'gmail'
             """)
             email_duplicates = cur.rowcount
 
-            # email_idがないGmail予約の重複を削除（日付・時間・顧客名・店舗が同じもの）
+            # 次に、時間・顧客名・店舗が完全一致する予約を削除（時間ベース）
             cur.execute("""
-                DELETE FROM reservations
-                WHERE id NOT IN (
-                    SELECT MAX(id)
-                    FROM reservations
-                    WHERE email_id IS NULL AND type = 'gmail'
-                    GROUP BY date, start_time, end_time, customer_name, store
-                )
-                AND email_id IS NULL
-                AND type = 'gmail'
+                DELETE FROM reservations r1
+                USING reservations r2
+                WHERE r1.id < r2.id
+                AND r1.date = r2.date
+                AND r1.start_time = r2.start_time
+                AND r1.end_time = r2.end_time
+                AND r1.customer_name = r2.customer_name
+                AND r1.store = r2.store
+                AND r1.type = 'gmail'
+                AND r2.type = 'gmail'
             """)
             time_duplicates = cur.rowcount
 
@@ -442,7 +443,41 @@ def cleanup_duplicates():
         })
     except Exception as e:
         conn.rollback()
+        log_activity(f"Cleanup failed: {str(e)}")
         return jsonify({'error': str(e)}), 500
+    finally:
+        return_db_conn(conn)
+
+@app.route('/api/admin/debug-duplicates')
+def debug_duplicates():
+    """重複データをデバッグ（管理者専用）"""
+    if not is_logged_in():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db_conn()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # 重複を検出
+            cur.execute("""
+                SELECT
+                    date, start_time, end_time, customer_name, store, type,
+                    email_id, id, created_at,
+                    COUNT(*) OVER (PARTITION BY date, start_time, end_time, customer_name, store) as duplicate_count
+                FROM reservations
+                WHERE type = 'gmail'
+                ORDER BY date DESC, start_time, customer_name, id
+                LIMIT 100
+            """)
+            rows = cur.fetchall()
+
+            # 重複のみをフィルタ
+            duplicates = [dict(row) for row in rows if row['duplicate_count'] > 1]
+
+            return jsonify({
+                'total_checked': len(rows),
+                'duplicates_found': len(duplicates),
+                'duplicates': duplicates[:20]  # 最初の20件のみ
+            })
     finally:
         return_db_conn(conn)
 
