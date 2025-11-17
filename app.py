@@ -346,9 +346,19 @@ def admin_page():
             """)
             db_logs = cur.fetchall()
 
-            # Format logs for display
+            # Format logs for display (convert to JST)
+            from datetime import timezone, timedelta
+            jst = timezone(timedelta(hours=9))
+
             for log in db_logs:
-                timestamp = log['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                # Convert UTC to JST
+                created_at_utc = log['created_at']
+                if created_at_utc.tzinfo is None:
+                    # If timezone-naive, assume UTC
+                    created_at_utc = created_at_utc.replace(tzinfo=timezone.utc)
+                created_at_jst = created_at_utc.astimezone(jst)
+
+                timestamp = created_at_jst.strftime('%Y-%m-%d %H:%M:%S JST')
                 username = log['username'] or 'Unknown'
                 action = log['action']
                 ip = log['ip_address'] or 'N/A'
