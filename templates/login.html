@@ -279,6 +279,7 @@
             {% endwith %}
 
             <form method="POST" action="/login">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="mb-4">
                     <label for="password" class="form-label">パスワード</label>
                     <div class="password-toggle">
