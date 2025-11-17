@@ -16,7 +16,7 @@ const CONFIG = {
   WEBHOOK_API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',         // ★Webhook認証キー★
   MAX_EMAILS_PER_RUN: 50,      // 一度に処理する最大メール数
   DAYS_TO_SEARCH: 7,           // 過去何日分を検索するか
-  SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店']
+  SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店', '恵比寿店', '半蔵門店', '代々木上原店', '中目黒店']
 };
 
 // === スクリプトプロパティのキー ===
@@ -119,9 +119,36 @@ function buildSearchQuery() {
 }
 
 /**
+ * メール本文から店舗名を抽出
+ */
+function extractStore(body) {
+  // 店舗名マッピング
+  const storeMap = {
+    '渋谷店': 'shibuya',
+    '恵比寿店': 'ebisu',
+    '半蔵門店': 'hanzomon',
+    '代々木上原店': 'yoyogi-uehara',
+    '中目黒店': 'nakameguro'
+  };
+
+  // メール本文から店舗名を検索
+  for (const [storeName, storeId] of Object.entries(storeMap)) {
+    if (body.includes(storeName)) {
+      return storeId;
+    }
+  }
+
+  // デフォルトは渋谷店
+  return 'shibuya';
+}
+
+/**
  * メール本文から予約情報を抽出
  */
 function parseEmailBody(body) {
+  // 店舗名を抽出
+  const store = extractStore(body);
+
   // 予約パターン: 予約: 2025-08-05 14:00-15:30
   const bookingPattern = /予約[：:]\s*(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*[-~〜ー]\s*(\d{1,2}:\d{2})/;
   const bookingMatch = body.match(bookingPattern);
@@ -131,7 +158,8 @@ function parseEmailBody(body) {
       action_type: 'booking',
       date: bookingMatch[1],
       start_time: formatTime(bookingMatch[2]),
-      end_time: formatTime(bookingMatch[3])
+      end_time: formatTime(bookingMatch[3]),
+      store: store
     };
   }
 
@@ -143,7 +171,8 @@ function parseEmailBody(body) {
     return {
       action_type: 'cancellation',
       date: cancelMatch[1],
-      start_time: formatTime(cancelMatch[2])
+      start_time: formatTime(cancelMatch[2]),
+      store: store
     };
   }
 
@@ -220,20 +249,67 @@ function testConfig() {
 }
 
 /**
- * テスト用関数: 予約情報の抽出をテスト
+ * テスト用関数: 予約情報の抽出をテスト（全店舗対応）
  */
 function testParsing() {
   const testEmails = [
-    '予約: 2025-08-05 14:00-15:30\nお客様名: 田中太郎',
-    'キャンセル: 2025-08-05 14:00\nお客様名: 佐藤花子',
-    '予約：2025-08-06 10:30〜12:00',
+    '渋谷店\n予約: 2025-08-05 14:00-15:30\nお客様名: 田中太郎',
+    '恵比寿店\nキャンセル: 2025-08-05 14:00\nお客様名: 佐藤花子',
+    '半蔵門店\n予約：2025-08-06 10:30〜12:00',
+    '代々木上原店\n予約: 2025-08-07 09:00-10:30\nお客様名: 鈴木一郎',
+    '中目黒店\nキャンセル: 2025-08-08 15:00',
+    '予約: 2025-08-09 11:00-12:00\nお客様名: 山田花子',  // 店舗名なし（デフォルト: 渋谷店）
     '通常のメール本文'
   ];
 
+  Logger.log('='.repeat(60));
+  Logger.log('全店舗対応テスト - 予約情報抽出');
+  Logger.log('='.repeat(60));
+
   testEmails.forEach((body, i) => {
     Logger.log(`\n--- テスト ${i + 1} ---`);
-    Logger.log(`本文: ${body}`);
+    Logger.log(`本文:\n${body}`);
     const result = parseEmailBody(body);
-    Logger.log(`結果: ${JSON.stringify(result, null, 2)}`);
+    if (result) {
+      Logger.log(`✓ 抽出成功:`);
+      Logger.log(`  店舗: ${result.store}`);
+      Logger.log(`  アクション: ${result.action_type}`);
+      Logger.log(`  日付: ${result.date}`);
+      Logger.log(`  開始: ${result.start_time}`);
+      if (result.end_time) {
+        Logger.log(`  終了: ${result.end_time}`);
+      }
+    } else {
+      Logger.log(`✗ 抽出失敗（予約情報なし）`);
+    }
   });
+
+  Logger.log('\n' + '='.repeat(60));
+  Logger.log('テスト完了');
+  Logger.log('='.repeat(60));
+}
+
+/**
+ * テスト用関数: 店舗名抽出のみをテスト
+ */
+function testStoreExtraction() {
+  const testBodies = [
+    '渋谷店での予約です',
+    '恵比寿店にて予約希望',
+    '半蔵門店のキャンセル',
+    '代々木上原店で利用',
+    '中目黒店の予約',
+    '店舗名なしの本文'
+  ];
+
+  Logger.log('='.repeat(60));
+  Logger.log('店舗名抽出テスト');
+  Logger.log('='.repeat(60));
+
+  testBodies.forEach((body, i) => {
+    const store = extractStore(body);
+    Logger.log(`テスト ${i + 1}: "${body}" → ${store}`);
+  });
+
+  Logger.log('='.repeat(60));
 }
