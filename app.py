@@ -1,5 +1,7 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
 from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import os
@@ -19,12 +21,26 @@ if not os.environ.get('SECRET_KEY'):
 # CSRF Protection
 csrf = CSRFProtect(app)
 
+# Rate Limiting (DoS攻撃対策)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per hour", "2000 per day"],
+    storage_uri="memory://",
+    strategy="fixed-window"
+)
+
 # Legacy password file support (deprecated, will be removed)
 PASSWORD_FILE = 'password.txt'
 
 # Security settings
 MAX_LOGIN_ATTEMPTS = 5  # Maximum failed login attempts before account lockout
 LOCKOUT_DURATION_MINUTES = 15  # How long to lock account after max attempts
+
+# Webhook API Key（GAS認証用）
+WEBHOOK_API_KEY = os.environ.get('WEBHOOK_API_KEY')  # Vercelの環境変数で設定
+if not WEBHOOK_API_KEY:
+    print("⚠️  WARNING: WEBHOOK_API_KEY not set. Webhook endpoint is unprotected!")
 
 # --- Store Configuration ---
 STORE_CONFIG = {
@@ -109,6 +125,31 @@ def log_activity(action, user_id=None, username=None):
         # Continue even if database logging fails
 
 # --- Password Management ---
+def validate_password_strength(password):
+    """
+    パスワードの強度をチェック
+    要件: 12文字以上、大文字・小文字・数字・記号を含む
+
+    Returns:
+        tuple: (is_valid: bool, error_message: str)
+    """
+    if len(password) < 12:
+        return False, 'パスワードは12文字以上である必要があります。'
+
+    if not re.search(r'[A-Z]', password):
+        return False, 'パスワードには少なくとも1つの大文字が必要です。'
+
+    if not re.search(r'[a-z]', password):
+        return False, 'パスワードには少なくとも1つの小文字が必要です。'
+
+    if not re.search(r'[0-9]', password):
+        return False, 'パスワードには少なくとも1つの数字が必要です。'
+
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, 'パスワードには少なくとも1つの記号が必要です（!@#$%^&*等）。'
+
+    return True, ''
+
 def set_initial_password():
     """Legacy function - kept for backwards compatibility"""
     if not os.path.exists(PASSWORD_FILE):
@@ -268,6 +309,7 @@ def terms_of_service():
 
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per 5 minutes")  # ブルートフォース攻撃対策
 def login():
     if request.method == 'POST':
         username = request.form.get('username', 'admin')  # Default to 'admin' for backwards compatibility
@@ -409,13 +451,17 @@ def admin_calendar():
     return render_template('admin-calendar.html')
 
 @app.route('/admin/change_password', methods=['POST'])
+@limiter.limit("3 per hour")  # パスワード変更の頻度制限
 def change_password():
     if not is_logged_in():
         return jsonify({'error': 'Unauthorized'}), 401
 
     new_password = request.form.get('new_password')
-    if len(new_password) < 8:
-        flash('新しいパスワードは8文字以上である必要があります。', 'danger')
+
+    # パスワード強度チェック
+    is_valid, error_message = validate_password_strength(new_password)
+    if not is_valid:
+        flash(error_message, 'danger')
         return redirect(url_for('admin_page'))
 
     hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
@@ -634,6 +680,7 @@ def add_reservation():
         return_db_conn(conn)
 
 @app.route('/api/reservations/delete', methods=['POST'])
+@limiter.limit("30 per minute")  # 予約削除の頻度制限
 def delete_reservation():
     """予約を削除"""
     if not is_logged_in():
@@ -703,6 +750,7 @@ def delete_reservation():
         return_db_conn(conn)
 
 @app.route('/api/admin/cleanup-duplicates', methods=['POST'])
+@limiter.limit("10 per hour")  # 重複削除の頻度制限（負荷の高い操作）
 def cleanup_duplicates():
     """重複した予約を削除（管理者専用）"""
     if not is_logged_in():
@@ -821,9 +869,17 @@ def debug_env():
 
 @app.route('/api/gas/webhook', methods=['POST'])
 @csrf.exempt  # 外部システム（GAS）からのリクエストなのでCSRF免除
+@limiter.limit("60 per minute")  # GASからの頻繁な同期を許可
 def gas_webhook():
     """GASからの予約データを受信"""
     try:
+        # Webhook認証チェック
+        if WEBHOOK_API_KEY:
+            api_key = request.headers.get('X-API-Key')
+            if not api_key or api_key != WEBHOOK_API_KEY:
+                log_activity(f'Unauthorized webhook attempt from {request.remote_addr}')
+                return jsonify({'error': 'Unauthorized: Invalid API Key'}), 401
+
         print('[DEBUG] gas_webhook called')
         print(f'[DEBUG] POSTGRES_URL exists: {bool(os.environ.get("POSTGRES_URL"))}')
         data = request.json

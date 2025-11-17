@@ -233,42 +233,62 @@ Gmail連携用のエンドポイントです（外部スクリプトから呼び
 
 ## 🛡️ セキュリティ
 
-### セキュリティ強化状況（フェーズ1実装済み）
+### セキュリティ強化状況（フェーズ1-2実装済み）
 
-✅ **実装済み:**
+✅ **フェーズ1実装済み:**
 - データベースベースの認証システム
 - ブルートフォース攻撃対策（5回失敗で15分ロック）
 - アクティビティログ（IP・User-Agent記録）
 - パスワードハッシュ化（pbkdf2:sha256）
-- セッション管理の改善
-- 環境変数によるSECRET_KEY管理
-
-⚠️ **実装予定（700名展開前）:**
-- CSRF保護
-- セキュリティヘッダー
+- セッション管理の改善（環境変数SECRET_KEY）
+- CSRF保護（Flask-WTF）
+- セキュリティヘッダー（X-Frame-Options、CSP等）
 - プライバシーポリシー・利用規約
-- Cookie同意取得
-- レート制限（DoS対策）
+- Cookie同意バナー（電気通信事業法対応）
+
+✅ **フェーズ2実装済み:**
+- レート制限（Flask-Limiter）- DoS攻撃対策
+- Webhook認証（APIキー認証）
+- パスワード強度要件強化（12文字+複雑性）
+- 監査ログ強化（詳細な操作履歴）
+
+⚠️ **今後の予定:**
+- 多要素認証（MFA）
+- データベース暗号化
+- リアルタイムモニタリング
 
 詳細は **[SECURITY_LEGAL_AUDIT_REPORT.md](SECURITY_LEGAL_AUDIT_REPORT.md)** を参照してください。
 
 ### 本番環境での注意点
 
-1. **SECRET_KEYの設定**
-   - 環境変数 `SECRET_KEY` に固定値を設定
-   - Vercelの環境変数で設定済み
+1. **必須の環境変数**
+   - `SECRET_KEY`: セッション管理用（ランダムな文字列、32文字以上推奨）
+   - `POSTGRES_URL`: PostgreSQLデータベース接続URL
+   - `WEBHOOK_API_KEY`: GAS Webhook認証用（省略可、推奨設定）
+
+   Vercelでの設定方法:
+   ```bash
+   # Settings → Environment Variables で設定
+   SECRET_KEY=your-secret-key-here
+   WEBHOOK_API_KEY=your-webhook-api-key-here
+   ```
 
 2. **HTTPS の使用**
    - SSL証明書の設定
    - Vercel/Netlify等では自動設定
 
 3. **パスワードポリシー**
-   - 最低8文字以上（実装済み）
+   - 最低12文字以上、大文字・小文字・数字・記号を含む（実装済み）
    - 定期的な変更を推奨
 
 4. **認証情報の管理**
    - credentials.json と token.json をGitにコミットしない
    - .gitignore に追加済み
+
+5. **GAS Webhookの設定** ✅ 設定済み
+   - `google-apps-script.js` の `CONFIG.WEBHOOK_API_KEY` にAPI keyを設定
+   - `sendToFlaskAPI` 関数が自動的に `X-API-Key` ヘッダーを追加
+   - 詳細は `google-apps-script.js` の16行目と171-173行目を参照
 
 ## 📋 将来の機能拡張
 

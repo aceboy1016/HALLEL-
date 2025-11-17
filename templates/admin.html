@@ -808,11 +808,13 @@
                                     id="new_password"
                                     name="new_password"
                                     required
-                                    minlength="8"
-                                    placeholder="8文字以上で入力してください"
+                                    minlength="12"
+                                    placeholder="12文字以上（大文字・小文字・数字・記号を含む）"
                                     autocomplete="new-password"
                                 >
-                                <div class="form-text">セキュリティのため、8文字以上のパスワードを設定してください。</div>
+                                <div class="form-text">
+                                    <strong>パスワード要件:</strong> 12文字以上、大文字・小文字・数字・記号（!@#$%^&*等）をそれぞれ1文字以上含む
+                                </div>
                             </div>
                             <button type="submit" class="btn btn-warning w-100">
                                 🔒 パスワードを変更
