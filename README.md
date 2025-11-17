@@ -285,19 +285,10 @@ Gmail連携用のエンドポイントです（外部スクリプトから呼び
    - credentials.json と token.json をGitにコミットしない
    - .gitignore に追加済み
 
-5. **GAS Webhookの設定**
-   - GASスクリプトに `X-API-Key` ヘッダーを追加
-   ```javascript
-   const options = {
-     method: 'post',
-     headers: {
-       'Content-Type': 'application/json',
-       'X-API-Key': 'your-webhook-api-key-here'
-     },
-     payload: JSON.stringify(data)
-   };
-   UrlFetchApp.fetch(webhookUrl, options);
-   ```
+5. **GAS Webhookの設定** ✅ 設定済み
+   - `google-apps-script.js` の `CONFIG.WEBHOOK_API_KEY` にAPI keyを設定
+   - `sendToFlaskAPI` 関数が自動的に `X-API-Key` ヘッダーを追加
+   - 詳細は `google-apps-script.js` の16行目と171-173行目を参照
 
 ## 📋 将来の機能拡張
 

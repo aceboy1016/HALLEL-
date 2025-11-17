@@ -13,6 +13,7 @@
 // === 設定 ===
 const CONFIG = {
   FLASK_API_URL: 'https://your-domain.com/api/process_email',  // ★要変更★
+  WEBHOOK_API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',         // ★Webhook認証キー★
   MAX_EMAILS_PER_RUN: 50,      // 一度に処理する最大メール数
   DAYS_TO_SEARCH: 7,           // 過去何日分を検索するか
   SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店']
@@ -167,6 +168,9 @@ function sendToFlaskAPI(bookingData) {
     const options = {
       method: 'post',
       contentType: 'application/json',
+      headers: {
+        'X-API-Key': CONFIG.WEBHOOK_API_KEY
+      },
       payload: JSON.stringify(bookingData),
       muteHttpExceptions: true
     };
