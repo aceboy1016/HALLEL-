@@ -1,4 +1,5 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import os
@@ -14,6 +15,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(24)
 if not os.environ.get('SECRET_KEY'):
     print("⚠️  WARNING: SECRET_KEY not set in environment. Using random key (sessions will reset on restart)")
+
+# CSRF Protection
+csrf = CSRFProtect(app)
 
 # Legacy password file support (deprecated, will be removed)
 PASSWORD_FILE = 'password.txt'
@@ -805,6 +809,7 @@ def debug_env():
         }), 500
 
 @app.route('/api/gas/webhook', methods=['POST'])
+@csrf.exempt  # 外部システム（GAS）からのリクエストなのでCSRF免除
 def gas_webhook():
     """GASからの予約データを受信"""
     try:
