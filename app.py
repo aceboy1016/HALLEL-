@@ -1132,14 +1132,14 @@ def set_security_headers(response):
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
     # Content Security Policy（厳格版）
-    # Note: Bootstrap CDNとインラインスタイルを許可
+    # Note: Bootstrap CDN、Google Fonts、Vercel Liveを許可
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "font-src 'self' https://cdn.jsdelivr.net; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://vercel.live; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
         "img-src 'self' data:; "
-        "connect-src 'self'"
+        "connect-src 'self' https://cdn.jsdelivr.net https://vercel.live"
     )
 
     # Referrer Policy
