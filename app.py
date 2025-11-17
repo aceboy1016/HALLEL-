@@ -1,4 +1,5 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import os
@@ -14,6 +15,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(24)
 if not os.environ.get('SECRET_KEY'):
     print("⚠️  WARNING: SECRET_KEY not set in environment. Using random key (sessions will reset on restart)")
+
+# CSRF Protection
+csrf = CSRFProtect(app)
 
 # Legacy password file support (deprecated, will be removed)
 PASSWORD_FILE = 'password.txt'
@@ -250,6 +254,17 @@ def integrated_search():
         for store_id, info in STORE_CONFIG.items()
     ]
     return render_template('integrated-search.html', stores=stores)
+
+# --- Legal Pages ---
+@app.route('/privacy-policy')
+def privacy_policy():
+    """プライバシーポリシーページ"""
+    return render_template('privacy-policy.html')
+
+@app.route('/terms-of-service')
+def terms_of_service():
+    """利用規約ページ"""
+    return render_template('terms-of-service.html')
 
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
@@ -805,6 +820,7 @@ def debug_env():
         }), 500
 
 @app.route('/api/gas/webhook', methods=['POST'])
+@csrf.exempt  # 外部システム（GAS）からのリクエストなのでCSRF免除
 def gas_webhook():
     """GASからの予約データを受信"""
     try:
@@ -1098,7 +1114,44 @@ def get_stores():
         }), 500
 
 
+# --- Security Headers ---
+@app.after_request
+def set_security_headers(response):
+    """セキュリティヘッダーを設定"""
+    # クリックジャッキング対策
+    response.headers['X-Frame-Options'] = 'DENY'
+
+    # MIME type sniffing 対策
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # XSS対策（レガシー）
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # HTTPS強制（本番環境のみ）
+    if not app.debug:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+    # Content Security Policy（厳格版）
+    # Note: Bootstrap CDNとインラインスタイルを許可
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "font-src 'self' https://cdn.jsdelivr.net; "
+        "img-src 'self' data:; "
+        "connect-src 'self'"
+    )
+
+    # Referrer Policy
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+    return response
+
+
 if __name__ == '__main__':
     with app.app_context():
         set_initial_password()
-    app.run(debug=True, host='0.0.0.0', port=5001)
+
+    # 本番環境ではデバッグモードを無効化
+    DEBUG_MODE = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=DEBUG_MODE, host='0.0.0.0', port=5001)
