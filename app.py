@@ -1098,7 +1098,44 @@ def get_stores():
         }), 500
 
 
+# --- Security Headers ---
+@app.after_request
+def set_security_headers(response):
+    """セキュリティヘッダーを設定"""
+    # クリックジャッキング対策
+    response.headers['X-Frame-Options'] = 'DENY'
+
+    # MIME type sniffing 対策
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # XSS対策（レガシー）
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # HTTPS強制（本番環境のみ）
+    if not app.debug:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+    # Content Security Policy（厳格版）
+    # Note: Bootstrap CDNとインラインスタイルを許可
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "font-src 'self' https://cdn.jsdelivr.net; "
+        "img-src 'self' data:; "
+        "connect-src 'self'"
+    )
+
+    # Referrer Policy
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+    return response
+
+
 if __name__ == '__main__':
     with app.app_context():
         set_initial_password()
-    app.run(debug=True, host='0.0.0.0', port=5001)
+
+    # 本番環境ではデバッグモードを無効化
+    DEBUG_MODE = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=DEBUG_MODE, host='0.0.0.0', port=5001)
