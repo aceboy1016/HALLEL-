@@ -255,6 +255,17 @@ def integrated_search():
     ]
     return render_template('integrated-search.html', stores=stores)
 
+# --- Legal Pages ---
+@app.route('/privacy-policy')
+def privacy_policy():
+    """プライバシーポリシーページ"""
+    return render_template('privacy-policy.html')
+
+@app.route('/terms-of-service')
+def terms_of_service():
+    """利用規約ページ"""
+    return render_template('terms-of-service.html')
+
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():

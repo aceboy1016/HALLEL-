@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>利用規約 | HALLEL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Atlassian-inspired Color Palette */
+            --primary-blue: #0052CC;
+            --primary-blue-hover: #0065FF;
+            --primary-blue-light: rgba(0, 82, 204, 0.1);
+            --neutral-900: #091E42;
+            --neutral-800: #172B4D;
+            --neutral-700: #253858;
+            --neutral-600: #344563;
+            --neutral-500: #42526E;
+            --neutral-400: #5E6C84;
+            --neutral-300: #7A869A;
+            --neutral-200: #97A0AF;
+            --neutral-100: #DFE1E6;
+            --neutral-50: #F4F5F7;
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --text-light: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --surface-bg: #F4F5F7;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --shadow-low: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-medium: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-high: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --radius-sm: 3px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --success: #00875A;
+            --success-light: #36B37E;
+            --warning: #FF8B00;
+            --danger: #DE350B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--surface-bg) 0%, #E6E9EF 100%);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--neutral-700) 0%, var(--neutral-800) 100%);
+            color: var(--text-light);
+            padding: 2rem 0;
+            box-shadow: var(--shadow-medium);
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+
+        /* Card */
+        .content-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+            padding: 3rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Typography */
+        h2 {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 2.5rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--primary-blue);
+            position: relative;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -3px;
+            width: 60px;
+            height: 3px;
+            background: var(--primary-blue-hover);
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        h3 {
+            color: var(--text-primary);
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        h4 {
+            color: var(--text-primary);
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p {
+            color: var(--text-primary);
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+        }
+
+        /* Lists */
+        ol {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+        }
+
+        ol > li {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        ol > li::marker {
+            color: var(--primary-blue);
+            font-weight: 700;
+        }
+
+        ul {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+        }
+
+        ul > li {
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        ul > li::marker {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        /* Links */
+        a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid transparent;
+        }
+
+        a:hover {
+            color: var(--primary-blue-hover);
+            border-bottom-color: var(--primary-blue-hover);
+        }
+
+        /* Info Box */
+        .info-box {
+            background: linear-gradient(135deg, var(--primary-blue-light) 0%, rgba(102, 126, 234, 0.05) 100%);
+            border-left: 4px solid var(--primary-blue);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-md);
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Alert Box */
+        .alert-box {
+            background: linear-gradient(135deg, #FFEBE6 0%, #FFF4E6 100%);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-md);
+        }
+
+        .alert-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Danger Box */
+        .danger-box {
+            background: linear-gradient(135deg, #FFEBE6 0%, #FFE5E5 100%);
+            border-left: 4px solid var(--danger);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-md);
+        }
+
+        .danger-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Success Box */
+        .success-box {
+            background: linear-gradient(135deg, #E3FCEF 0%, #F0FFF4 100%);
+            border-left: 4px solid var(--success);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-md);
+        }
+
+        .success-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: var(--card-bg);
+            box-shadow: var(--shadow-low);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        thead {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+        }
+
+        th {
+            padding: 1.25rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--neutral-100);
+            color: var(--text-primary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: var(--neutral-50);
+        }
+
+        /* Metadata */
+        .metadata {
+            background: var(--neutral-50);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-left: 4px solid var(--neutral-300);
+        }
+
+        /* Footer Navigation */
+        .footer-nav {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--neutral-100);
+        }
+
+        .footer-nav a {
+            display: inline-block;
+            margin: 0 1rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-low);
+            border-bottom: none;
+        }
+
+        .footer-nav a:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            color: var(--text-light);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            color: var(--primary-blue);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content-card {
+                padding: 2rem 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.25rem;
+            }
+
+            .footer-nav a {
+                display: block;
+                margin: 0.5rem 0;
+            }
+        }
+
+        /* Strong */
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Article Number */
+        .article-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        /* Definition Term */
+        .definition-term {
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>利用規約</h1>
+            <p class="subtitle">Terms of Service | HALLEL フィットネススタジオ予約システム</p>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M10 2L4 8l6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            ホームに戻る
+        </a>
+
+        <div class="content-card">
+            <div class="info-box">
+                <p><strong>最終更新日：</strong> 2025年11月17日</p>
+                <p>本利用規約（以下「本規約」といいます）は、HALLEL株式会社（以下「当社」といいます）が提供するフィットネススタジオ予約システム（以下「本サービス」といいます）の利用条件を定めるものです。ご利用の皆様（以下「利用者」といいます）には、本規約に同意いただいた上で、本サービスをご利用いただきます。</p>
+            </div>
+
+            <h2>第1条（適用）</h2>
+            <ol>
+                <li>本規約は、本サービスの利用に関する一切の関係に適用されます。</li>
+                <li>当社は、本サービスに関して、本規約のほか、利用上のガイドライン等、各種の定め（以下「個別規定」といいます）をすることがあります。これら個別規定は、その名称にかかわらず、本規約の一部を構成するものとします。</li>
+                <li>本規約の内容と個別規定の内容が矛盾する場合、個別規定が優先して適用されるものとします。</li>
+                <li>利用者が本サービスを利用した場合、本規約の全ての条項に同意したものとみなします。</li>
+            </ol>
+
+            <h2>第2条（定義）</h2>
+            <p>本規約において使用する以下の用語は、以下に定める意味を有するものとします。</p>
+            <ol>
+                <li><span class="definition-term">「本サービス」</span>：当社が運営するフィットネススタジオの予約・空き状況確認システム</li>
+                <li><span class="definition-term">「利用者」</span>：本サービスを利用する全ての方</li>
+                <li><span class="definition-term">「会員」</span>：当社が運営するフィットネススタジオの会員として登録された方</li>
+                <li><span class="definition-term">「予約情報」</span>：利用者が本サービスを通じて行った予約の内容に関する一切の情報</li>
+                <li><span class="definition-term">「個人情報」</span>：利用者の氏名、メールアドレス、電話番号、その他利用者個人を識別できる情報</li>
+                <li><span class="definition-term">「知的財産権」</span>：著作権、特許権、実用新案権、商標権、意匠権その他の知的財産権（それらの権利を取得し、またはそれらの権利につき登録等を出願する権利を含みます）</li>
+            </ol>
+
+            <h2>第3条（利用資格）</h2>
+            <ol>
+                <li>本サービスは、当社が運営するフィットネススタジオの会員、および会員になることを検討している方が利用できます。</li>
+                <li>未成年者が本サービスを利用する場合、親権者等の法定代理人の同意を得た上で利用するものとします。</li>
+                <li>未成年者が本サービスを利用した場合、本規約への同意について法定代理人の同意を得ているものとみなします。</li>
+                <li>当社は、利用者が以下のいずれかに該当する場合、利用をお断りすることがあります。
+                    <ul>
+                        <li>本規約に違反したことがある方</li>
+                        <li>反社会的勢力等（暴力団、暴力団員、暴力団準構成員、暴力団関係企業、総会屋、社会運動等標ぼうゴロ、特殊知能暴力集団その他これらに準ずる者を意味します。以下同じ。）である、または資金提供その他を通じて反社会的勢力等の維持、運営もしくは経営に協力もしくは関与する等反社会的勢力等との何らかの交流もしくは関与を行っていると当社が判断した方</li>
+                        <li>その他、当社が不適切と判断した方</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h2>第4条（アカウント）</h2>
+            <ol>
+                <li>本サービスの一部機能（予約機能等）を利用するためには、会員登録が必要となる場合があります。</li>
+                <li>利用者は、登録情報について、真実、正確かつ完全な情報を提供しなければならず、常に最新の情報となるよう修正しなければなりません。</li>
+                <li>利用者は、自己の責任において、パスワード等のアカウント情報を適切に管理及び保管するものとし、これを第三者に利用させ、または貸与、譲渡、名義変更、売買等してはなりません。</li>
+                <li>パスワード等のアカウント情報の管理不十分、使用上の過誤、第三者の使用等による損害の責任は利用者が負うものとし、当社は一切の責任を負いません。</li>
+                <li>利用者は、自己のアカウントが第三者に使用されていることを知った場合、直ちに当社にその旨を連絡するものとします。</li>
+            </ol>
+
+            <h2>第5条（予約）</h2>
+            <ol>
+                <li>利用者は、本サービスを通じて、フィットネススタジオの利用予約を行うことができます。</li>
+                <li>予約の成立時期は、利用者が予約申込みを行い、当社がこれを承諾した時点とします。予約確認メールの送信をもって、当社の承諾とします。</li>
+                <li>利用者は、予約時に正確な情報を入力する義務を負います。入力情報に虚偽、誤り、または記入漏れがあった場合、予約が無効となることがあります。</li>
+                <li>予約可能枠には限りがあり、先着順で受け付けます。満枠となった場合、予約をお受けできないことがあります。</li>
+                <li>同一利用者による過度な予約（1日に複数枠の予約、予約のみで実際に来店しない行為等）は禁止します。当社は、このような行為を確認した場合、予約を取り消すことができます。</li>
+            </ol>
+
+            <div class="alert-box">
+                <p><strong>重要：</strong> 予約後、やむを得ず来店できなくなった場合は、必ずキャンセル手続きを行ってください。無断キャンセルが続くと、利用制限の対象となる場合があります。</p>
+            </div>
+
+            <h2>第6条（予約の変更・キャンセル）</h2>
+            <ol>
+                <li>利用者は、予約日時の<strong>24時間前まで</strong>、本サービス上で予約の変更・キャンセルを行うことができます。</li>
+                <li>予約日時の24時間前を過ぎた後の変更・キャンセルは、原則として受け付けません。ただし、以下の場合は例外的に対応することがあります。
+                    <ul>
+                        <li>天災、交通機関の運休等、やむを得ない事情がある場合</li>
+                        <li>病気、怪我等、健康上の理由がある場合（診断書等の提出を求める場合があります）</li>
+                    </ul>
+                </li>
+                <li>無断キャンセル（予約時間を過ぎても来店せず、連絡もない場合）が<strong>3回</strong>発生した場合、以降の予約を一時的に制限することがあります。</li>
+                <li>キャンセル料は発生しませんが、頻繁なキャンセルは他の利用者の迷惑となるため、ご配慮をお願いいたします。</li>
+            </ol>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>キャンセル時期</th>
+                        <th>ペナルティ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>24時間以上前</td>
+                        <td>なし（いつでもキャンセル可能）</td>
+                    </tr>
+                    <tr>
+                        <td>24時間前〜予約時刻</td>
+                        <td>キャンセル不可（やむを得ない場合は要連絡）</td>
+                    </tr>
+                    <tr>
+                        <td>無断キャンセル（3回目）</td>
+                        <td>アカウント一時停止（1ヶ月間）</td>
+                    </tr>
+                    <tr>
+                        <td>無断キャンセル（5回目）</td>
+                        <td>アカウント永久停止</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>第7条（禁止事項）</h2>
+            <p>利用者は、本サービスの利用にあたり、以下の行為を行ってはなりません。</p>
+            <ol>
+                <li><strong>虚偽情報の登録・入力</strong>：虚偽の氏名、連絡先等を登録・入力する行為</li>
+                <li><strong>なりすまし</strong>：他人になりすまして本サービスを利用する行為</li>
+                <li><strong>不正アクセス</strong>：当社または第三者のサーバー、ネットワークに不正にアクセスし、またはこれを試みる行為</li>
+                <li><strong>システムへの攻撃</strong>：DoS攻撃、DDoS攻撃その他、本サービスの運営を妨害する行為</li>
+                <li><strong>不正なデータ送信</strong>：コンピュータウイルス、マルウェア等の有害なプログラムを送信または提供する行為</li>
+                <li><strong>リバースエンジニアリング</strong>：本サービスのソースコードを解析、逆コンパイル、逆アセンブル、リバースエンジニアリングする行為</li>
+                <li><strong>自動化ツールの使用</strong>：ボット、スクレイピングツール、その他の自動化された手段で本サービスにアクセスする行為（当社が明示的に許可した場合を除く）</li>
+                <li><strong>過度な予約</strong>：実際に利用する意図なく大量の予約を行う行為、他の利用者の予約機会を不当に阻害する行為</li>
+                <li><strong>転売行為</strong>：予約枠を第三者に転売、譲渡する行為</li>
+                <li><strong>商業利用</strong>：当社の書面による事前の許可なく、本サービスを商業目的で利用する行為</li>
+                <li><strong>知的財産権の侵害</strong>：当社または第三者の知的財産権、肖像権、プライバシー権、名誉、その他の権利または利益を侵害する行為</li>
+                <li><strong>不適切な情報の送信</strong>：当社または第三者に対する誹謗中傷、嫌がらせ、脅迫、わいせつな表現を含む情報を送信する行為</li>
+                <li><strong>法令違反</strong>：法令、裁判所の判決、決定もしくは命令、または法令上拘束力のある行政措置に違反する行為</li>
+                <li><strong>公序良俗違反</strong>：公序良俗に反する行為</li>
+                <li><strong>反社会的勢力への利益供与</strong>：反社会的勢力等への利益供与その他の協力行為</li>
+                <li><strong>営業妨害</strong>：当社または他の利用者その他の第三者の本サービスの利用または運営を妨害する行為</li>
+                <li><strong>その他不適切な行為</strong>：その他、当社が不適切と判断する行為</li>
+            </ol>
+
+            <div class="danger-box">
+                <p><strong>違反時の措置：</strong> 利用者が上記の禁止事項に違反した場合、当社は、事前の通知なく、以下の措置を講じることができます。</p>
+                <ul>
+                    <li>利用者への警告</li>
+                    <li>アカウントの一時停止または永久削除</li>
+                    <li>予約の強制キャンセル</li>
+                    <li>損害賠償請求</li>
+                    <li>法的措置（刑事告訴、民事訴訟等）</li>
+                </ul>
+            </div>
+
+            <h2>第8条（本サービスの提供の停止等）</h2>
+            <ol>
+                <li>当社は、以下のいずれかの事由がある場合には、利用者に事前に通知することなく、本サービスの全部または一部の提供を停止または中断することができるものとします。
+                    <ul>
+                        <li>本サービスに係るコンピュータシステムの保守点検または更新を行う場合</li>
+                        <li>地震、落雷、火災、停電、天災等の不可抗力により、本サービスの提供が困難となった場合</li>
+                        <li>コンピュータまたは通信回線等が事故により停止した場合</li>
+                        <li>サイバー攻撃、大量アクセス等により、システムに過度な負荷がかかった場合</li>
+                        <li>その他、当社が本サービスの提供が困難と判断した場合</li>
+                    </ul>
+                </li>
+                <li>当社は、本サービスの提供の停止または中断により、利用者または第三者が被ったいかなる不利益または損害についても、一切の責任を負いません。ただし、当社の故意または重過失による場合は、この限りではありません。</li>
+            </ol>
+
+            <h3>定期メンテナンス</h3>
+            <div class="info-box">
+                <p><strong>定期メンテナンス時間：</strong> 毎週水曜日 午前2:00〜午前4:00（予定）</p>
+                <p>※ 緊急メンテナンスが必要な場合、事前の予告なく実施することがあります。</p>
+            </div>
+
+            <h2>第9条（権利帰属）</h2>
+            <ol>
+                <li>本サービスに関する知的財産権は、全て当社または当社にライセンスを許諾している者に帰属します。</li>
+                <li>本規約に基づく本サービスの利用許諾は、本サービスに関する当社または当社にライセンスを許諾している者の知的財産権の使用許諾を意味するものではありません。</li>
+                <li>利用者は、本サービス上のコンテンツ（テキスト、画像、デザイン、ロゴ、ソースコード等）を、当社の書面による事前の許可なく、複製、転載、改変、翻案、公衆送信、配布等することはできません。</li>
+                <li>利用者が本サービスを利用して投稿または送信するコンテンツ（予約時のコメント等）に関する知的財産権は利用者に留保されますが、当社は、本サービスの改善、広報活動等の目的で、これを無償で使用できるものとします。</li>
+            </ol>
+
+            <h2>第10条（個人情報の取扱い）</h2>
+            <ol>
+                <li>当社は、利用者の個人情報を、別途定める<a href="/privacy-policy">プライバシーポリシー</a>に従い、適切に取り扱います。</li>
+                <li>利用者は、本サービスの利用にあたり、プライバシーポリシーの内容に同意したものとみなします。</li>
+                <li>当社は、利用者から取得した個人情報を、以下の目的で利用します。
+                    <ul>
+                        <li>本サービスの提供、維持、改善のため</li>
+                        <li>予約確認、変更、キャンセルに関する連絡のため</li>
+                        <li>カスタマーサポート、問い合わせ対応のため</li>
+                        <li>利用規約違反行為の調査、対応のため</li>
+                        <li>サービス向上のための統計データ作成、分析のため</li>
+                        <li>キャンペーン、新機能等の案内のため（利用者が希望した場合のみ）</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h2>第11条（免責事項）</h2>
+            <ol>
+                <li>当社は、本サービスが利用者の特定の目的に適合すること、期待する機能・商品的価値・正確性・有用性を有すること、利用者による本サービスの利用が利用者に適用のある法令または業界団体の内部規則等に適合すること、継続的に利用できること、および不具合が生じないことについて、明示または黙示を問わず、何ら保証するものではありません。</li>
+                <li>当社は、本サービスに関して、利用者と他の利用者または第三者との間において生じた取引、連絡、紛争等について一切の責任を負いません。</li>
+                <li>当社は、本サービスに起因して利用者に生じたあらゆる損害について、一切の責任を負いません。ただし、本サービスに関する当社と利用者との間の契約（本規約を含みます）が消費者契約法に定める消費者契約となる場合、この免責規定は適用されません。</li>
+                <li>前項ただし書に定める場合であっても、当社は、当社の過失（重過失を除きます）による債務不履行または不法行為により利用者に生じた損害のうち特別な事情から生じた損害（当社または利用者が損害発生につき予見し、または予見し得た場合を含みます）について、一切の責任を負いません。</li>
+                <li>当社は、本サービスに関して、利用者と他の利用者または第三者との間において生じた取引、連絡、紛争等について一切責任を負いません。</li>
+                <li>本サービスまたは当社ウェブサイトに関連して利用者と第三者との間で生じた紛争等については、利用者の責任と費用において解決するものとし、当社は一切の責任を負いません。</li>
+            </ol>
+
+            <h3>免責の具体例</h3>
+            <div class="alert-box">
+                <p>当社は、以下の事項について責任を負いません。</p>
+                <ul>
+                    <li>予約システムの不具合により予約が反映されなかった場合の損害</li>
+                    <li>予約時間の誤入力により利用できなかった場合の損害</li>
+                    <li>通信障害、機器の故障等により本サービスを利用できなかった場合の損害</li>
+                    <li>第三者による不正アクセス、なりすまし等による損害（利用者の過失による場合を含む）</li>
+                    <li>本サービスの情報を利用した結果生じた損害</li>
+                </ul>
+            </div>
+
+            <h2>第12条（サービス内容の変更等）</h2>
+            <ol>
+                <li>当社は、利用者への事前の通知なく、本サービスの内容を変更、追加、削減することができるものとします。</li>
+                <li>当社は、本サービスの提供を終了することができます。この場合、当社は、利用者に対して、<strong>3ヶ月前まで</strong>に通知するものとします。</li>
+                <li>当社は、本条に基づき当社が行った措置により利用者に生じた損害について、一切の責任を負いません。</li>
+            </ol>
+
+            <h2>第13条（利用規約の変更）</h2>
+            <ol>
+                <li>当社は、必要に応じて、利用者の承諾を得ることなく、本規約を変更できるものとします。</li>
+                <li>本規約の変更を行う場合、当社は、変更後の規約の内容及び効力発生日を、本サービス上に表示し、または利用者に電子メールで通知するものとします。</li>
+                <li>前項の効力発生日以降に利用者が本サービスを利用した場合、利用者は、変更後の本規約に同意したものとみなします。</li>
+                <li>利用者が変更後の本規約に同意できない場合、利用者は本サービスの利用を中止するものとします。</li>
+            </ol>
+
+            <h2>第14条（通知または連絡）</h2>
+            <ol>
+                <li>利用者と当社との間の通知または連絡は、当社の定める方法によって行うものとします。</li>
+                <li>当社は、利用者が登録した連絡先（メールアドレス等）に通知を行った場合、利用者は当該通知を受領したものとみなします。</li>
+                <li>利用者は、登録情報に変更があった場合、速やかに当社に通知するものとします。登録情報の変更を怠ったことにより生じた損害について、当社は一切の責任を負いません。</li>
+            </ol>
+
+            <h2>第15条（権利義務の譲渡の禁止）</h2>
+            <ol>
+                <li>利用者は、当社の書面による事前の承諾なく、利用契約上の地位または本規約に基づく権利もしくは義務を第三者に譲渡し、または担保に供することはできません。</li>
+                <li>当社は、本サービスに係る事業を他社に譲渡した場合には、当該事業譲渡に伴い利用契約上の地位、本規約に基づく権利及び義務並びに利用者の登録情報その他の顧客情報を当該事業譲渡の譲受人に譲渡することができるものとし、利用者は、かかる譲渡につき本項において予め同意したものとします。</li>
+            </ol>
+
+            <h2>第16条（分離可能性）</h2>
+            <ol>
+                <li>本規約のいずれかの条項またはその一部が、消費者契約法その他の法令等により無効または執行不能と判断された場合であっても、本規約の残りの規定及び一部が無効または執行不能と判断された規定の残りの部分は、継続して完全に効力を有するものとします。</li>
+                <li>本規約のいずれかの条項またはその一部が、ある利用者との関係で無効または執行不能と判断された場合であっても、他の利用者との関係における有効性等には影響を及ぼさないものとします。</li>
+            </ol>
+
+            <h2>第17条（準拠法・管轄裁判所）</h2>
+            <ol>
+                <li>本規約の解釈にあたっては、日本法を準拠法とします。</li>
+                <li>本サービスに関して紛争が生じた場合には、当社の本店所在地を管轄する地方裁判所を第一審の専属的合意管轄裁判所とします。</li>
+            </ol>
+
+            <h2>第18条（協議解決）</h2>
+            <p>当社及び利用者は、本規約に定めのない事項または本規約の解釈に疑義が生じた場合には、互いに信義誠実の原則に従って協議の上速やかに解決を図るものとします。</p>
+
+            <h2>第19条（存続条項）</h2>
+            <p>本規約の第7条（禁止事項）、第9条（権利帰属）、第10条（個人情報の取扱い）、第11条（免責事項）、第17条（準拠法・管轄裁判所）、および本条の規定は、利用契約の終了後も有効に存続するものとします。</p>
+
+            <h2>お問い合わせ</h2>
+            <div class="info-box">
+                <p>本規約に関するお問い合わせは、以下までご連絡ください。</p>
+                <p>
+                    <strong>HALLEL株式会社 カスタマーサポート</strong><br>
+                    メール: <a href="mailto:support@hallel.example.com">support@hallel.example.com</a><br>
+                    電話: [電話番号]<br>
+                    受付時間: 平日 10:00〜18:00（土日祝日、年末年始を除く）
+                </p>
+            </div>
+
+            <div class="metadata">
+                <p><strong>制定日：</strong> 2025年11月17日</p>
+                <p><strong>最終更新日：</strong> 2025年11月17日</p>
+                <p><strong>バージョン：</strong> 1.0</p>
+            </div>
+
+            <div class="footer-nav">
+                <a href="/">ホームに戻る</a>
+                <a href="/privacy-policy">プライバシーポリシーを見る</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
