@@ -609,3 +609,127 @@ function testStoreExtraction() {
     Logger.log(`店舗: ${store}`);
   });
 }
+
+/**
+ * Kirsch Robertメールのデバッグ専用関数
+ * 特定のメールがなぜ処理されないかを調査
+ */
+function debugKirschRobertEmail() {
+  Logger.log('='.repeat(60));
+  Logger.log('Kirsch Robertメール デバッグ');
+  Logger.log('='.repeat(60));
+
+  // 1. 特定のメールを直接検索
+  Logger.log('\n【ステップ1】Kirsch Robertメールを直接検索');
+  const specificQuery = 'from:noreply@em.hacomono.jp subject:"hallel 予約完了メール" "Kirsch Robert"';
+  Logger.log(`検索クエリ: ${specificQuery}`);
+
+  const specificThreads = GmailApp.search(specificQuery, 0, 10);
+  Logger.log(`結果: ${specificThreads.length}件のスレッド\n`);
+
+  if (specificThreads.length === 0) {
+    Logger.log('❌ Kirsch Robertメールが見つかりません！');
+    Logger.log('   メールが実際に存在するか確認してください。');
+    return;
+  }
+
+  // メールの詳細を表示
+  const thread = specificThreads[0];
+  const message = thread.getMessages()[0];
+
+  Logger.log('【メール詳細】');
+  Logger.log(`件名: ${message.getSubject()}`);
+  Logger.log(`送信日時: ${message.getDate()}`);
+  Logger.log(`送信元: ${message.getFrom()}`);
+  Logger.log(`未読: ${message.isUnread()}`);
+  Logger.log(`メールID: ${message.getId()}`);
+
+  // ラベルを確認
+  const labels = thread.getLabels();
+  Logger.log(`\nラベル数: ${labels.length}件`);
+  if (labels.length > 0) {
+    labels.forEach(label => {
+      Logger.log(`  - ${label.getName()}`);
+    });
+  } else {
+    Logger.log('  (ラベルなし)');
+  }
+
+  // 2. 本文を解析
+  Logger.log('\n【ステップ2】メール本文の解析');
+  const body = message.getPlainBody();
+  Logger.log('本文プレビュー:');
+  Logger.log('-'.repeat(40));
+  Logger.log(body.substring(0, 500));
+  Logger.log('-'.repeat(40));
+
+  // 3. parseEmailBody()で解析
+  Logger.log('\n【ステップ3】parseEmailBody()で解析');
+  const bookingInfo = parseEmailBody(body);
+
+  if (bookingInfo) {
+    Logger.log('✅ 予約情報が抽出されました:');
+    Logger.log(JSON.stringify(bookingInfo, null, 2));
+  } else {
+    Logger.log('❌ 予約情報が抽出できませんでした！');
+    Logger.log('   parseEmailBody()の正規表現がマッチしていない可能性があります。');
+  }
+
+  // 4. 通常の検索クエリでマッチするかチェック
+  Logger.log('\n【ステップ4】通常の検索クエリでマッチするか確認');
+
+  // 30日用クエリ
+  const dateLimit30 = new Date();
+  dateLimit30.setDate(dateLimit30.getDate() - 30);
+  const dateStr30 = Utilities.formatDate(dateLimit30, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+
+  const keywordQuery = CONFIG.SEARCH_KEYWORDS
+    .map(kw => `subject:${kw}`)
+    .join(' OR ');
+
+  const query30Days = `after:${dateStr30} (${keywordQuery})`;
+  Logger.log(`30日クエリ: ${query30Days}`);
+
+  const matched30 = GmailApp.search(query30Days + ' "Kirsch Robert"', 0, 10);
+  Logger.log(`30日クエリでマッチ: ${matched30.length}件`);
+
+  if (matched30.length === 0) {
+    Logger.log('❌ 30日クエリでマッチしません！');
+    Logger.log('   原因:');
+    Logger.log('   - 日付フィルタが古すぎる可能性');
+    Logger.log('   - キーワードが件名にマッチしていない可能性');
+  } else {
+    Logger.log('✅ 30日クエリでマッチします');
+  }
+
+  // 5. 各キーワードで個別にマッチするか確認
+  Logger.log('\n【ステップ5】各キーワードで個別にマッチするか確認');
+  CONFIG.SEARCH_KEYWORDS.forEach(keyword => {
+    const testQuery = `from:noreply@em.hacomono.jp subject:${keyword} "Kirsch Robert"`;
+    const matches = GmailApp.search(testQuery, 0, 5);
+    Logger.log(`  subject:${keyword} → ${matches.length}件`);
+  });
+
+  // 6. 結論
+  Logger.log('\n' + '='.repeat(60));
+  Logger.log('【結論】');
+
+  if (!bookingInfo) {
+    Logger.log('❌ 問題: メール本文から予約情報が抽出できていません');
+    Logger.log('   対処: parseEmailBody()の正規表現を見直す必要があります');
+  } else if (matched30.length === 0) {
+    Logger.log('❌ 問題: 検索クエリにマッチしていません');
+    Logger.log('   対処: 検索キーワードまたは日付範囲を見直す必要があります');
+  } else {
+    Logger.log('✅ メールは正常に検出・解析できます');
+    Logger.log('   processLast30Days()を実行すれば処理されるはずです');
+
+    if (labels.some(l => l.getName() === CONFIG.LABEL_NAME)) {
+      Logger.log('⚠️  既に HALLEL/Processed ラベルが付いています');
+      Logger.log('   このメールは既に処理済みの可能性があります');
+      Logger.log('   データベースを確認してください');
+    }
+  }
+
+  Logger.log('='.repeat(60));
+}
