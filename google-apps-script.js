@@ -12,7 +12,7 @@
 
 // === 設定 ===
 const CONFIG = {
-  FLASK_API_URL: 'https://your-domain.com/api/process_email',  // ★要変更★
+  FLASK_API_URL: 'https://hallelshibuyabooking.vercel.app/api/gas/webhook',  // ★Vercel本番URL★
   WEBHOOK_API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',         // ★Webhook認証キー★
   MAX_EMAILS_PER_RUN: 50,      // 一度に処理する最大メール数
   DAYS_TO_SEARCH: 7,           // 過去何日分を検索するか
@@ -213,13 +213,32 @@ function formatTime(time) {
  */
 function sendToFlaskAPI(bookingData) {
   try {
+    // GAS Webhook形式に変換
+    const payload = {
+      source: 'gas',
+      timestamp: new Date().toISOString(),
+      reservations: [{
+        date: bookingData.date,
+        start: bookingData.start_time,
+        end: bookingData.end_time || bookingData.start_time,
+        customer_name: bookingData.customer_name || 'N/A',
+        store: bookingData.store || 'shibuya',
+        type: 'gmail',
+        is_cancellation: bookingData.action_type === 'cancellation',
+        source: 'gas_sync',
+        email_id: '',
+        email_subject: '',
+        email_date: new Date().toISOString()
+      }]
+    };
+
     const options = {
       method: 'post',
       contentType: 'application/json',
       headers: {
         'X-API-Key': CONFIG.WEBHOOK_API_KEY
       },
-      payload: JSON.stringify(bookingData),
+      payload: JSON.stringify(payload),
       muteHttpExceptions: true
     };
 
