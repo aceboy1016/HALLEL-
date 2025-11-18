@@ -742,13 +742,13 @@ function findYoyogiNov21Booking() {
   Logger.log('代々木上原店 11/21 12:30 予約を検索');
   Logger.log('='.repeat(60));
 
-  // 複数の検索パターンを試す
+  // 複数の検索パターンを試す（より具体的に絞り込む）
   const searchPatterns = [
+    'from:noreply@em.hacomono.jp "代々木上原" "11月21日" "12:30"',
+    'from:noreply@em.hacomono.jp "Kirsch" "11月21日"',
+    'from:noreply@em.hacomono.jp "代々木上原店" "2025年11月21日"',
     'from:noreply@em.hacomono.jp "代々木上原" "11月21日"',
-    'from:noreply@em.hacomono.jp "代々木上原" "12:30"',
-    'from:noreply@em.hacomono.jp subject:hallel "代々木上原店"',
-    'from:noreply@em.hacomono.jp "Kirsch" "代々木上原"',
-    'from:noreply@em.hacomono.jp "2025年11月21日"'
+    'from:noreply@em.hacomono.jp "代々木上原" "12:30"'
   ];
 
   searchPatterns.forEach((query, index) => {
@@ -756,12 +756,13 @@ function findYoyogiNov21Booking() {
     const threads = GmailApp.search(query, 0, 20);
     Logger.log(`結果: ${threads.length}件`);
 
-    if (threads.length > 0 && threads.length <= 5) {
+    if (threads.length > 0 && threads.length <= 10) {
       threads.forEach((thread, i) => {
         const message = thread.getMessages()[0];
         const body = message.getPlainBody();
 
         Logger.log(`\n  [${i + 1}] 件名: ${message.getSubject()}`);
+        Logger.log(`      メールID: ${message.getId()}`);
         Logger.log(`      日時: ${message.getDate()}`);
 
         // 本文から顧客名と予約情報を抽出
