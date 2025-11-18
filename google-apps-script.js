@@ -235,8 +235,8 @@ function extractStore(body) {
     }
   }
 
-  // デフォルトは渋谷店
-  return 'shibuya';
+  // HALLEL店舗が見つからない場合はnullを返す（他のジムを除外）
+  return null;
 }
 
 /**
@@ -264,8 +264,13 @@ function extractCustomerName(body) {
  * メール本文から予約情報を抽出
  */
 function parseEmailBody(body) {
-  // 店舗を抽出
+  // 店舗を抽出（HALLEL店舗以外はnullが返る）
   const store = extractStore(body);
+
+  // HALLEL店舗でない場合は処理しない
+  if (!store) {
+    return null;
+  }
 
   // 顧客名を抽出
   const customerName = extractCustomerName(body);
@@ -1154,10 +1159,11 @@ function forceProcessAllEmails() {
     let labelCount = 0;
     let parseErrorCount = 0;
     const reservationsBatch = [];
-    const messagesToMarkRead = [];
-    const threadsToLabel = [];
+    const threadMap = {}; // index → thread のマッピング
+    const messageMap = {}; // index → message のマッピング
 
     // ステップ1: メール本文を解析してHALLEL関連のみ抽出
+    let hallelIndex = 0;
     threads.forEach((thread, index) => {
       const messages = thread.getMessages();
       const latestMessage = messages[messages.length - 1];
@@ -1183,29 +1189,20 @@ function forceProcessAllEmails() {
       bookingInfo.email_date = latestMessage.getDate().toISOString();
 
       reservationsBatch.push(bookingInfo);
-      messagesToMarkRead.push(latestMessage);
-      threadsToLabel.push(thread);
+      threadMap[hallelIndex] = thread;
+      messageMap[hallelIndex] = latestMessage;
+      hallelIndex++;
     });
 
-    // ステップ2: HALLEL関連メールのみにラベルを付与
     Logger.log('\n' + '='.repeat(60));
-    Logger.log('HALLEL関連メールにラベル付与中...');
-
-    threadsToLabel.forEach(thread => {
-      if (label) {
-        thread.addLabel(label);
-        labelCount++;
-      }
-    });
-
-    Logger.log(`ラベル付与完了: ${labelCount}件`);
     Logger.log(`予約情報収集完了: ${reservationsBatch.length}件`);
     Logger.log(`スキップ（HALLEL関連外）: ${parseErrorCount}件`);
     Logger.log('='.repeat(60));
 
-    // ステップ3: バッチ送信（50件ごと）
+    // ステップ2: バッチ送信（50件ごと）
     let apiSuccessCount = 0;
     let apiErrorCount = 0;
+    const apiSuccessIndices = [];
 
     for (let i = 0; i < reservationsBatch.length; i += BATCH_SIZE) {
       const batch = reservationsBatch.slice(i, i + BATCH_SIZE);
@@ -1220,12 +1217,13 @@ function forceProcessAllEmails() {
         Logger.log(`✓ バッチ送信成功: ${result.count}件`);
         apiSuccessCount += result.count;
 
-        // このバッチ分のメールを既読にする
-        for (let j = i; j < i + batch.length && j < messagesToMarkRead.length; j++) {
-          messagesToMarkRead[j].markRead();
+        // 成功したインデックスを記録
+        for (let j = i; j < i + batch.length; j++) {
+          apiSuccessIndices.push(j);
         }
       } else {
         Logger.log(`✗ バッチ送信失敗: ${result.error}`);
+        Logger.log(`  このバッチ${batch.length}件はラベル付与しません`);
         apiErrorCount += batch.length;
       }
 
@@ -1234,6 +1232,24 @@ function forceProcessAllEmails() {
         Utilities.sleep(1000);
       }
     }
+
+    // ステップ3: API送信成功したメールのみにラベル付与
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log('API送信成功したメールにラベル付与中...');
+
+    apiSuccessIndices.forEach(index => {
+      const thread = threadMap[index];
+      const message = messageMap[index];
+
+      if (thread && message && label) {
+        thread.addLabel(label);
+        message.markRead();
+        labelCount++;
+      }
+    });
+
+    Logger.log(`ラベル付与完了: ${labelCount}件`);
+    Logger.log('='.repeat(60));
 
     // 最終結果
     Logger.log('\n' + '='.repeat(60));
