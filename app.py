@@ -922,6 +922,10 @@ def gas_webhook():
             updated_count = 0
             deleted_count = 0
 
+            # Calendar同期が必要なイベントを収集
+            calendar_events_to_add = []
+            calendar_events_to_delete = []
+
             with conn.cursor() as cur:
                 for i, res in enumerate(reservations):
                     # キャンセルの場合は削除
@@ -941,14 +945,14 @@ def gas_webhook():
                         deleted_count += cur.rowcount
                         print(f'[DEBUG] Deleted cancellation: {res["date"]} {res["start"]}')
 
-                        # Google Calendar同期（恵比寿・半蔵門のみ）
+                        # Google Calendar同期が必要な場合はリストに追加
                         if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
-                            delete_from_calendar(
-                                store=res.get('store', 'shibuya'),
-                                date=res['date'],
-                                start_time=res['start'],
-                                end_time=res.get('end', res['start'])
-                            )
+                            calendar_events_to_delete.append({
+                                'store': res.get('store', 'shibuya'),
+                                'date': res['date'],
+                                'start_time': res['start'],
+                                'end_time': res.get('end', res['start'])
+                            })
 
                         log_activity(f"Gmail cancellation: {res['date']} {res['start']}")
                     else:
@@ -995,15 +999,15 @@ def gas_webhook():
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
 
-                                # Google Calendar同期（恵比寿・半蔵門のみ）
+                                # Google Calendar同期が必要な場合はリストに追加
                                 if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
-                                    add_to_calendar(
-                                        store=res.get('store', 'shibuya'),
-                                        date=res['date'],
-                                        start_time=res['start'],
-                                        end_time=res['end'],
-                                        customer_name=res.get('customer_name', 'N/A')
-                                    )
+                                    calendar_events_to_add.append({
+                                        'store': res.get('store', 'shibuya'),
+                                        'date': res['date'],
+                                        'start_time': res['start'],
+                                        'end_time': res['end'],
+                                        'customer_name': res.get('customer_name', 'N/A')
+                                    })
                         else:
                             # email_idがない場合は日付・時間・店舗で重複チェック（より厳格）
                             cur.execute("""
@@ -1047,15 +1051,15 @@ def gas_webhook():
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
 
-                                # Google Calendar同期（恵比寿・半蔵門のみ）
+                                # Google Calendar同期が必要な場合はリストに追加
                                 if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
-                                    add_to_calendar(
-                                        store=res.get('store', 'shibuya'),
-                                        date=res['date'],
-                                        start_time=res['start'],
-                                        end_time=res['end'],
-                                        customer_name=res.get('customer_name', 'N/A')
-                                    )
+                                    calendar_events_to_add.append({
+                                        'store': res.get('store', 'shibuya'),
+                                        'date': res['date'],
+                                        'start_time': res['start'],
+                                        'end_time': res['end'],
+                                        'customer_name': res.get('customer_name', 'N/A')
+                                    })
 
                         log_activity(f"Gmail booking processed: {res['date']} {res['start']}-{res['end']}")
 
@@ -1067,6 +1071,34 @@ def gas_webhook():
                 cur.execute("SELECT COUNT(*) FROM reservations WHERE store = 'shibuya'")
                 count_result = cur.fetchone()
                 db_count = count_result[0] if count_result else 0
+
+            # データベース操作完了後、Calendar同期を実行
+            print(f'[DEBUG] Calendar sync - To add: {len(calendar_events_to_add)}, To delete: {len(calendar_events_to_delete)}')
+
+            for event in calendar_events_to_delete:
+                try:
+                    delete_from_calendar(
+                        store=event['store'],
+                        date=event['date'],
+                        start_time=event['start_time'],
+                        end_time=event['end_time']
+                    )
+                    print(f'[DEBUG] Calendar delete success: {event["store"]} {event["date"]} {event["start_time"]}')
+                except Exception as cal_err:
+                    print(f'[WARNING] Calendar delete failed: {str(cal_err)}')
+
+            for event in calendar_events_to_add:
+                try:
+                    add_to_calendar(
+                        store=event['store'],
+                        date=event['date'],
+                        start_time=event['start_time'],
+                        end_time=event['end_time'],
+                        customer_name=event['customer_name']
+                    )
+                    print(f'[DEBUG] Calendar add success: {event["store"]} {event["date"]} {event["start_time"]} - {event["customer_name"]}')
+                except Exception as cal_err:
+                    print(f'[WARNING] Calendar add failed: {str(cal_err)}')
 
             return jsonify({
                 'status': 'success',
