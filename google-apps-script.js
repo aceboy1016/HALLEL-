@@ -16,7 +16,7 @@ const CONFIG = {
   WEBHOOK_API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',         // ★Webhook認証キー★
   MAX_EMAILS_PER_RUN: 50,      // 一度に処理する最大メール数
   DAYS_TO_SEARCH: 7,           // 過去何日分を検索するか
-  SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店']
+  SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店', '代々木上原店', '中目黒店', '恵比寿店', '半蔵門店']
 };
 
 // === スクリプトプロパティのキー ===
@@ -119,9 +119,34 @@ function buildSearchQuery() {
 }
 
 /**
+ * メール本文から店舗を抽出
+ */
+function extractStore(body) {
+  const storeMap = {
+    '恵比寿店': 'ebisu',
+    '半蔵門店': 'hanzomon',
+    '代々木上原店': 'yoyogi-uehara',
+    '中目黒店': 'nakameguro',
+    '渋谷店': 'shibuya'
+  };
+
+  for (const [storeName, storeId] of Object.entries(storeMap)) {
+    if (body.includes(storeName)) {
+      return storeId;
+    }
+  }
+
+  // デフォルトは渋谷店
+  return 'shibuya';
+}
+
+/**
  * メール本文から予約情報を抽出
  */
 function parseEmailBody(body) {
+  // 店舗を抽出
+  const store = extractStore(body);
+
   // 予約パターン: 予約: 2025-08-05 14:00-15:30
   const bookingPattern = /予約[：:]\s*(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*[-~〜ー]\s*(\d{1,2}:\d{2})/;
   const bookingMatch = body.match(bookingPattern);
@@ -131,7 +156,8 @@ function parseEmailBody(body) {
       action_type: 'booking',
       date: bookingMatch[1],
       start_time: formatTime(bookingMatch[2]),
-      end_time: formatTime(bookingMatch[3])
+      end_time: formatTime(bookingMatch[3]),
+      store: store
     };
   }
 
@@ -143,7 +169,8 @@ function parseEmailBody(body) {
     return {
       action_type: 'cancellation',
       date: cancelMatch[1],
-      start_time: formatTime(cancelMatch[2])
+      start_time: formatTime(cancelMatch[2]),
+      store: store
     };
   }
 
@@ -224,10 +251,12 @@ function testConfig() {
  */
 function testParsing() {
   const testEmails = [
-    '予約: 2025-08-05 14:00-15:30\nお客様名: 田中太郎',
-    'キャンセル: 2025-08-05 14:00\nお客様名: 佐藤花子',
-    '予約：2025-08-06 10:30〜12:00',
-    '通常のメール本文'
+    '渋谷店\n予約: 2025-08-05 14:00-15:30\nお客様名: 田中太郎',
+    '恵比寿店\nキャンセル: 2025-08-05 14:00\nお客様名: 佐藤花子',
+    '半蔵門店\n予約：2025-08-06 10:30〜12:00',
+    '代々木上原店\n予約: 2025-08-07 16:00-17:00',
+    '中目黒店\nキャンセル: 2025-08-08 18:00',
+    '通常のメール本文（店舗名なし）\n予約: 2025-08-09 12:00-13:00'
   ];
 
   testEmails.forEach((body, i) => {
@@ -235,5 +264,26 @@ function testParsing() {
     Logger.log(`本文: ${body}`);
     const result = parseEmailBody(body);
     Logger.log(`結果: ${JSON.stringify(result, null, 2)}`);
+  });
+}
+
+/**
+ * テスト用関数: 店舗抽出をテスト
+ */
+function testStoreExtraction() {
+  const testEmails = [
+    '渋谷店\n予約: 2025-08-05 14:00-15:30',
+    '恵比寿店\n予約: 2025-08-05 14:00-15:30',
+    '半蔵門店\n予約: 2025-08-05 14:00-15:30',
+    '代々木上原店\n予約: 2025-08-05 14:00-15:30',
+    '中目黒店\n予約: 2025-08-05 14:00-15:30',
+    '店舗名なし\n予約: 2025-08-05 14:00-15:30'
+  ];
+
+  testEmails.forEach((body, i) => {
+    Logger.log(`\n--- 店舗テスト ${i + 1} ---`);
+    Logger.log(`本文: ${body}`);
+    const store = extractStore(body);
+    Logger.log(`店舗: ${store}`);
   });
 }
