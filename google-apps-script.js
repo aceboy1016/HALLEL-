@@ -1303,6 +1303,125 @@ function checkProcessingOffset() {
 }
 
 /**
+ * 【1件ずつ確実処理】全HALLEL関連メールを1件ずつAPI送信→ラベル付与
+ * - 1件ずつAPI送信
+ * - 成功したらラベル付与
+ * - 失敗したらスキップ
+ * - 全件処理（何千件あっても全部）
+ */
+function processOneByOne() {
+  Logger.log('='.repeat(60));
+  Logger.log('【1件ずつ確実処理】全HALLEL関連メールを処理');
+  Logger.log('='.repeat(60));
+
+  try {
+    const label = getOrCreateLabel();
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - 180);
+    const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+
+    // HALLEL関連メールを全件検索
+    const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel`;
+    Logger.log(`検索クエリ: ${query}\n`);
+
+    // 全件取得（GASの制限は500件/回）
+    let allThreads = [];
+    let offset = 0;
+    const batchSize = 500;
+
+    while (true) {
+      const threads = GmailApp.search(query, offset, batchSize);
+      if (threads.length === 0) break;
+
+      allThreads = allThreads.concat(threads);
+      offset += threads.length;
+
+      if (threads.length < batchSize) break; // 最後のバッチ
+
+      Logger.log(`検索中... ${allThreads.length}件取得`);
+      Utilities.sleep(500);
+    }
+
+    Logger.log(`検索結果: ${allThreads.length}件のメール`);
+    Logger.log('-'.repeat(60));
+
+    let successCount = 0;
+    let errorCount = 0;
+    let skipCount = 0;
+
+    // 1件ずつ処理
+    allThreads.forEach((thread, index) => {
+      const messages = thread.getMessages();
+      const latestMessage = messages[messages.length - 1];
+      const body = latestMessage.getPlainBody();
+      const subject = latestMessage.getSubject();
+
+      Logger.log(`\n[${index + 1}/${allThreads.length}] ${subject}`);
+
+      // 本文を解析
+      const bookingInfo = parseEmailBody(body);
+
+      if (!bookingInfo) {
+        Logger.log('  → HALLEL関連外 → スキップ');
+        skipCount++;
+        return;
+      }
+
+      Logger.log(`  → HALLEL関連: ${bookingInfo.store} / ${bookingInfo.customer_name}`);
+
+      // メタデータを追加
+      bookingInfo.email_id = latestMessage.getId();
+      bookingInfo.email_subject = subject;
+      bookingInfo.email_date = latestMessage.getDate().toISOString();
+
+      // 1件ずつAPI送信
+      Logger.log(`  → API送信中...`);
+      const result = sendToFlaskAPI(bookingInfo);
+
+      if (result.success) {
+        Logger.log(`  ✓ API送信成功 → ラベル付与`);
+
+        // ラベル付与
+        if (label) {
+          thread.addLabel(label);
+        }
+        latestMessage.markRead();
+        successCount++;
+      } else {
+        Logger.log(`  ✗ API送信失敗: ${result.error}`);
+        errorCount++;
+      }
+
+      // レート制限対策: 500ms待機
+      if ((index + 1) % 10 === 0) {
+        Logger.log(`\n進捗: ${index + 1}/${allThreads.length} (成功:${successCount} / 失敗:${errorCount} / スキップ:${skipCount})`);
+        Utilities.sleep(500);
+      }
+    });
+
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log('【処理完了】');
+    Logger.log(`総メール数: ${allThreads.length}件`);
+    Logger.log(`API送信成功: ${successCount}件 → ラベル付与済み`);
+    Logger.log(`API送信失敗: ${errorCount}件`);
+    Logger.log(`スキップ: ${skipCount}件`);
+    Logger.log('='.repeat(60));
+
+    if (errorCount > 0) {
+      Logger.log('\n⚠️ API送信失敗があります。ログを確認してください。');
+    }
+
+    if (successCount === allThreads.length - skipCount) {
+      Logger.log('\n✅ 全HALLEL関連メールの処理が完了しました！');
+    }
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
+  }
+}
+
+/**
  * 【ラベル付き全メール処理】ラベルが付いている全メールを処理
  * - HALLEL関連：API送信成功 → ラベル保持、失敗 → ラベル削除
  * - HALLEL関連外：ラベル削除
