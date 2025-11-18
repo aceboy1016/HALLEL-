@@ -559,7 +559,7 @@
     <div class="container my-5">
         <header class="header">
             <div class="header-content">
-                <h1>HALLEL 渋谷店 <span class="badge">管理者用</span></h1>
+                <h1 id="store-title">HALLEL <span class="badge">管理者用</span></h1>
                 <div class="date-controls">
                     <button id="prev-day" class="btn">‹ 前日</button>
                     <input type="date" id="date-picker" class="form-control">
@@ -631,6 +631,23 @@
             const existingBookingsEl = document.getElementById('existing-bookings');
             const charterSwitch = document.getElementById('charter-switch');
 
+            // URLパラメータから店舗を取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentStore = urlParams.get('store') || 'shibuya';
+
+            // 店舗名マッピング
+            const storeNames = {
+                'shibuya': '渋谷店',
+                'yoyogi-uehara': '代々木上原店',
+                'nakameguro': '中目黒店',
+                'ebisu': '恵比寿店',
+                'hanzomon': '半蔵門店'
+            };
+
+            // タイトルを更新
+            const storeTitleEl = document.getElementById('store-title');
+            storeTitleEl.innerHTML = `HALLEL ${storeNames[currentStore] || currentStore} <span class="badge">管理者用</span>`;
+
             let savedDate = localStorage.getItem('hallel-booking-date');
             let currentDate = savedDate ? new Date(savedDate) : new Date();
             currentDate.setHours(0, 0, 0, 0);
@@ -685,7 +702,7 @@
             }
 
             async function fetchReservations() {
-                const response = await fetch('/api/reservations');
+                const response = await fetch(`/api/reservations?store=${currentStore}`);
                 reservationsByDate = await response.json();
                 renderTimeline(currentDate);
             }
@@ -874,7 +891,8 @@
                     date: dateString,
                     type: isCharter ? 'charter' : 'manual',
                     start: selectedSlot.start,
-                    end: endTime
+                    end: endTime,
+                    store: currentStore
                 };
 
                 try {

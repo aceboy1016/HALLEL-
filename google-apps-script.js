@@ -851,6 +851,70 @@ function searchByEmailDate() {
 }
 
 /**
+ * 全メールから11月21日12:30の予約を探す
+ */
+function findNov21At1230() {
+  Logger.log('='.repeat(60));
+  Logger.log('全メールから11月21日 12:30の予約を探索');
+  Logger.log('='.repeat(60));
+
+  // 過去60日のメールを全件検索
+  const query = 'from:noreply@em.hacomono.jp after:2025/10/01';
+  Logger.log(`検索クエリ: ${query}\n`);
+
+  const threads = GmailApp.search(query, 0, 500);
+  Logger.log(`検索結果: ${threads.length}件のメール\n`);
+
+  let foundCount = 0;
+
+  threads.forEach((thread, index) => {
+    const message = thread.getMessages()[0];
+    const body = message.getPlainBody();
+
+    // 11月21日 12:30を含むメールを探す
+    if (body.includes('11月21日') && body.includes('12:30')) {
+      foundCount++;
+
+      Logger.log(`【発見 #${foundCount}】`);
+      Logger.log(`件名: ${message.getSubject()}`);
+      Logger.log(`メールID: ${message.getId()}`);
+      Logger.log(`送信日時: ${message.getDate()}`);
+
+      // 詳細を抽出
+      const customerMatch = body.match(/^(.+?)\s*様/m);
+      const dateMatch = body.match(/日時[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日[^)]*\)\s*(\d{1,2}:\d{2})[~〜～](\d{1,2}:\d{2})/);
+      const storeMatch = body.match(/店舗[：:]\s*(.+)/);
+
+      if (customerMatch) Logger.log(`顧客: ${customerMatch[1].trim()}`);
+      if (dateMatch) Logger.log(`予約: ${dateMatch[1]}年${dateMatch[2]}月${dateMatch[3]}日 ${dateMatch[4]}~${dateMatch[5]}`);
+      if (storeMatch) Logger.log(`店舗: ${storeMatch[1].trim()}`);
+
+      // ラベル確認
+      const labels = thread.getLabels();
+      if (labels.length > 0) {
+        Logger.log(`ラベル: ${labels.map(l => l.getName()).join(', ')}`);
+      } else {
+        Logger.log(`ラベル: なし`);
+      }
+
+      Logger.log('');
+    }
+  });
+
+  Logger.log('='.repeat(60));
+  if (foundCount === 0) {
+    Logger.log('❌ 11月21日 12:30の予約は見つかりませんでした');
+    Logger.log('\n【確認事項】');
+    Logger.log('1. Gmailで該当メールが実際に存在するか確認してください');
+    Logger.log('2. データベースで既に処理済みか確認してください');
+    Logger.log('   URL: https://hallel-shibuya.vercel.app/admin/calendar?store=yoyogi-uehara&date=2025-11-21');
+  } else {
+    Logger.log(`✅ ${foundCount}件見つかりました`);
+  }
+  Logger.log('='.repeat(60));
+}
+
+/**
  * 特定のメールIDを処理する
  */
 function processSpecificEmail() {
@@ -913,4 +977,187 @@ function processSpecificEmail() {
   }
 
   Logger.log('='.repeat(60));
+}
+
+/**
+ * バッチ処理でAPIに送信（複数予約を1回で送信）
+ */
+function sendBatchToAPI(reservationsList) {
+  if (!reservationsList || reservationsList.length === 0) {
+    return { success: false, error: 'No reservations to send' };
+  }
+
+  try {
+    const payload = {
+      source: 'gas',
+      timestamp: new Date().toISOString(),
+      reservations: reservationsList.map(booking => ({
+        date: booking.date,
+        start: booking.start_time,
+        end: booking.end_time || booking.start_time,
+        customer_name: booking.customer_name || 'N/A',
+        store: booking.store || 'shibuya',
+        type: 'gmail',
+        is_cancellation: booking.action_type === 'cancellation',
+        source: 'gas_sync',
+        email_id: booking.email_id || '',
+        email_subject: booking.email_subject || '',
+        email_date: booking.email_date || new Date().toISOString()
+      }))
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        'X-API-Key': CONFIG.WEBHOOK_API_KEY
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(CONFIG.FLASK_API_URL, options);
+    const statusCode = response.getResponseCode();
+
+    if (statusCode >= 200 && statusCode < 300) {
+      return { success: true, count: reservationsList.length, data: JSON.parse(response.getContentText()) };
+    } else {
+      return {
+        success: false,
+        error: `HTTP ${statusCode}: ${response.getContentText()}`
+      };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 【強制処理】全メールに対してラベル付与→API送信（バッチ処理版）
+ * ラベルの有無に関わらず、全メールを処理
+ * バックエンドが重複を自動的に上書き
+ */
+function forceProcessAllEmails() {
+  Logger.log('='.repeat(60));
+  Logger.log('【強制処理】全メール一斉処理開始（バッチ処理版）');
+  Logger.log('ラベルの有無に関わらず、全メールを処理します');
+  Logger.log('='.repeat(60));
+
+  const BATCH_SIZE = 50; // 50件ごとにバッチ送信
+
+  try {
+    // ラベルを取得または作成
+    const label = getOrCreateLabel();
+
+    // 過去90日分のHALLEL関連メールを全件検索
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - 90);
+    const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+
+    const query = `from:noreply@em.hacomono.jp after:${dateStr}`;
+    Logger.log(`検索クエリ: ${query}`);
+    Logger.log(`バッチサイズ: ${BATCH_SIZE}件ごとに送信\n`);
+
+    const threads = GmailApp.search(query, 0, 500);
+
+    if (threads.length === 0) {
+      Logger.log('処理対象のメールはありません。');
+      return;
+    }
+
+    Logger.log(`検索結果: ${threads.length}件のメール`);
+    Logger.log('-'.repeat(60));
+
+    let labelCount = 0;
+    let parseErrorCount = 0;
+    const reservationsBatch = [];
+    const messagesToMarkRead = [];
+
+    // ステップ1: 全メールにラベル付与 & 予約情報を収集
+    threads.forEach((thread, index) => {
+      const messages = thread.getMessages();
+      const latestMessage = messages[messages.length - 1];
+
+      Logger.log(`\n[${index + 1}/${threads.length}] ${latestMessage.getSubject()}`);
+
+      // ラベル付与（必ず実行）
+      if (label) {
+        thread.addLabel(label);
+        labelCount++;
+      }
+
+      // メール本文を解析
+      const body = latestMessage.getPlainBody();
+      const bookingInfo = parseEmailBody(body);
+
+      if (!bookingInfo) {
+        Logger.log(`  - 予約情報なし（スキップ）`);
+        parseErrorCount++;
+        return;
+      }
+
+      // メールメタデータを追加
+      bookingInfo.email_id = latestMessage.getId();
+      bookingInfo.email_subject = latestMessage.getSubject();
+      bookingInfo.email_date = latestMessage.getDate().toISOString();
+
+      reservationsBatch.push(bookingInfo);
+      messagesToMarkRead.push(latestMessage);
+
+      Logger.log(`  ✓ ${bookingInfo.store} / ${bookingInfo.customer_name} / ${bookingInfo.date} ${bookingInfo.start_time}`);
+    });
+
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log(`ラベル付与完了: ${labelCount}件`);
+    Logger.log(`予約情報収集完了: ${reservationsBatch.length}件`);
+    Logger.log('='.repeat(60));
+
+    // ステップ2: バッチ送信（50件ごと）
+    let apiSuccessCount = 0;
+    let apiErrorCount = 0;
+
+    for (let i = 0; i < reservationsBatch.length; i += BATCH_SIZE) {
+      const batch = reservationsBatch.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(reservationsBatch.length / BATCH_SIZE);
+
+      Logger.log(`\n【バッチ ${batchNum}/${totalBatches}】 ${batch.length}件を送信中...`);
+
+      const result = sendBatchToAPI(batch);
+
+      if (result.success) {
+        Logger.log(`✓ バッチ送信成功: ${result.count}件`);
+        apiSuccessCount += result.count;
+
+        // このバッチ分のメールを既読にする
+        for (let j = i; j < i + batch.length && j < messagesToMarkRead.length; j++) {
+          messagesToMarkRead[j].markRead();
+        }
+      } else {
+        Logger.log(`✗ バッチ送信失敗: ${result.error}`);
+        apiErrorCount += batch.length;
+      }
+
+      // レート制限対策: 1秒待機
+      if (i + BATCH_SIZE < reservationsBatch.length) {
+        Utilities.sleep(1000);
+      }
+    }
+
+    // 最終結果
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log('【処理完了】');
+    Logger.log(`総メール数: ${threads.length}件`);
+    Logger.log(`ラベル付与: ${labelCount}件`);
+    Logger.log(`予約収集: ${reservationsBatch.length}件`);
+    Logger.log(`API送信成功: ${apiSuccessCount}件`);
+    Logger.log(`APIエラー: ${apiErrorCount}件`);
+    Logger.log(`解析失敗: ${parseErrorCount}件`);
+    Logger.log(`API呼び出し回数: ${Math.ceil(reservationsBatch.length / BATCH_SIZE)}回`);
+    Logger.log('='.repeat(60));
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
+  }
 }
