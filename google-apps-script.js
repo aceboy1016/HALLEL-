@@ -70,6 +70,11 @@ function processHallelBookingEmails() {
             Logger.log(`  終了: ${bookingInfo.end_time}`);
           }
 
+          // メールIDを追加（重複防止）
+          bookingInfo.email_id = latestMessage.getId();
+          bookingInfo.email_subject = latestMessage.getSubject();
+          bookingInfo.email_date = latestMessage.getDate().toISOString();
+
           // Flask APIに送信
           const result = sendToFlaskAPI(bookingInfo);
 
@@ -255,9 +260,9 @@ function sendToFlaskAPI(bookingData) {
         type: 'gmail',
         is_cancellation: bookingData.action_type === 'cancellation',
         source: 'gas_sync',
-        email_id: '',
-        email_subject: '',
-        email_date: new Date().toISOString()
+        email_id: bookingData.email_id || '',
+        email_subject: bookingData.email_subject || '',
+        email_date: bookingData.email_date || new Date().toISOString()
       }]
     };
 
@@ -300,6 +305,103 @@ function saveLastProcessedTime() {
  */
 function getLastProcessedTime() {
   return PropertiesService.getScriptProperties().getProperty(PROP_LAST_PROCESSED_TIME) || 'なし';
+}
+
+/**
+ * 一括処理関数（既読メールも処理）
+ * ⚠️ 重複防止機能あり：同じメールを何度処理しても重複しない
+ */
+function processAllEmails() {
+  Logger.log('='.repeat(60));
+  Logger.log('HALLEL Gmail連携 - 一括処理開始（既読含む）');
+  Logger.log('='.repeat(60));
+
+  try {
+    // 検索クエリ（is:unread を削除して既読も含める）
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - CONFIG.DAYS_TO_SEARCH);
+    const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+
+    const keywordQuery = CONFIG.SEARCH_KEYWORDS
+      .map(kw => `subject:${kw}`)
+      .join(' OR ');
+
+    // ★ is:unread を外す
+    const query = `after:${dateStr} (${keywordQuery})`;
+    Logger.log(`検索クエリ: ${query}`);
+
+    // 最大200件取得
+    const threads = GmailApp.search(query, 0, 200);
+
+    if (threads.length === 0) {
+      Logger.log('処理対象のメールはありません。');
+      return;
+    }
+
+    Logger.log(`処理対象スレッド数: ${threads.length}`);
+    Logger.log('-'.repeat(60));
+
+    let successCount = 0;
+    let errorCount = 0;
+    let skippedCount = 0;
+
+    threads.forEach((thread, index) => {
+      const messages = thread.getMessages();
+      const latestMessage = messages[messages.length - 1];
+
+      // ★ 既読・未読に関わらず処理
+      Logger.log(`\n[${index + 1}/${threads.length}] 件名: ${latestMessage.getSubject()}`);
+
+      const body = latestMessage.getPlainBody();
+      const bookingInfo = parseEmailBody(body);
+
+      if (bookingInfo) {
+        Logger.log(`  アクション: ${bookingInfo.action_type}`);
+        Logger.log(`  顧客名: ${bookingInfo.customer_name}`);
+        Logger.log(`  店舗: ${bookingInfo.store}`);
+        Logger.log(`  日付: ${bookingInfo.date}`);
+        Logger.log(`  開始: ${bookingInfo.start_time}`);
+        if (bookingInfo.end_time) {
+          Logger.log(`  終了: ${bookingInfo.end_time}`);
+        }
+
+        // メールIDを追加（重複防止）
+        bookingInfo.email_id = latestMessage.getId();
+        bookingInfo.email_subject = latestMessage.getSubject();
+        bookingInfo.email_date = latestMessage.getDate().toISOString();
+
+        // Flask APIに送信
+        const result = sendToFlaskAPI(bookingInfo);
+
+        if (result.success) {
+          Logger.log(`  ✓ APIに送信成功`);
+          latestMessage.markRead();
+          successCount++;
+        } else {
+          Logger.log(`  ✗ APIエラー: ${result.error}`);
+          errorCount++;
+        }
+      } else {
+        Logger.log(`  - 予約情報が見つかりません（スキップ）`);
+        latestMessage.markRead();
+        skippedCount++;
+      }
+
+      // 進捗表示
+      if ((index + 1) % 10 === 0) {
+        Logger.log(`\n進捗: ${index + 1}/${threads.length} (${Math.round((index + 1)/threads.length*100)}%)`);
+      }
+    });
+
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log('処理完了');
+    Logger.log(`成功: ${successCount}件 / エラー: ${errorCount}件 / スキップ: ${skippedCount}件`);
+    Logger.log('='.repeat(60));
+
+  } catch (error) {
+    Logger.log(`エラー: ${error.message}`);
+    Logger.log(error.stack);
+  }
 }
 
 /**
