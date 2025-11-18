@@ -1128,7 +1128,12 @@ function forceProcessAllEmails() {
     dateLimit.setDate(dateLimit.getDate() - 180);
     const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-    const query = `from:noreply@em.hacomono.jp after:${dateStr}`;
+    // HALLEL関連のキーワードでフィルタ
+    const keywordQuery = CONFIG.SEARCH_KEYWORDS
+      .map(kw => `subject:${kw}`)
+      .join(' OR ');
+
+    const query = `from:noreply@em.hacomono.jp after:${dateStr} (${keywordQuery})`;
     Logger.log(`検索クエリ: ${query}`);
     Logger.log(`バッチサイズ: ${BATCH_SIZE}件ごとに送信\n`);
 
