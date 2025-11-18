@@ -1155,29 +1155,27 @@ function forceProcessAllEmails() {
     let parseErrorCount = 0;
     const reservationsBatch = [];
     const messagesToMarkRead = [];
+    const threadsToLabel = [];
 
-    // ステップ1: 全メールにラベル付与 & 予約情報を収集
+    // ステップ1: メール本文を解析してHALLEL関連のみ抽出
     threads.forEach((thread, index) => {
       const messages = thread.getMessages();
       const latestMessage = messages[messages.length - 1];
 
       Logger.log(`\n[${index + 1}/${threads.length}] ${latestMessage.getSubject()}`);
 
-      // ラベル付与（必ず実行）
-      if (label) {
-        thread.addLabel(label);
-        labelCount++;
-      }
-
-      // メール本文を解析
+      // まずメール本文を解析
       const body = latestMessage.getPlainBody();
       const bookingInfo = parseEmailBody(body);
 
       if (!bookingInfo) {
-        Logger.log(`  - 予約情報なし（スキップ）`);
+        Logger.log(`  - 予約情報なし（HALLEL関連ではない → スキップ）`);
         parseErrorCount++;
         return;
       }
+
+      // HALLEL関連メールと確認できた → 処理対象に追加
+      Logger.log(`  ✓ HALLEL関連メール確認: ${bookingInfo.store} / ${bookingInfo.customer_name}`);
 
       // メールメタデータを追加
       bookingInfo.email_id = latestMessage.getId();
@@ -1186,16 +1184,26 @@ function forceProcessAllEmails() {
 
       reservationsBatch.push(bookingInfo);
       messagesToMarkRead.push(latestMessage);
-
-      Logger.log(`  ✓ ${bookingInfo.store} / ${bookingInfo.customer_name} / ${bookingInfo.date} ${bookingInfo.start_time}`);
+      threadsToLabel.push(thread);
     });
 
+    // ステップ2: HALLEL関連メールのみにラベルを付与
     Logger.log('\n' + '='.repeat(60));
+    Logger.log('HALLEL関連メールにラベル付与中...');
+
+    threadsToLabel.forEach(thread => {
+      if (label) {
+        thread.addLabel(label);
+        labelCount++;
+      }
+    });
+
     Logger.log(`ラベル付与完了: ${labelCount}件`);
     Logger.log(`予約情報収集完了: ${reservationsBatch.length}件`);
+    Logger.log(`スキップ（HALLEL関連外）: ${parseErrorCount}件`);
     Logger.log('='.repeat(60));
 
-    // ステップ2: バッチ送信（50件ごと）
+    // ステップ3: バッチ送信（50件ごと）
     let apiSuccessCount = 0;
     let apiErrorCount = 0;
 
