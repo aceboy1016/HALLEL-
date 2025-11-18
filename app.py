@@ -11,6 +11,9 @@ import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
 
+# Google Calendar同期モジュール
+from calendar_sync import add_to_calendar, delete_from_calendar, update_in_calendar
+
 # --- App Initialization ---
 app = Flask(__name__)
 # Use SECRET_KEY from environment variable, or generate one for development
@@ -671,6 +674,17 @@ def add_reservation():
                 data.get('type', 'manual')
             ))
         conn.commit()
+
+        # Google Calendar同期（恵比寿・半蔵門のみ）
+        if store in ['ebisu', 'hanzomon']:
+            add_to_calendar(
+                store=store,
+                date=data.get('date'),
+                start_time=data.get('start'),
+                end_time=data.get('end'),
+                customer_name=data.get('customer_name', 'N/A')
+            )
+
         log_activity(f"Manual reservation added: {data}")
         return jsonify({'message': 'Reservation added'})
     except Exception as e:
@@ -740,6 +754,16 @@ def delete_reservation():
             print(f'[DELETE] Deleted {deleted_count} reservation(s) with ID {reservation_to_delete["id"]}')
 
         conn.commit()
+
+        # Google Calendar同期（恵比寿・半蔵門のみ）
+        if store in ['ebisu', 'hanzomon']:
+            delete_from_calendar(
+                store=store,
+                date=data.get('date'),
+                start_time=data.get('start'),
+                end_time=data.get('end')
+            )
+
         log_activity(f"Reservation deleted: {data}, deleted_count: {deleted_count}")
         return jsonify({'message': 'Reservation deleted', 'deleted_count': deleted_count})
     except Exception as e:
@@ -916,6 +940,16 @@ def gas_webhook():
                             """, (res['date'], res['start'], res.get('store', 'shibuya')))
                         deleted_count += cur.rowcount
                         print(f'[DEBUG] Deleted cancellation: {res["date"]} {res["start"]}')
+
+                        # Google Calendar同期（恵比寿・半蔵門のみ）
+                        if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
+                            delete_from_calendar(
+                                store=res.get('store', 'shibuya'),
+                                date=res['date'],
+                                start_time=res['start'],
+                                end_time=res.get('end', res['start'])
+                            )
+
                         log_activity(f"Gmail cancellation: {res['date']} {res['start']}")
                     else:
                         email_id = res.get('email_id')
@@ -960,6 +994,16 @@ def gas_webhook():
                                 ))
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+
+                                # Google Calendar同期（恵比寿・半蔵門のみ）
+                                if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
+                                    add_to_calendar(
+                                        store=res.get('store', 'shibuya'),
+                                        date=res['date'],
+                                        start_time=res['start'],
+                                        end_time=res['end'],
+                                        customer_name=res.get('customer_name', 'N/A')
+                                    )
                         else:
                             # email_idがない場合は日付・時間・店舗で重複チェック（より厳格）
                             cur.execute("""
@@ -1002,6 +1046,16 @@ def gas_webhook():
                                 ))
                                 inserted_count += 1
                                 print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+
+                                # Google Calendar同期（恵比寿・半蔵門のみ）
+                                if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
+                                    add_to_calendar(
+                                        store=res.get('store', 'shibuya'),
+                                        date=res['date'],
+                                        start_time=res['start'],
+                                        end_time=res['end'],
+                                        customer_name=res.get('customer_name', 'N/A')
+                                    )
 
                         log_activity(f"Gmail booking processed: {res['date']} {res['start']}-{res['end']}")
 
