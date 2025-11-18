@@ -147,6 +147,27 @@ function parseEmailBody(body) {
   // 店舗を抽出
   const store = extractStore(body);
 
+  // キャンセルかどうかを判定（件名や本文に「キャンセル」が含まれる）
+  const isCancellation = body.includes('キャンセル') || body.includes('cancel');
+
+  // Hacomonoメール形式: 日時：2025年12月31日(水) 02:00~03:00
+  const hacomonoPattern = /日時[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日[^)]*\)\s*(\d{1,2}:\d{2})[~〜～](\d{1,2}:\d{2})/;
+  const hacomonoMatch = body.match(hacomonoPattern);
+
+  if (hacomonoMatch) {
+    const [, year, month, day, startTime, endTime] = hacomonoMatch;
+    const date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+    return {
+      action_type: isCancellation ? 'cancellation' : 'booking',
+      date: date,
+      start_time: formatTime(startTime),
+      end_time: formatTime(endTime),
+      store: store
+    };
+  }
+
+  // 旧形式（後方互換性のため残す）
   // 予約パターン: 予約: 2025-08-05 14:00-15:30
   const bookingPattern = /予約[：:]\s*(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*[-~〜ー]\s*(\d{1,2}:\d{2})/;
   const bookingMatch = body.match(bookingPattern);
@@ -251,12 +272,17 @@ function testConfig() {
  */
 function testParsing() {
   const testEmails = [
+    // Hacomonoメール形式（恵比寿店）
+    '日時：2025年12月31日(水) 02:00~03:00\n店舗： HALLEL 恵比寿店',
+    // Hacomonoメール形式（半蔵門店）
+    '日時：2025年12月1日(日) 10:00~11:00\n店舗： HALLEL 半蔵門店',
+    // Hacomonoメール形式（渋谷店）
+    '日時：2025年12月15日(月) 14:00~15:30\n店舗： HALLEL 渋谷店',
+    // キャンセルメール
+    'キャンセル\n日時：2025年12月20日(金) 16:00~17:00\n店舗： HALLEL 代々木上原店',
+    // 旧形式（後方互換）
     '渋谷店\n予約: 2025-08-05 14:00-15:30\nお客様名: 田中太郎',
-    '恵比寿店\nキャンセル: 2025-08-05 14:00\nお客様名: 佐藤花子',
-    '半蔵門店\n予約：2025-08-06 10:30〜12:00',
-    '代々木上原店\n予約: 2025-08-07 16:00-17:00',
-    '中目黒店\nキャンセル: 2025-08-08 18:00',
-    '通常のメール本文（店舗名なし）\n予約: 2025-08-09 12:00-13:00'
+    '通常のメール本文（マッチしない）'
   ];
 
   testEmails.forEach((body, i) => {
