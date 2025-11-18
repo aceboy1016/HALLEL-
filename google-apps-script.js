@@ -794,6 +794,63 @@ function findYoyogiNov21Booking() {
 }
 
 /**
+ * メール送信日で検索（11月12日前後）
+ */
+function searchByEmailDate() {
+  Logger.log('='.repeat(60));
+  Logger.log('メール送信日で検索: 11月12日前後');
+  Logger.log('='.repeat(60));
+
+  // 11月12日のメールを検索
+  const searchPatterns = [
+    'from:noreply@em.hacomono.jp after:2025/11/11 before:2025/11/13',
+    'from:noreply@em.hacomono.jp after:2025/11/10 before:2025/11/14',
+  ];
+
+  searchPatterns.forEach((query, index) => {
+    Logger.log(`\n【パターン${index + 1}】 ${query}`);
+    const threads = GmailApp.search(query, 0, 50);
+    Logger.log(`結果: ${threads.length}件\n`);
+
+    threads.forEach((thread, i) => {
+      const message = thread.getMessages()[0];
+      const body = message.getPlainBody();
+
+      Logger.log(`[${i + 1}] 件名: ${message.getSubject()}`);
+      Logger.log(`    メールID: ${message.getId()}`);
+      Logger.log(`    送信日時: ${message.getDate()}`);
+
+      // 本文から顧客名と予約情報を抽出
+      const customerMatch = body.match(/^(.+?)\s*様/m);
+      const dateMatch = body.match(/日時[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日[^)]*\)\s*(\d{1,2}:\d{2})[~〜～](\d{1,2}:\d{2})/);
+      const storeMatch = body.match(/店舗[：:]\s*(.+)/);
+
+      if (customerMatch) Logger.log(`    顧客: ${customerMatch[1].trim()}`);
+      if (dateMatch) {
+        Logger.log(`    予約: ${dateMatch[1]}年${dateMatch[2]}月${dateMatch[3]}日 ${dateMatch[4]}~${dateMatch[5]}`);
+
+        // 11月21日 12:30のものをハイライト
+        if (dateMatch[2] == '11' && dateMatch[3] == '21' && dateMatch[4] == '12:30') {
+          Logger.log(`    ★★★ 該当メール候補！ ★★★`);
+        }
+      }
+      if (storeMatch) Logger.log(`    店舗: ${storeMatch[1].trim()}`);
+
+      // ラベル確認
+      const labels = thread.getLabels();
+      if (labels.length > 0) {
+        Logger.log(`    ラベル: ${labels.map(l => l.getName()).join(', ')}`);
+      } else {
+        Logger.log(`    ラベル: なし`);
+      }
+      Logger.log('');
+    });
+  });
+
+  Logger.log('='.repeat(60));
+}
+
+/**
  * 特定のメールIDを処理する
  */
 function processSpecificEmail() {
