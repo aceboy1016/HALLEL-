@@ -312,14 +312,37 @@ function getLastProcessedTime() {
  * ⚠️ 重複防止機能あり：同じメールを何度処理しても重複しない
  */
 function processAllEmails() {
+  processEmailsWithDays(CONFIG.DAYS_TO_SEARCH);
+}
+
+/**
+ * 過去30日分を一括処理（既読含む）
+ * ⚠️ 200件以上ある場合は複数回実行してください
+ */
+function processLast30Days() {
+  processEmailsWithDays(30);
+}
+
+/**
+ * 過去60日分を一括処理（既読含む）
+ * ⚠️ 200件以上ある場合は複数回実行してください
+ */
+function processLast60Days() {
+  processEmailsWithDays(60);
+}
+
+/**
+ * 指定日数分のメールを処理（内部関数）
+ */
+function processEmailsWithDays(days) {
   Logger.log('='.repeat(60));
-  Logger.log('HALLEL Gmail連携 - 一括処理開始（既読含む）');
+  Logger.log(`HALLEL Gmail連携 - 一括処理開始（過去${days}日分、既読含む）`);
   Logger.log('='.repeat(60));
 
   try {
     // 検索クエリ（is:unread を削除して既読も含める）
     const dateLimit = new Date();
-    dateLimit.setDate(dateLimit.getDate() - CONFIG.DAYS_TO_SEARCH);
+    dateLimit.setDate(dateLimit.getDate() - days);
     const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
     const keywordQuery = CONFIG.SEARCH_KEYWORDS
@@ -330,15 +353,21 @@ function processAllEmails() {
     const query = `after:${dateStr} (${keywordQuery})`;
     Logger.log(`検索クエリ: ${query}`);
 
-    // 最大200件取得
-    const threads = GmailApp.search(query, 0, 200);
+    // 最大500件取得（GAS制限に注意）
+    const threads = GmailApp.search(query, 0, 500);
 
     if (threads.length === 0) {
       Logger.log('処理対象のメールはありません。');
       return;
     }
 
-    Logger.log(`処理対象スレッド数: ${threads.length}`);
+    Logger.log(`処理対象スレッド数: ${threads.length}件`);
+
+    // 500件以上ある場合の警告
+    if (threads.length >= 500) {
+      Logger.log('⚠️ 警告: メールが500件以上あります。全て処理するには複数回実行してください。');
+    }
+
     Logger.log('-'.repeat(60));
 
     let successCount = 0;
