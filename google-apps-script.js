@@ -62,6 +62,8 @@ function processHallelBookingEmails() {
 
         if (bookingInfo) {
           Logger.log(`  アクション: ${bookingInfo.action_type}`);
+          Logger.log(`  顧客名: ${bookingInfo.customer_name}`);
+          Logger.log(`  店舗: ${bookingInfo.store}`);
           Logger.log(`  日付: ${bookingInfo.date}`);
           Logger.log(`  開始: ${bookingInfo.start_time}`);
           if (bookingInfo.end_time) {
@@ -141,11 +143,35 @@ function extractStore(body) {
 }
 
 /**
+ * メール本文から顧客名を抽出
+ */
+function extractCustomerName(body) {
+  // パターン1: [顧客名]様
+  const pattern1 = /^(.+?)様/m;
+  const match1 = body.match(pattern1);
+  if (match1) {
+    return match1[1].trim();
+  }
+
+  // パターン2: お客様名：[顧客名]
+  const pattern2 = /お客様名[：:]\s*(.+?)[\n\r]/;
+  const match2 = body.match(pattern2);
+  if (match2) {
+    return match2[1].trim();
+  }
+
+  return 'N/A';
+}
+
+/**
  * メール本文から予約情報を抽出
  */
 function parseEmailBody(body) {
   // 店舗を抽出
   const store = extractStore(body);
+
+  // 顧客名を抽出
+  const customerName = extractCustomerName(body);
 
   // キャンセルかどうかを判定（件名や本文に「キャンセル」が含まれる）
   const isCancellation = body.includes('キャンセル') || body.includes('cancel');
@@ -163,6 +189,7 @@ function parseEmailBody(body) {
       date: date,
       start_time: formatTime(startTime),
       end_time: formatTime(endTime),
+      customer_name: customerName,
       store: store
     };
   }
@@ -178,6 +205,7 @@ function parseEmailBody(body) {
       date: bookingMatch[1],
       start_time: formatTime(bookingMatch[2]),
       end_time: formatTime(bookingMatch[3]),
+      customer_name: customerName,
       store: store
     };
   }
@@ -191,6 +219,7 @@ function parseEmailBody(body) {
       action_type: 'cancellation',
       date: cancelMatch[1],
       start_time: formatTime(cancelMatch[2]),
+      customer_name: customerName,
       store: store
     };
   }
@@ -292,13 +321,13 @@ function testConfig() {
 function testParsing() {
   const testEmails = [
     // Hacomonoメール形式（恵比寿店）
-    '日時：2025年12月31日(水) 02:00~03:00\n店舗： HALLEL 恵比寿店',
+    '田中太郎様\n\nHALLEL 恵比寿店の予約が確定しました。\n\n日時：2025年12月31日(水) 02:00~03:00\n店舗： HALLEL 恵比寿店',
     // Hacomonoメール形式（半蔵門店）
-    '日時：2025年12月1日(日) 10:00~11:00\n店舗： HALLEL 半蔵門店',
+    '山田花子様\n\nHALLEL 半蔵門店の予約が確定しました。\n\n日時：2025年12月1日(日) 10:00~11:00\n店舗： HALLEL 半蔵門店',
     // Hacomonoメール形式（渋谷店）
-    '日時：2025年12月15日(月) 14:00~15:30\n店舗： HALLEL 渋谷店',
+    '佐藤次郎様\n\nHALLEL 渋谷店の予約が確定しました。\n\n日時：2025年12月15日(月) 14:00~15:30\n店舗： HALLEL 渋谷店',
     // キャンセルメール
-    'キャンセル\n日時：2025年12月20日(金) 16:00~17:00\n店舗： HALLEL 代々木上原店',
+    '鈴木三郎様\n\nキャンセル\n日時：2025年12月20日(金) 16:00~17:00\n店舗： HALLEL 代々木上原店',
     // 旧形式（後方互換）
     '渋谷店\n予約: 2025-08-05 14:00-15:30\nお客様名: 田中太郎',
     '通常のメール本文（マッチしない）'
