@@ -106,9 +106,11 @@ function processOnlyHallelEmails() {
     dateLimit.setDate(dateLimit.getDate() - 180);
     const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-    const query = `from:noreply@em.hacomono.jp after:${dateStr}`;
+    // HALLEL関連のキーワードでフィルタ
+    const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel`;
     const threads = GmailApp.search(query, 0, 500);
 
+    Logger.log(`検索クエリ: ${query}`);
     Logger.log(`検索結果: ${threads.length}件のメール`);
     Logger.log('-'.repeat(60));
 
@@ -118,19 +120,15 @@ function processOnlyHallelEmails() {
 
     // ステップ1: HALLEL関連メールのみ抽出
     let hallelIndex = 0;
+    let skipCount = 0;
     threads.forEach((thread, index) => {
       const message = thread.getMessages()[0];
       const body = message.getPlainBody();
       const bookingInfo = parseEmailBody(body);
 
       if (!bookingInfo) {
-        return; // parse失敗 → スキップ
-      }
-
-      // HALLEL店舗か確認
-      const hallelStores = ['shibuya', 'yoyogi-uehara', 'nakameguro', 'ebisu', 'hanzomon'];
-      if (!hallelStores.includes(bookingInfo.store)) {
-        return; // HALLEL以外 → スキップ
+        skipCount++;
+        return; // parse失敗 or HALLEL店舗でない → スキップ
       }
 
       // メールメタデータを追加
@@ -148,6 +146,7 @@ function processOnlyHallelEmails() {
 
     Logger.log('\n' + '='.repeat(60));
     Logger.log(`HALLEL関連メール: ${reservationsBatch.length}件`);
+    Logger.log(`スキップ: ${skipCount}件`);
     Logger.log('='.repeat(60));
 
     if (reservationsBatch.length === 0) {
