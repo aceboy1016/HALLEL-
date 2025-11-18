@@ -16,7 +16,7 @@ const CONFIG = {
   WEBHOOK_API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',         // ★Webhook認証キー★
   MAX_EMAILS_PER_RUN: 50,      // 一度に処理する最大メール数
   DAYS_TO_SEARCH: 7,           // 過去何日分を検索するか
-  SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店', '代々木上原店', '中目黒店', '恵比寿店', '半蔵門店'],
+  SEARCH_KEYWORDS: ['hallel'],  // ★重要: "hallel"のみに限定（他ジムを除外）★
   USE_LABEL: true,             // ラベルを使用するか
   LABEL_NAME: 'HALLEL/Processed'  // 処理済みラベル名
 };
