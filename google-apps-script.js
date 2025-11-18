@@ -851,6 +851,70 @@ function searchByEmailDate() {
 }
 
 /**
+ * 全メールから11月21日12:30の予約を探す
+ */
+function findNov21At1230() {
+  Logger.log('='.repeat(60));
+  Logger.log('全メールから11月21日 12:30の予約を探索');
+  Logger.log('='.repeat(60));
+
+  // 過去60日のメールを全件検索
+  const query = 'from:noreply@em.hacomono.jp after:2025/10/01';
+  Logger.log(`検索クエリ: ${query}\n`);
+
+  const threads = GmailApp.search(query, 0, 500);
+  Logger.log(`検索結果: ${threads.length}件のメール\n`);
+
+  let foundCount = 0;
+
+  threads.forEach((thread, index) => {
+    const message = thread.getMessages()[0];
+    const body = message.getPlainBody();
+
+    // 11月21日 12:30を含むメールを探す
+    if (body.includes('11月21日') && body.includes('12:30')) {
+      foundCount++;
+
+      Logger.log(`【発見 #${foundCount}】`);
+      Logger.log(`件名: ${message.getSubject()}`);
+      Logger.log(`メールID: ${message.getId()}`);
+      Logger.log(`送信日時: ${message.getDate()}`);
+
+      // 詳細を抽出
+      const customerMatch = body.match(/^(.+?)\s*様/m);
+      const dateMatch = body.match(/日時[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日[^)]*\)\s*(\d{1,2}:\d{2})[~〜～](\d{1,2}:\d{2})/);
+      const storeMatch = body.match(/店舗[：:]\s*(.+)/);
+
+      if (customerMatch) Logger.log(`顧客: ${customerMatch[1].trim()}`);
+      if (dateMatch) Logger.log(`予約: ${dateMatch[1]}年${dateMatch[2]}月${dateMatch[3]}日 ${dateMatch[4]}~${dateMatch[5]}`);
+      if (storeMatch) Logger.log(`店舗: ${storeMatch[1].trim()}`);
+
+      // ラベル確認
+      const labels = thread.getLabels();
+      if (labels.length > 0) {
+        Logger.log(`ラベル: ${labels.map(l => l.getName()).join(', ')}`);
+      } else {
+        Logger.log(`ラベル: なし`);
+      }
+
+      Logger.log('');
+    }
+  });
+
+  Logger.log('='.repeat(60));
+  if (foundCount === 0) {
+    Logger.log('❌ 11月21日 12:30の予約は見つかりませんでした');
+    Logger.log('\n【確認事項】');
+    Logger.log('1. Gmailで該当メールが実際に存在するか確認してください');
+    Logger.log('2. データベースで既に処理済みか確認してください');
+    Logger.log('   URL: https://hallel-shibuya.vercel.app/admin/calendar?store=yoyogi-uehara&date=2025-11-21');
+  } else {
+    Logger.log(`✅ ${foundCount}件見つかりました`);
+  }
+  Logger.log('='.repeat(60));
+}
+
+/**
  * 特定のメールIDを処理する
  */
 function processSpecificEmail() {
