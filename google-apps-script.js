@@ -516,6 +516,41 @@ function investigateEmailCount() {
 }
 
 /**
+ * 送信元アドレスで検索（より広範囲）
+ */
+function investigateBySender() {
+  Logger.log('=== 送信元アドレスで調査 ===\n');
+
+  const senders = [
+    'noreply@em.hacomono.jp',
+    '@hacomono.jp',
+    'hacomono'
+  ];
+
+  senders.forEach(sender => {
+    const tests = [
+      { days: 30, label: '過去30日' },
+      { days: 60, label: '過去60日' },
+      { days: 90, label: '過去90日' },
+      { days: 180, label: '過去180日' }
+    ];
+
+    Logger.log(`送信元: ${sender}`);
+    tests.forEach(test => {
+      const dateLimit = new Date();
+      dateLimit.setDate(dateLimit.getDate() - test.days);
+      const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+
+      const query = `from:${sender} after:${dateStr}`;
+      const threads = GmailApp.search(query, 0, 500);
+
+      Logger.log(`  ${test.label}: ${threads.length}件`);
+    });
+    Logger.log('');
+  });
+}
+
+/**
  * テスト用関数: 設定を確認
  */
 function testConfig() {
