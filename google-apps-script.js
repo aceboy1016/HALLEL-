@@ -980,15 +980,70 @@ function processSpecificEmail() {
 }
 
 /**
- * 【強制処理】全メールに対してラベル付与→API送信
+ * バッチ処理でAPIに送信（複数予約を1回で送信）
+ */
+function sendBatchToAPI(reservationsList) {
+  if (!reservationsList || reservationsList.length === 0) {
+    return { success: false, error: 'No reservations to send' };
+  }
+
+  try {
+    const payload = {
+      source: 'gas',
+      timestamp: new Date().toISOString(),
+      reservations: reservationsList.map(booking => ({
+        date: booking.date,
+        start: booking.start_time,
+        end: booking.end_time || booking.start_time,
+        customer_name: booking.customer_name || 'N/A',
+        store: booking.store || 'shibuya',
+        type: 'gmail',
+        is_cancellation: booking.action_type === 'cancellation',
+        source: 'gas_sync',
+        email_id: booking.email_id || '',
+        email_subject: booking.email_subject || '',
+        email_date: booking.email_date || new Date().toISOString()
+      }))
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        'X-API-Key': CONFIG.WEBHOOK_API_KEY
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(CONFIG.FLASK_API_URL, options);
+    const statusCode = response.getResponseCode();
+
+    if (statusCode >= 200 && statusCode < 300) {
+      return { success: true, count: reservationsList.length, data: JSON.parse(response.getContentText()) };
+    } else {
+      return {
+        success: false,
+        error: `HTTP ${statusCode}: ${response.getContentText()}`
+      };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 【強制処理】全メールに対してラベル付与→API送信（バッチ処理版）
  * ラベルの有無に関わらず、全メールを処理
  * バックエンドが重複を自動的に上書き
  */
 function forceProcessAllEmails() {
   Logger.log('='.repeat(60));
-  Logger.log('【強制処理】全メール一斉処理開始');
+  Logger.log('【強制処理】全メール一斉処理開始（バッチ処理版）');
   Logger.log('ラベルの有無に関わらず、全メールを処理します');
   Logger.log('='.repeat(60));
+
+  const BATCH_SIZE = 50; // 50件ごとにバッチ送信
 
   try {
     // ラベルを取得または作成
@@ -1001,6 +1056,7 @@ function forceProcessAllEmails() {
 
     const query = `from:noreply@em.hacomono.jp after:${dateStr}`;
     Logger.log(`検索クエリ: ${query}`);
+    Logger.log(`バッチサイズ: ${BATCH_SIZE}件ごとに送信\n`);
 
     const threads = GmailApp.search(query, 0, 500);
 
@@ -1009,30 +1065,28 @@ function forceProcessAllEmails() {
       return;
     }
 
-    Logger.log(`検索結果: ${threads.length}件のメール\n`);
+    Logger.log(`検索結果: ${threads.length}件のメール`);
     Logger.log('-'.repeat(60));
 
     let labelCount = 0;
-    let apiSuccessCount = 0;
-    let apiErrorCount = 0;
     let parseErrorCount = 0;
+    const reservationsBatch = [];
+    const messagesToMarkRead = [];
 
+    // ステップ1: 全メールにラベル付与 & 予約情報を収集
     threads.forEach((thread, index) => {
       const messages = thread.getMessages();
       const latestMessage = messages[messages.length - 1];
 
-      Logger.log(`\n[${index + 1}/${threads.length}] 件名: ${latestMessage.getSubject()}`);
-      Logger.log(`  日時: ${latestMessage.getDate()}`);
-      Logger.log(`  メールID: ${latestMessage.getId()}`);
+      Logger.log(`\n[${index + 1}/${threads.length}] ${latestMessage.getSubject()}`);
 
-      // ステップ1: まずラベルを付与（必ず実行）
+      // ラベル付与（必ず実行）
       if (label) {
         thread.addLabel(label);
         labelCount++;
-        Logger.log(`  ✓ ラベル付与完了`);
       }
 
-      // ステップ2: メール本文を解析
+      // メール本文を解析
       const body = latestMessage.getPlainBody();
       const bookingInfo = parseEmailBody(body);
 
@@ -1042,44 +1096,64 @@ function forceProcessAllEmails() {
         return;
       }
 
-      // 予約情報を表示
-      Logger.log(`  店舗: ${bookingInfo.store}`);
-      Logger.log(`  顧客: ${bookingInfo.customer_name}`);
-      Logger.log(`  日付: ${bookingInfo.date}`);
-      Logger.log(`  時間: ${bookingInfo.start_time} - ${bookingInfo.end_time}`);
-      Logger.log(`  種別: ${bookingInfo.action_type}`);
-
       // メールメタデータを追加
       bookingInfo.email_id = latestMessage.getId();
       bookingInfo.email_subject = latestMessage.getSubject();
       bookingInfo.email_date = latestMessage.getDate().toISOString();
 
-      // ステップ3: APIに送信（重複は自動上書き）
-      const result = sendToFlaskAPI(bookingInfo);
+      reservationsBatch.push(bookingInfo);
+      messagesToMarkRead.push(latestMessage);
+
+      Logger.log(`  ✓ ${bookingInfo.store} / ${bookingInfo.customer_name} / ${bookingInfo.date} ${bookingInfo.start_time}`);
+    });
+
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log(`ラベル付与完了: ${labelCount}件`);
+    Logger.log(`予約情報収集完了: ${reservationsBatch.length}件`);
+    Logger.log('='.repeat(60));
+
+    // ステップ2: バッチ送信（50件ごと）
+    let apiSuccessCount = 0;
+    let apiErrorCount = 0;
+
+    for (let i = 0; i < reservationsBatch.length; i += BATCH_SIZE) {
+      const batch = reservationsBatch.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(reservationsBatch.length / BATCH_SIZE);
+
+      Logger.log(`\n【バッチ ${batchNum}/${totalBatches}】 ${batch.length}件を送信中...`);
+
+      const result = sendBatchToAPI(batch);
 
       if (result.success) {
-        Logger.log(`  ✓ API送信成功`);
-        apiSuccessCount++;
-        latestMessage.markRead();
+        Logger.log(`✓ バッチ送信成功: ${result.count}件`);
+        apiSuccessCount += result.count;
+
+        // このバッチ分のメールを既読にする
+        for (let j = i; j < i + batch.length && j < messagesToMarkRead.length; j++) {
+          messagesToMarkRead[j].markRead();
+        }
       } else {
-        Logger.log(`  ✗ APIエラー: ${result.error}`);
-        apiErrorCount++;
+        Logger.log(`✗ バッチ送信失敗: ${result.error}`);
+        apiErrorCount += batch.length;
       }
 
-      // 進捗表示（10件ごと）
-      if ((index + 1) % 10 === 0) {
-        Logger.log(`\n進捗: ${index + 1}/${threads.length} (${Math.round((index + 1) / threads.length * 100)}%)\n`);
+      // レート制限対策: 1秒待機
+      if (i + BATCH_SIZE < reservationsBatch.length) {
+        Utilities.sleep(1000);
       }
-    });
+    }
 
     // 最終結果
     Logger.log('\n' + '='.repeat(60));
     Logger.log('【処理完了】');
     Logger.log(`総メール数: ${threads.length}件`);
     Logger.log(`ラベル付与: ${labelCount}件`);
+    Logger.log(`予約収集: ${reservationsBatch.length}件`);
     Logger.log(`API送信成功: ${apiSuccessCount}件`);
     Logger.log(`APIエラー: ${apiErrorCount}件`);
     Logger.log(`解析失敗: ${parseErrorCount}件`);
+    Logger.log(`API呼び出し回数: ${Math.ceil(reservationsBatch.length / BATCH_SIZE)}回`);
     Logger.log('='.repeat(60));
 
   } catch (error) {
