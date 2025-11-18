@@ -16,11 +16,27 @@ const CONFIG = {
   WEBHOOK_API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',         // ★Webhook認証キー★
   MAX_EMAILS_PER_RUN: 50,      // 一度に処理する最大メール数
   DAYS_TO_SEARCH: 7,           // 過去何日分を検索するか
-  SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店', '代々木上原店', '中目黒店', '恵比寿店', '半蔵門店']
+  SEARCH_KEYWORDS: ['予約', 'キャンセル', 'HALLEL', '渋谷店', '代々木上原店', '中目黒店', '恵比寿店', '半蔵門店'],
+  USE_LABEL: true,             // ラベルを使用するか
+  LABEL_NAME: 'HALLEL/Processed'  // 処理済みラベル名
 };
 
 // === スクリプトプロパティのキー ===
 const PROP_LAST_PROCESSED_TIME = 'lastProcessedTime';
+
+/**
+ * ラベルを取得または作成
+ */
+function getOrCreateLabel() {
+  if (!CONFIG.USE_LABEL) return null;
+
+  let label = GmailApp.getUserLabelByName(CONFIG.LABEL_NAME);
+  if (!label) {
+    Logger.log(`ラベルを作成: ${CONFIG.LABEL_NAME}`);
+    label = GmailApp.createLabel(CONFIG.LABEL_NAME);
+  }
+  return label;
+}
 
 /**
  * メイン処理関数（トリガーから実行）
@@ -33,6 +49,9 @@ function processHallelBookingEmails() {
   try {
     const query = buildSearchQuery();
     Logger.log(`検索クエリ: ${query}`);
+
+    // ラベルを取得
+    const label = getOrCreateLabel();
 
     // Gmail検索（件数制限付き）
     const threads = GmailApp.search(query, 0, CONFIG.MAX_EMAILS_PER_RUN);
@@ -81,6 +100,12 @@ function processHallelBookingEmails() {
           if (result.success) {
             Logger.log(`  ✓ APIに送信成功`);
             latestMessage.markRead();  // 既読にする
+
+            // ラベルを付ける
+            if (label) {
+              thread.addLabel(label);
+            }
+
             successCount++;
           } else {
             Logger.log(`  ✗ APIエラー: ${result.error}`);
@@ -89,6 +114,12 @@ function processHallelBookingEmails() {
         } else {
           Logger.log(`  - 予約情報が見つかりません（スキップ）`);
           latestMessage.markRead();  // 既読にして再処理を防ぐ
+
+          // スキップしたメールにもラベルを付ける
+          if (label) {
+            thread.addLabel(label);
+          }
+
           skippedCount++;
         }
       }
@@ -340,6 +371,9 @@ function processEmailsWithDays(days) {
   Logger.log('='.repeat(60));
 
   try {
+    // ラベルを取得
+    const label = getOrCreateLabel();
+
     // 検索クエリ（is:unread を削除して既読も含める）
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - days);
@@ -405,6 +439,12 @@ function processEmailsWithDays(days) {
         if (result.success) {
           Logger.log(`  ✓ APIに送信成功`);
           latestMessage.markRead();
+
+          // ラベルを付ける
+          if (label) {
+            thread.addLabel(label);
+          }
+
           successCount++;
         } else {
           Logger.log(`  ✗ APIエラー: ${result.error}`);
@@ -413,6 +453,12 @@ function processEmailsWithDays(days) {
       } else {
         Logger.log(`  - 予約情報が見つかりません（スキップ）`);
         latestMessage.markRead();
+
+        // スキップしたメールにもラベルを付ける
+        if (label) {
+          thread.addLabel(label);
+        }
+
         skippedCount++;
       }
 
@@ -431,6 +477,42 @@ function processEmailsWithDays(days) {
     Logger.log(`エラー: ${error.message}`);
     Logger.log(error.stack);
   }
+}
+
+/**
+ * メール件数を調査（デバッグ用）
+ */
+function investigateEmailCount() {
+  Logger.log('=== メール件数調査 ===\n');
+
+  const tests = [
+    { days: 7, label: '過去7日' },
+    { days: 30, label: '過去30日' },
+    { days: 60, label: '過去60日' },
+    { days: 90, label: '過去90日' }
+  ];
+
+  tests.forEach(test => {
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - test.days);
+    const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+
+    const keywordQuery = CONFIG.SEARCH_KEYWORDS
+      .map(kw => `subject:${kw}`)
+      .join(' OR ');
+
+    const query = `after:${dateStr} (${keywordQuery})`;
+    const threads = GmailApp.search(query, 0, 500);
+
+    Logger.log(`${test.label}: ${threads.length}件`);
+    Logger.log(`  検索クエリ: ${query}\n`);
+  });
+
+  // 未読メール数も確認
+  const unreadQuery = buildSearchQuery();
+  const unreadThreads = GmailApp.search(unreadQuery, 0, 500);
+  Logger.log(`未読メール: ${unreadThreads.length}件`);
+  Logger.log(`  検索クエリ: ${unreadQuery}`);
 }
 
 /**
