@@ -39,6 +39,67 @@ function getOrCreateLabel() {
 }
 
 /**
+ * 全メールからHALLEL/Processedラベルを削除
+ */
+function removeAllProcessedLabels() {
+  Logger.log('='.repeat(60));
+  Logger.log('HALLEL/Processedラベル削除開始');
+  Logger.log('='.repeat(60));
+
+  try {
+    const label = GmailApp.getUserLabelByName(CONFIG.LABEL_NAME);
+
+    if (!label) {
+      Logger.log('ラベルが存在しません。削除不要です。');
+      return;
+    }
+
+    const threads = label.getThreads();
+    Logger.log(`ラベルが付いたスレッド数: ${threads.length}件`);
+
+    if (threads.length === 0) {
+      Logger.log('ラベルが付いたメールはありません。');
+      // 空のラベルを削除
+      GmailApp.deleteLabel(label);
+      Logger.log('空のラベルを削除しました。');
+      return;
+    }
+
+    // 100件ずつ処理（GAS制限対策）
+    let totalRemoved = 0;
+    const batchSize = 100;
+
+    for (let i = 0; i < threads.length; i += batchSize) {
+      const batch = threads.slice(i, Math.min(i + batchSize, threads.length));
+
+      batch.forEach(thread => {
+        thread.removeLabel(label);
+        totalRemoved++;
+      });
+
+      Logger.log(`進捗: ${totalRemoved}/${threads.length}件削除`);
+
+      // レート制限対策
+      if (i + batchSize < threads.length) {
+        Utilities.sleep(500);
+      }
+    }
+
+    // ラベル自体を削除
+    GmailApp.deleteLabel(label);
+
+    Logger.log('='.repeat(60));
+    Logger.log(`完了: ${totalRemoved}件のメールからラベルを削除`);
+    Logger.log('ラベル自体も削除しました。');
+    Logger.log('='.repeat(60));
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
+  }
+}
+
+/**
  * メイン処理関数（トリガーから実行）
  */
 function processHallelBookingEmails() {
@@ -1033,35 +1094,52 @@ function sendBatchToAPI(reservationsList) {
 }
 
 /**
- * 【強制処理】全メールに対してラベル付与→API送信（バッチ処理版）
+ * 【強制処理】全メールに対してラベル付与→API送信（バッチ処理版 + オフセット対応）
  * ラベルの有無に関わらず、全メールを処理
  * バックエンドが重複を自動的に上書き
+ *
+ * 使い方:
+ * 1. removeAllProcessedLabels() でラベルを全削除
+ * 2. forceProcessAllEmails() を実行（最初の500件）
+ * 3. 続きがある場合、もう一度 forceProcessAllEmails() を実行（次の500件）
+ * 4. resetProcessingOffset() で処理位置をリセット
  */
 function forceProcessAllEmails() {
   Logger.log('='.repeat(60));
   Logger.log('【強制処理】全メール一斉処理開始（バッチ処理版）');
-  Logger.log('ラベルの有無に関わらず、全メールを処理します');
   Logger.log('='.repeat(60));
 
   const BATCH_SIZE = 50; // 50件ごとにバッチ送信
+  const MAX_FETCH = 500; // 1回の実行で取得する最大件数
 
   try {
+    // 前回の処理位置を取得
+    const props = PropertiesService.getScriptProperties();
+    const lastOffset = parseInt(props.getProperty('FORCE_PROCESS_OFFSET') || '0');
+
+    Logger.log(`前回の処理位置: ${lastOffset}件目から`);
+    Logger.log(`今回の取得範囲: ${lastOffset} - ${lastOffset + MAX_FETCH - 1}`);
+
     // ラベルを取得または作成
     const label = getOrCreateLabel();
 
-    // 過去90日分のHALLEL関連メールを全件検索
+    // 過去180日分のHALLEL関連メールを全件検索
     const dateLimit = new Date();
-    dateLimit.setDate(dateLimit.getDate() - 90);
+    dateLimit.setDate(dateLimit.getDate() - 180);
     const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
     const query = `from:noreply@em.hacomono.jp after:${dateStr}`;
     Logger.log(`検索クエリ: ${query}`);
     Logger.log(`バッチサイズ: ${BATCH_SIZE}件ごとに送信\n`);
 
-    const threads = GmailApp.search(query, 0, 500);
+    // オフセットを使って取得
+    const threads = GmailApp.search(query, lastOffset, MAX_FETCH);
 
     if (threads.length === 0) {
-      Logger.log('処理対象のメールはありません。');
+      Logger.log('これ以上処理対象のメールはありません。');
+      Logger.log('全メールの処理が完了しました！');
+      // オフセットをリセット
+      props.setProperty('FORCE_PROCESS_OFFSET', '0');
       return;
     }
 
@@ -1154,10 +1232,43 @@ function forceProcessAllEmails() {
     Logger.log(`APIエラー: ${apiErrorCount}件`);
     Logger.log(`解析失敗: ${parseErrorCount}件`);
     Logger.log(`API呼び出し回数: ${Math.ceil(reservationsBatch.length / BATCH_SIZE)}回`);
+
+    // 次回の処理位置を保存
+    const newOffset = lastOffset + threads.length;
+    props.setProperty('FORCE_PROCESS_OFFSET', newOffset.toString());
+    Logger.log(`\n次回の処理位置: ${newOffset}件目から`);
+
+    if (threads.length >= MAX_FETCH) {
+      Logger.log('\n⚠️ まだ続きがある可能性があります');
+      Logger.log('もう一度 forceProcessAllEmails() を実行してください');
+    } else {
+      Logger.log('\n✅ 全メールの処理が完了しました！');
+      props.setProperty('FORCE_PROCESS_OFFSET', '0');
+    }
+
     Logger.log('='.repeat(60));
 
   } catch (error) {
     Logger.log(`❌ エラー: ${error.message}`);
     Logger.log(error.stack);
   }
+}
+
+/**
+ * 処理位置をリセット（最初からやり直す場合）
+ */
+function resetProcessingOffset() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('FORCE_PROCESS_OFFSET', '0');
+  Logger.log('✅ 処理位置をリセットしました。次回は最初から処理されます。');
+}
+
+/**
+ * 現在の処理位置を確認
+ */
+function checkProcessingOffset() {
+  const props = PropertiesService.getScriptProperties();
+  const offset = props.getProperty('FORCE_PROCESS_OFFSET') || '0';
+  Logger.log(`現在の処理位置: ${offset}件目から`);
+  return parseInt(offset);
 }
