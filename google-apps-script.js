@@ -1301,3 +1301,175 @@ function checkProcessingOffset() {
   Logger.log(`現在の処理位置: ${offset}件目から`);
   return parseInt(offset);
 }
+
+/**
+ * 【ラベル付き全メール処理】ラベルが付いている全メールを処理
+ * - HALLEL関連：API送信成功 → ラベル保持、失敗 → ラベル削除
+ * - HALLEL関連外：ラベル削除
+ *
+ * 使い方:
+ * processAllLabeledEmails() を実行するだけ
+ * 2000件以上ある場合は複数回実行してください
+ */
+function processAllLabeledEmails() {
+  Logger.log('='.repeat(60));
+  Logger.log('【ラベル付き全メール処理】開始');
+  Logger.log('HALLEL関連のみAPI送信、それ以外はラベル削除');
+  Logger.log('='.repeat(60));
+
+  const BATCH_SIZE = 50; // API送信バッチサイズ
+  const PROCESS_LIMIT = 500; // 1回の実行で処理する最大件数
+
+  try {
+    const label = GmailApp.getUserLabelByName(CONFIG.LABEL_NAME);
+
+    if (!label) {
+      Logger.log('ラベルが存在しません。処理するメールがありません。');
+      return;
+    }
+
+    // ラベルが付いている全スレッドを取得
+    const allThreads = label.getThreads(0, PROCESS_LIMIT);
+
+    if (allThreads.length === 0) {
+      Logger.log('ラベルが付いたメールはありません。');
+      return;
+    }
+
+    Logger.log(`ラベル付きメール: ${allThreads.length}件`);
+    Logger.log('-'.repeat(60));
+
+    let hallelCount = 0;
+    let otherGymCount = 0;
+    let parseErrorCount = 0;
+    const hallelEmails = []; // HALLEL関連メール
+    const threadMap = {}; // index → thread
+    const messageMap = {}; // index → message
+
+    // ステップ1: 全メールを分類
+    allThreads.forEach((thread, index) => {
+      const messages = thread.getMessages();
+      const latestMessage = messages[messages.length - 1];
+      const body = latestMessage.getPlainBody();
+      const subject = latestMessage.getSubject();
+
+      Logger.log(`\n[${index + 1}/${allThreads.length}] ${subject}`);
+
+      // 本文を解析
+      const bookingInfo = parseEmailBody(body);
+
+      if (!bookingInfo) {
+        Logger.log('  → HALLEL関連外（他のジムまたはパース失敗）→ ラベル削除予定');
+        parseErrorCount++;
+        // ラベルを削除
+        thread.removeLabel(label);
+        return;
+      }
+
+      // HALLEL関連メール
+      Logger.log(`  → HALLEL関連: ${bookingInfo.store} / ${bookingInfo.customer_name}`);
+
+      // メタデータを追加
+      bookingInfo.email_id = latestMessage.getId();
+      bookingInfo.email_subject = subject;
+      bookingInfo.email_date = latestMessage.getDate().toISOString();
+
+      hallelEmails.push(bookingInfo);
+      threadMap[hallelCount] = thread;
+      messageMap[hallelCount] = latestMessage;
+      hallelCount++;
+    });
+
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log('【分類結果】');
+    Logger.log(`HALLEL関連: ${hallelCount}件 → API送信`);
+    Logger.log(`HALLEL関連外: ${parseErrorCount}件 → ラベル削除済み`);
+    Logger.log('='.repeat(60));
+
+    if (hallelCount === 0) {
+      Logger.log('\nHALLEL関連メールがありません。処理完了。');
+      return;
+    }
+
+    // ステップ2: HALLEL関連メールをバッチ送信
+    let apiSuccessCount = 0;
+    let apiErrorCount = 0;
+    const apiSuccessIndices = [];
+
+    for (let i = 0; i < hallelEmails.length; i += BATCH_SIZE) {
+      const batch = hallelEmails.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(hallelEmails.length / BATCH_SIZE);
+
+      Logger.log(`\n【バッチ ${batchNum}/${totalBatches}】 ${batch.length}件を送信中...`);
+
+      const result = sendBatchToAPI(batch);
+
+      if (result.success) {
+        Logger.log(`✓ バッチ送信成功: ${result.count}件`);
+        apiSuccessCount += result.count;
+
+        // 成功したインデックスを記録
+        for (let j = i; j < i + batch.length; j++) {
+          apiSuccessIndices.push(j);
+        }
+      } else {
+        Logger.log(`✗ バッチ送信失敗: ${result.error}`);
+        apiErrorCount += batch.length;
+
+        // 失敗したメールのラベルを削除
+        for (let j = i; j < i + batch.length; j++) {
+          const thread = threadMap[j];
+          if (thread) {
+            thread.removeLabel(label);
+          }
+        }
+      }
+
+      if (i + BATCH_SIZE < hallelEmails.length) {
+        Utilities.sleep(1000);
+      }
+    }
+
+    // ステップ3: API送信成功したメールを既読にする
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log('API送信成功したメールを既読にします...');
+
+    let readCount = 0;
+    apiSuccessIndices.forEach(index => {
+      const message = messageMap[index];
+      if (message) {
+        message.markRead();
+        readCount++;
+      }
+    });
+
+    Logger.log(`既読完了: ${readCount}件`);
+    Logger.log('='.repeat(60));
+
+    // 最終結果
+    Logger.log('\n【処理完了】');
+    Logger.log(`処理開始時のラベル付きメール: ${allThreads.length}件`);
+    Logger.log(`HALLEL関連: ${hallelCount}件`);
+    Logger.log(`HALLEL関連外（ラベル削除済み）: ${parseErrorCount}件`);
+    Logger.log(`API送信成功: ${apiSuccessCount}件（ラベル保持）`);
+    Logger.log(`API送信失敗: ${apiErrorCount}件（ラベル削除済み）`);
+
+    // 残りのラベル数を確認
+    const remainingThreads = label.getThreads().length;
+    Logger.log(`\n現在のラベル付きメール: ${remainingThreads}件`);
+
+    if (remainingThreads > 0) {
+      Logger.log('\n⚠️ まだラベル付きメールがあります');
+      Logger.log('もう一度 processAllLabeledEmails() を実行してください');
+    } else {
+      Logger.log('\n✅ 全てのラベル付きメールの処理が完了しました！');
+    }
+
+    Logger.log('='.repeat(60));
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
+  }
+}
