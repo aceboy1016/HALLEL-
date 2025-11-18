@@ -733,3 +733,126 @@ function debugKirschRobertEmail() {
 
   Logger.log('='.repeat(60));
 }
+
+/**
+ * 代々木上原店の11月21日12:30の予約を探す
+ */
+function findYoyogiNov21Booking() {
+  Logger.log('='.repeat(60));
+  Logger.log('代々木上原店 11/21 12:30 予約を検索');
+  Logger.log('='.repeat(60));
+
+  // 複数の検索パターンを試す
+  const searchPatterns = [
+    'from:noreply@em.hacomono.jp "代々木上原" "11月21日"',
+    'from:noreply@em.hacomono.jp "代々木上原" "12:30"',
+    'from:noreply@em.hacomono.jp subject:hallel "代々木上原店"',
+    'from:noreply@em.hacomono.jp "Kirsch" "代々木上原"',
+    'from:noreply@em.hacomono.jp "2025年11月21日"'
+  ];
+
+  searchPatterns.forEach((query, index) => {
+    Logger.log(`\n【パターン${index + 1}】 ${query}`);
+    const threads = GmailApp.search(query, 0, 20);
+    Logger.log(`結果: ${threads.length}件`);
+
+    if (threads.length > 0 && threads.length <= 5) {
+      threads.forEach((thread, i) => {
+        const message = thread.getMessages()[0];
+        const body = message.getPlainBody();
+
+        Logger.log(`\n  [${i + 1}] 件名: ${message.getSubject()}`);
+        Logger.log(`      日時: ${message.getDate()}`);
+
+        // 本文から顧客名と予約情報を抽出
+        const customerMatch = body.match(/^(.+?)\s*様/m);
+        const dateMatch = body.match(/日時[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日[^)]*\)\s*(\d{1,2}:\d{2})[~〜～](\d{1,2}:\d{2})/);
+        const storeMatch = body.match(/店舗[：:]\s*(.+)/);
+
+        if (customerMatch) Logger.log(`      顧客: ${customerMatch[1].trim()}`);
+        if (dateMatch) Logger.log(`      予約: ${dateMatch[1]}年${dateMatch[2]}月${dateMatch[3]}日 ${dateMatch[4]}~${dateMatch[5]}`);
+        if (storeMatch) Logger.log(`      店舗: ${storeMatch[1].trim()}`);
+
+        // ラベル確認
+        const labels = thread.getLabels();
+        if (labels.length > 0) {
+          Logger.log(`      ラベル: ${labels.map(l => l.getName()).join(', ')}`);
+        } else {
+          Logger.log(`      ラベル: なし`);
+        }
+      });
+    }
+  });
+
+  Logger.log('\n' + '='.repeat(60));
+  Logger.log('【次のステップ】');
+  Logger.log('上記の結果から該当するメールが見つかった場合:');
+  Logger.log('1. メールIDをメモ');
+  Logger.log('2. processSpecificEmail() 関数で個別処理');
+  Logger.log('='.repeat(60));
+}
+
+/**
+ * 特定のメールIDを処理する
+ */
+function processSpecificEmail() {
+  const emailId = ''; // ← ここにメールIDを入力
+
+  if (!emailId) {
+    Logger.log('❌ エラー: emailIdを設定してください');
+    Logger.log('   findYoyogiNov21Booking() でメールIDを確認してください');
+    return;
+  }
+
+  Logger.log('='.repeat(60));
+  Logger.log(`特定メール処理: ${emailId}`);
+  Logger.log('='.repeat(60));
+
+  try {
+    const message = GmailApp.getMessageById(emailId);
+    const thread = message.getThread();
+    const body = message.getPlainBody();
+
+    Logger.log(`件名: ${message.getSubject()}`);
+    Logger.log(`送信日時: ${message.getDate()}`);
+
+    const bookingInfo = parseEmailBody(body);
+
+    if (bookingInfo) {
+      Logger.log('\n予約情報:');
+      Logger.log(JSON.stringify(bookingInfo, null, 2));
+
+      // メールIDを追加
+      bookingInfo.email_id = message.getId();
+      bookingInfo.email_subject = message.getSubject();
+      bookingInfo.email_date = message.getDate().toISOString();
+
+      // APIに送信
+      Logger.log('\nAPIに送信中...');
+      const result = sendToFlaskAPI(bookingInfo);
+
+      if (result.success) {
+        Logger.log('✅ APIに送信成功');
+
+        // ラベルを付ける
+        const label = getOrCreateLabel();
+        if (label) {
+          thread.addLabel(label);
+          Logger.log('✅ ラベルを付与');
+        }
+
+        message.markRead();
+        Logger.log('✅ 既読にしました');
+      } else {
+        Logger.log(`❌ APIエラー: ${result.error}`);
+      }
+    } else {
+      Logger.log('❌ 予約情報が抽出できませんでした');
+    }
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+  }
+
+  Logger.log('='.repeat(60));
+}
