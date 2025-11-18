@@ -978,3 +978,112 @@ function processSpecificEmail() {
 
   Logger.log('='.repeat(60));
 }
+
+/**
+ * 【強制処理】全メールに対してラベル付与→API送信
+ * ラベルの有無に関わらず、全メールを処理
+ * バックエンドが重複を自動的に上書き
+ */
+function forceProcessAllEmails() {
+  Logger.log('='.repeat(60));
+  Logger.log('【強制処理】全メール一斉処理開始');
+  Logger.log('ラベルの有無に関わらず、全メールを処理します');
+  Logger.log('='.repeat(60));
+
+  try {
+    // ラベルを取得または作成
+    const label = getOrCreateLabel();
+
+    // 過去90日分のHALLEL関連メールを全件検索
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - 90);
+    const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+
+    const query = `from:noreply@em.hacomono.jp after:${dateStr}`;
+    Logger.log(`検索クエリ: ${query}`);
+
+    const threads = GmailApp.search(query, 0, 500);
+
+    if (threads.length === 0) {
+      Logger.log('処理対象のメールはありません。');
+      return;
+    }
+
+    Logger.log(`検索結果: ${threads.length}件のメール\n`);
+    Logger.log('-'.repeat(60));
+
+    let labelCount = 0;
+    let apiSuccessCount = 0;
+    let apiErrorCount = 0;
+    let parseErrorCount = 0;
+
+    threads.forEach((thread, index) => {
+      const messages = thread.getMessages();
+      const latestMessage = messages[messages.length - 1];
+
+      Logger.log(`\n[${index + 1}/${threads.length}] 件名: ${latestMessage.getSubject()}`);
+      Logger.log(`  日時: ${latestMessage.getDate()}`);
+      Logger.log(`  メールID: ${latestMessage.getId()}`);
+
+      // ステップ1: まずラベルを付与（必ず実行）
+      if (label) {
+        thread.addLabel(label);
+        labelCount++;
+        Logger.log(`  ✓ ラベル付与完了`);
+      }
+
+      // ステップ2: メール本文を解析
+      const body = latestMessage.getPlainBody();
+      const bookingInfo = parseEmailBody(body);
+
+      if (!bookingInfo) {
+        Logger.log(`  - 予約情報なし（スキップ）`);
+        parseErrorCount++;
+        return;
+      }
+
+      // 予約情報を表示
+      Logger.log(`  店舗: ${bookingInfo.store}`);
+      Logger.log(`  顧客: ${bookingInfo.customer_name}`);
+      Logger.log(`  日付: ${bookingInfo.date}`);
+      Logger.log(`  時間: ${bookingInfo.start_time} - ${bookingInfo.end_time}`);
+      Logger.log(`  種別: ${bookingInfo.action_type}`);
+
+      // メールメタデータを追加
+      bookingInfo.email_id = latestMessage.getId();
+      bookingInfo.email_subject = latestMessage.getSubject();
+      bookingInfo.email_date = latestMessage.getDate().toISOString();
+
+      // ステップ3: APIに送信（重複は自動上書き）
+      const result = sendToFlaskAPI(bookingInfo);
+
+      if (result.success) {
+        Logger.log(`  ✓ API送信成功`);
+        apiSuccessCount++;
+        latestMessage.markRead();
+      } else {
+        Logger.log(`  ✗ APIエラー: ${result.error}`);
+        apiErrorCount++;
+      }
+
+      // 進捗表示（10件ごと）
+      if ((index + 1) % 10 === 0) {
+        Logger.log(`\n進捗: ${index + 1}/${threads.length} (${Math.round((index + 1) / threads.length * 100)}%)\n`);
+      }
+    });
+
+    // 最終結果
+    Logger.log('\n' + '='.repeat(60));
+    Logger.log('【処理完了】');
+    Logger.log(`総メール数: ${threads.length}件`);
+    Logger.log(`ラベル付与: ${labelCount}件`);
+    Logger.log(`API送信成功: ${apiSuccessCount}件`);
+    Logger.log(`APIエラー: ${apiErrorCount}件`);
+    Logger.log(`解析失敗: ${parseErrorCount}件`);
+    Logger.log('='.repeat(60));
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
+  }
+}
