@@ -12,7 +12,7 @@
 
 // === 設定 ===
 const CONFIG = {
-  FLASK_API_URL: 'https://hallelshibuyabooking.vercel.app/api/gas/webhook',  // ★Vercel本番URL★
+  FLASK_API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',  // ★Vercel本番URL★
   WEBHOOK_API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',         // ★Webhook認証キー★
   MAX_EMAILS_PER_RUN: 50,      // 一度に処理する最大メール数
   DAYS_TO_SEARCH: 7,           // 過去何日分を検索するか
