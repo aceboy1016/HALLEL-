@@ -1133,6 +1133,7 @@ def gas_webhook():
 # ============================================================
 
 @app.route('/api/gas/clear-gmail-reservations', methods=['DELETE'])
+@csrf.exempt
 def clear_gmail_reservations():
     """
     Gmail経由の予約データを全削除
