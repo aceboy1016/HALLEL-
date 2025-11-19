@@ -1203,6 +1203,121 @@ def clear_gmail_reservations():
             print('[DEBUG] Connection returned to pool')
 
 # ============================================================
+# 恵比寿店カレンダー同期API
+# ============================================================
+
+@app.route('/api/sync-ebisu-calendar', methods=['POST'])
+@csrf.exempt
+def sync_ebisu_calendar():
+    """
+    恵比寿店の全予約をGoogleカレンダーに同期
+
+    Headers:
+    - X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ
+
+    Response:
+    {
+        "status": "success",
+        "synced_count": 123,
+        "error_count": 0
+    }
+    """
+    # API Key認証
+    api_key = request.headers.get('X-API-Key')
+    if api_key != 'Wh00k@2025!Secure$Token#ABC123XYZ':
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    print('[DEBUG] Sync Ebisu calendar request received')
+
+    conn = None
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+
+        # 恵比寿店の今日以降の予約を取得
+        from datetime import date as date_module
+        today = date_module.today().isoformat()
+
+        cur.execute("""
+            SELECT date, start_time, end_time, customer_name, id
+            FROM reservations
+            WHERE store = 'ebisu'
+            AND date >= %s
+            ORDER BY date, start_time
+        """, (today,))
+
+        reservations = cur.fetchall()
+        total_count = len(reservations)
+
+        print(f'[DEBUG] Ebisu reservations to sync: {total_count}')
+
+        if total_count == 0:
+            cur.close()
+            return jsonify({
+                'status': 'success',
+                'message': '同期する予約がありません',
+                'synced_count': 0,
+                'error_count': 0
+            }), 200
+
+        success_count = 0
+        error_count = 0
+        errors = []
+
+        for res in reservations:
+            date_str, start_time, end_time, customer_name, reservation_id = res
+
+            try:
+                # Googleカレンダーに追加
+                result = add_to_calendar(
+                    store='ebisu',
+                    date=date_str,
+                    start_time=start_time,
+                    end_time=end_time,
+                    customer_name=customer_name or '予約'
+                )
+
+                if result:
+                    print(f'[DEBUG] Calendar sync success: {date_str} {start_time} {customer_name}')
+                    success_count += 1
+                else:
+                    print(f'[DEBUG] Calendar sync failed: {date_str} {start_time} {customer_name}')
+                    error_count += 1
+                    errors.append(f'{date_str} {start_time} {customer_name}')
+
+            except Exception as e:
+                print(f'[DEBUG] Calendar sync error: {str(e)}')
+                error_count += 1
+                errors.append(f'{date_str} {start_time} {customer_name}: {str(e)}')
+
+        cur.close()
+
+        log_activity(f'Synced Ebisu calendar: {success_count} success, {error_count} errors')
+
+        response = {
+            'status': 'success',
+            'message': f'{success_count}件同期完了、{error_count}件失敗',
+            'total_count': total_count,
+            'synced_count': success_count,
+            'error_count': error_count
+        }
+
+        if errors:
+            response['errors'] = errors[:10]  # 最初の10件のみ
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        print(f'[DEBUG] Error syncing Ebisu calendar: {str(e)}')
+        log_activity(f'sync_ebisu_calendar error: {str(e)}')
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+    finally:
+        if conn:
+            return_db_conn(conn)
+            print('[DEBUG] Connection returned to pool')
+
+# ============================================================
 # 空き状況API（統合検索システム用）
 # ============================================================
 
