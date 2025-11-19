@@ -122,72 +122,123 @@ function findKitazawaEmail() {
 
 /**
  * 【このメールをAPIに送信】北澤様のメールを強制的に送信
+ * メールID 19a9919cee48b12f を直接処理
  */
 function sendKitazawaEmailToAPI() {
   Logger.log('='.repeat(80));
   Logger.log('【北澤様のメールを強制送信】');
+  Logger.log('メールID: 19a9919cee48b12f');
   Logger.log('='.repeat(80));
 
-  // Nov 19, 2025のメールを検索
-  const query = 'from:noreply@em.hacomono.jp subject:"hallel 予約完了メール" after:2025/11/18 before:2025/11/20';
-  const threads = GmailApp.search(query);
+  try {
+    // メールIDで直接取得
+    const message = GmailApp.getMessageById('19a9919cee48b12f');
 
-  if (threads.length === 0) {
-    Logger.log('メールが見つかりません。');
-    Logger.log('='.repeat(80));
-    return;
+    if (!message) {
+      Logger.log('❌ メールが見つかりません。');
+      Logger.log('='.repeat(80));
+      return;
+    }
+
+    Logger.log('✅ メールを発見！\n');
+
+    const body = message.getPlainBody();
+    const bookingInfo = parseEmailBody(body);
+
+    if (!bookingInfo) {
+      Logger.log('❌ パースに失敗しました。');
+      Logger.log('='.repeat(80));
+      return;
+    }
+
+    Logger.log('【パース結果】');
+    Logger.log(`顧客名: ${bookingInfo.customer_name}`);
+    Logger.log(`店舗: ${bookingInfo.store}`);
+    Logger.log(`日付: ${bookingInfo.date}`);
+    Logger.log(`時間: ${bookingInfo.start_time} ~ ${bookingInfo.end_time}`);
+
+    // メタデータ追加
+    bookingInfo.email_id = message.getId();
+    bookingInfo.email_subject = message.getSubject();
+    bookingInfo.email_date = message.getDate().toISOString();
+
+    Logger.log('\nVercel APIに送信中...');
+
+    // API送信
+    const result = sendToFlaskAPI(bookingInfo);
+
+    if (result.success) {
+      Logger.log('\n✅ API送信成功！');
+      Logger.log('サイトに反映されました。');
+      Logger.log(`\n予約詳細: ${bookingInfo.customer_name}様 / ${bookingInfo.date} ${bookingInfo.start_time}-${bookingInfo.end_time} / ${bookingInfo.store}店`);
+    } else {
+      Logger.log(`\n❌ API送信失敗: ${result.error}`);
+    }
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
   }
 
-  let found = false;
+  Logger.log('='.repeat(80));
+}
 
-  threads.forEach(thread => {
-    const messages = thread.getMessages();
+/**
+ * 【未読メールのみ送信】北澤様の未読メールをAPIに送信
+ * メールID 19a991abce6b4b47
+ */
+function sendKitazawaUnreadEmail() {
+  Logger.log('='.repeat(80));
+  Logger.log('【北澤様の未読メールを送信】');
+  Logger.log('メールID: 19a991abce6b4b47');
+  Logger.log('='.repeat(80));
 
-    messages.forEach(message => {
-      const body = message.getPlainBody();
-      const bookingInfo = parseEmailBody(body);
+  try {
+    const message = GmailApp.getMessageById('19a991abce6b4b47');
 
-      if (bookingInfo && bookingInfo.customer_name.includes('北澤')) {
-        Logger.log('✅ 北澤様のメールを発見！\n');
-        Logger.log(`顧客名: ${bookingInfo.customer_name}`);
-        Logger.log(`店舗: ${bookingInfo.store}`);
-        Logger.log(`日付: ${bookingInfo.date}`);
-        Logger.log(`時間: ${bookingInfo.start_time} ~ ${bookingInfo.end_time}`);
+    if (!message) {
+      Logger.log('❌ メールが見つかりません。');
+      Logger.log('='.repeat(80));
+      return;
+    }
 
-        // メタデータ追加
-        bookingInfo.email_id = message.getId();
-        bookingInfo.email_subject = message.getSubject();
-        bookingInfo.email_date = message.getDate().toISOString();
+    Logger.log('✅ メールを発見！\n');
 
-        Logger.log('\nVercel APIに送信中...');
+    const body = message.getPlainBody();
+    const bookingInfo = parseEmailBody(body);
 
-        // API送信
-        const result = sendToFlaskAPI(bookingInfo);
+    if (!bookingInfo) {
+      Logger.log('❌ パースに失敗しました。');
+      Logger.log('='.repeat(80));
+      return;
+    }
 
-        if (result.success) {
-          Logger.log('✅ API送信成功！');
-          Logger.log('サイトに反映されました。');
+    Logger.log('【パース結果】');
+    Logger.log(`顧客名: ${bookingInfo.customer_name}`);
+    Logger.log(`店舗: ${bookingInfo.store}`);
+    Logger.log(`日付: ${bookingInfo.date}`);
+    Logger.log(`時間: ${bookingInfo.start_time} ~ ${bookingInfo.end_time}`);
 
-          // ラベル追加
-          const label = GmailApp.getUserLabelByName('HALLEL/Processed');
-          if (label) {
-            thread.addLabel(label);
-            Logger.log('ラベルを追加しました。');
-          }
+    bookingInfo.email_id = message.getId();
+    bookingInfo.email_subject = message.getSubject();
+    bookingInfo.email_date = message.getDate().toISOString();
 
-          message.markRead();
-          Logger.log('メールを既読にしました。');
-        } else {
-          Logger.log(`❌ API送信失敗: ${result.error}`);
-        }
+    Logger.log('\nVercel APIに送信中...');
 
-        found = true;
-      }
-    });
-  });
+    const result = sendToFlaskAPI(bookingInfo);
 
-  if (!found) {
-    Logger.log('北澤様のメールが見つかりませんでした。');
+    if (result.success) {
+      Logger.log('\n✅ API送信成功！');
+      Logger.log('サイトに反映されました。');
+      message.markRead();
+      Logger.log('メールを既読にしました。');
+    } else {
+      Logger.log(`\n❌ API送信失敗: ${result.error}`);
+    }
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
   }
 
   Logger.log('='.repeat(80));
