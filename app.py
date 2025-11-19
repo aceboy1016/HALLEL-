@@ -1326,6 +1326,93 @@ def sync_ebisu_calendar():
             print('[DEBUG] Connection returned to pool')
 
 # ============================================================
+# データベースマイグレーションAPI
+# ============================================================
+
+@app.route('/api/admin/run-migration', methods=['POST'])
+@csrf.exempt
+def run_migration():
+    """
+    データベースマイグレーションを実行
+
+    Headers:
+    - X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ
+
+    Request Body:
+    {
+        "migration": "002_add_room_name"
+    }
+
+    Response:
+    {
+        "status": "success",
+        "message": "Migration completed",
+        "migration_name": "002_add_room_name"
+    }
+    """
+    # API Key認証
+    api_key = request.headers.get('X-API-Key')
+    if api_key != WEBHOOK_API_KEY:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    print('[DEBUG] Run migration request received')
+
+    data = request.json or {}
+    migration_name = data.get('migration', '002_add_room_name')
+
+    conn = None
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+
+        # マイグレーション実行
+        if migration_name == '002_add_room_name':
+            print('[DEBUG] Running migration: 002_add_room_name')
+
+            # room_nameカラムを追加
+            cur.execute("""
+                ALTER TABLE reservations
+                ADD COLUMN IF NOT EXISTS room_name VARCHAR(50) DEFAULT '個室B'
+            """)
+
+            # 既存データにデフォルト値を設定
+            cur.execute("""
+                UPDATE reservations
+                SET room_name = '個室B'
+                WHERE room_name IS NULL AND store IN ('ebisu', 'hanzomon')
+            """)
+
+            conn.commit()
+            print('[DEBUG] Migration 002_add_room_name completed successfully')
+
+            cur.close()
+
+            log_activity('Migration completed: 002_add_room_name')
+
+            return jsonify({
+                'status': 'success',
+                'message': 'マイグレーション完了：room_nameカラムを追加しました',
+                'migration_name': migration_name
+            }), 200
+        else:
+            return jsonify({
+                'error': 'Unknown migration',
+                'migration_name': migration_name
+            }), 400
+
+    except Exception as e:
+        print(f'[DEBUG] Error running migration: {str(e)}')
+        if conn:
+            conn.rollback()
+        log_activity(f'run_migration error: {str(e)}')
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+    finally:
+        if conn:
+            return_db_conn(conn)
+            print('[DEBUG] Connection returned to pool')
+
+# ============================================================
 # 空き状況API（統合検索システム用）
 # ============================================================
 
