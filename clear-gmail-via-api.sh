@@ -10,8 +10,8 @@ echo ""
 
 response=$(curl -s -X DELETE \
   https://hallel-shibuya.vercel.app/api/gas/clear-gmail-reservations \
-  -H "X-API-Key: Wh00k@2025!Secure\$Token#ABC123XYZ" \
-  -H "Content-Type: application/json")
+  -H 'X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ' \
+  -H 'Content-Type: application/json')
 
 echo "$response" | python3 -m json.tool 2>/dev/null || echo "$response"
 
