@@ -15,8 +15,8 @@ function diagnoseActualEmails() {
   dateLimit.setDate(dateLimit.getDate() - 180);
   const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-  // HALLEL関連メールを検索
-  const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel`;
+  // HALLEL関連メールを検索（ラベルが付いていないメールのみ）
+  const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel -label:HALLEL/Processed`;
   Logger.log(`検索クエリ: ${query}\n`);
 
   const threads = GmailApp.search(query, 0, 5); // 最初の5件だけ
