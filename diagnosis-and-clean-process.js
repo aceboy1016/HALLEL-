@@ -106,8 +106,8 @@ function processOnlyHallelEmails() {
     dateLimit.setDate(dateLimit.getDate() - 180);
     const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-    // HALLEL関連のキーワードでフィルタ
-    const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel`;
+    // HALLEL関連のキーワードでフィルタ（ラベルが付いていないメールのみ）
+    const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel -label:HALLEL/Processed`;
     const threads = GmailApp.search(query, 0, 500);
 
     Logger.log(`検索クエリ: ${query}`);

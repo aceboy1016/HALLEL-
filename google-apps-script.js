@@ -1133,12 +1133,12 @@ function forceProcessAllEmails() {
     dateLimit.setDate(dateLimit.getDate() - 180);
     const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-    // HALLEL関連のキーワードでフィルタ
+    // HALLEL関連のキーワードでフィルタ（ラベルが付いていないメールのみ）
     const keywordQuery = CONFIG.SEARCH_KEYWORDS
       .map(kw => `subject:${kw}`)
       .join(' OR ');
 
-    const query = `from:noreply@em.hacomono.jp after:${dateStr} (${keywordQuery})`;
+    const query = `from:noreply@em.hacomono.jp after:${dateStr} (${keywordQuery}) -label:${CONFIG.LABEL_NAME}`;
     Logger.log(`検索クエリ: ${query}`);
     Logger.log(`バッチサイズ: ${BATCH_SIZE}件ごとに送信\n`);
 
@@ -1320,8 +1320,8 @@ function processOneByOne() {
     dateLimit.setDate(dateLimit.getDate() - 180);
     const dateStr = Utilities.formatDate(dateLimit, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-    // HALLEL関連メールを全件検索
-    const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel`;
+    // HALLEL関連メールを全件検索（ラベルが付いていないメールのみ）
+    const query = `from:noreply@em.hacomono.jp after:${dateStr} subject:hallel -label:${CONFIG.LABEL_NAME}`;
     Logger.log(`検索クエリ: ${query}\n`);
 
     // 全件取得（GASの制限は500件/回）
