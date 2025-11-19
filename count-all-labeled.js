@@ -1,10 +1,12 @@
 /**
  * 【真の件数確認】ラベル付きメールを全件カウント
- * getThreads()は100件までしか返さないので、ページネーションで全件取得
+ * - スレッド数とメッセージ数の両方をカウント
+ * - Gmail UIの表示とGAS APIの差を確認
  */
 function countAllLabeledThreads() {
   Logger.log('='.repeat(80));
   Logger.log('【ラベル付きメール全件カウント】');
+  Logger.log('スレッド数とメッセージ数の両方を確認します');
   Logger.log('='.repeat(80));
 
   const labelName = 'HALLEL/Processed';
@@ -12,10 +14,11 @@ function countAllLabeledThreads() {
 
   if (!label) {
     Logger.log(`ラベル "${labelName}" が見つかりません`);
-    return 0;
+    return { threadCount: 0, messageCount: 0 };
   }
 
-  let totalCount = 0;
+  let totalThreads = 0;
+  let totalMessages = 0;
   let start = 0;
   const batchSize = 100; // getThreads()は最大100件ずつ
 
@@ -26,8 +29,15 @@ function countAllLabeledThreads() {
       break;
     }
 
-    totalCount += threads.length;
-    Logger.log(`取得中... ${totalCount}件`);
+    totalThreads += threads.length;
+
+    // 各スレッド内のメッセージ数をカウント
+    threads.forEach(thread => {
+      const messages = thread.getMessages();
+      totalMessages += messages.length;
+    });
+
+    Logger.log(`取得中... スレッド: ${totalThreads}件 / メッセージ: ${totalMessages}件`);
 
     if (threads.length < batchSize) {
       // 最後のバッチ
@@ -39,10 +49,19 @@ function countAllLabeledThreads() {
   }
 
   Logger.log('='.repeat(80));
-  Logger.log(`【結果】ラベル付きメール総数: ${totalCount}件`);
+  Logger.log(`【結果】`);
+  Logger.log(`スレッド数: ${totalThreads}件 ← GAS APIで見える数`);
+  Logger.log(`メッセージ数: ${totalMessages}件 ← Gmail UIで見える数の可能性`);
   Logger.log('='.repeat(80));
 
-  return totalCount;
+  if (totalMessages === 2809) {
+    Logger.log('\n✅ Gmail UIで見ている2809件はメッセージ数でした！');
+    Logger.log('スレッドに複数のメッセージが含まれていることが原因です。');
+  } else if (totalMessages > 2000) {
+    Logger.log(`\n📊 ${totalMessages}件のメッセージが見つかりました`);
+  }
+
+  return { threadCount: totalThreads, messageCount: totalMessages };
 }
 
 /**
