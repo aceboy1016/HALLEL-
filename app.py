@@ -970,13 +970,14 @@ def gas_webhook():
                                 # 既存の予約を更新
                                 cur.execute("""
                                     UPDATE reservations
-                                    SET date = %s, start_time = %s, end_time = %s, customer_name = %s
+                                    SET date = %s, start_time = %s, end_time = %s, customer_name = %s, room_name = %s
                                     WHERE email_id = %s AND store = %s
                                 """, (
                                     res['date'],
                                     res['start'],
                                     res['end'],
                                     res.get('customer_name', 'N/A'),
+                                    res.get('room_name', '個室B'),
                                     email_id,
                                     res.get('store', 'shibuya')
                                 ))
@@ -985,13 +986,14 @@ def gas_webhook():
                             else:
                                 # 新規予約を追加
                                 cur.execute("""
-                                    INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
-                                    VALUES (%s, %s, %s, %s, %s, 'gmail', %s, %s)
+                                    INSERT INTO reservations (date, start_time, end_time, customer_name, room_name, store, type, source, email_id)
+                                    VALUES (%s, %s, %s, %s, %s, %s, 'gmail', %s, %s)
                                 """, (
                                     res['date'],
                                     res['start'],
                                     res['end'],
                                     res.get('customer_name', 'N/A'),
+                                    res.get('room_name', '個室B'),
                                     res.get('store', 'shibuya'),
                                     res.get('source', 'gas_sync'),
                                     email_id
@@ -1006,7 +1008,8 @@ def gas_webhook():
                                         'date': res['date'],
                                         'start_time': res['start'],
                                         'end_time': res['end'],
-                                        'customer_name': res.get('customer_name', 'N/A')
+                                        'customer_name': res.get('customer_name', 'N/A'),
+                                        'room_name': res.get('room_name', '個室B')
                                     })
                         else:
                             # email_idがない場合は日付・時間・店舗で重複チェック（より厳格）
@@ -1023,13 +1026,14 @@ def gas_webhook():
                             existing = cur.fetchone()
 
                             if existing:
-                                # 既存の予約を更新（顧客名を最新に）
+                                # 既存の予約を更新（顧客名と部屋名を最新に）
                                 cur.execute("""
                                     UPDATE reservations
-                                    SET customer_name = %s
+                                    SET customer_name = %s, room_name = %s
                                     WHERE id = %s
                                 """, (
                                     res.get('customer_name', 'N/A'),
+                                    res.get('room_name', '個室B'),
                                     existing[0]
                                 ))
                                 updated_count += 1
@@ -1037,13 +1041,14 @@ def gas_webhook():
                             else:
                                 # 重複がない場合のみ追加
                                 cur.execute("""
-                                    INSERT INTO reservations (date, start_time, end_time, customer_name, store, type, source, email_id)
-                                    VALUES (%s, %s, %s, %s, %s, 'gmail', %s, %s)
+                                    INSERT INTO reservations (date, start_time, end_time, customer_name, room_name, store, type, source, email_id)
+                                    VALUES (%s, %s, %s, %s, %s, %s, 'gmail', %s, %s)
                                 """, (
                                     res['date'],
                                     res['start'],
                                     res['end'],
                                     res.get('customer_name', 'N/A'),
+                                    res.get('room_name', '個室B'),
                                     res.get('store', 'shibuya'),
                                     res.get('source', 'gas_sync'),
                                     None
@@ -1058,7 +1063,8 @@ def gas_webhook():
                                         'date': res['date'],
                                         'start_time': res['start'],
                                         'end_time': res['end'],
-                                        'customer_name': res.get('customer_name', 'N/A')
+                                        'customer_name': res.get('customer_name', 'N/A'),
+                                        'room_name': res.get('room_name', '個室B')
                                     })
 
                         log_activity(f"Gmail booking processed: {res['date']} {res['start']}-{res['end']}")
@@ -1094,9 +1100,10 @@ def gas_webhook():
                         date=event['date'],
                         start_time=event['start_time'],
                         end_time=event['end_time'],
-                        customer_name=event['customer_name']
+                        customer_name=event['customer_name'],
+                        room_name=event.get('room_name', '個室B')
                     )
-                    print(f'[DEBUG] Calendar add success: {event["store"]} {event["date"]} {event["start_time"]} - {event["customer_name"]}')
+                    print(f'[DEBUG] Calendar add success: {event["store"]} {event["date"]} {event["start_time"]} - {event["customer_name"]} - {event.get("room_name", "個室B")}')
                 except Exception as cal_err:
                     print(f'[WARNING] Calendar add failed: {str(cal_err)}')
 
@@ -1239,7 +1246,7 @@ def sync_ebisu_calendar():
         today = date_module.today().isoformat()
 
         cur.execute("""
-            SELECT date, start_time, end_time, customer_name, id
+            SELECT date, start_time, end_time, customer_name, room_name, id
             FROM reservations
             WHERE store = 'ebisu'
             AND date >= %s
@@ -1265,7 +1272,7 @@ def sync_ebisu_calendar():
         errors = []
 
         for res in reservations:
-            date_str, start_time, end_time, customer_name, reservation_id = res
+            date_str, start_time, end_time, customer_name, room_name, reservation_id = res
 
             try:
                 # Googleカレンダーに追加
@@ -1274,7 +1281,8 @@ def sync_ebisu_calendar():
                     date=date_str,
                     start_time=start_time,
                     end_time=end_time,
-                    customer_name=customer_name or '予約'
+                    customer_name=customer_name or '予約',
+                    room_name=room_name or '個室B'
                 )
 
                 if result:

@@ -53,7 +53,7 @@ def get_calendar_service():
         return None
 
 
-def add_to_calendar(store, date, start_time, end_time, customer_name='予約'):
+def add_to_calendar(store, date, start_time, end_time, customer_name='予約', room_name='個室B'):
     """
     Google Calendarに予約を追加
 
@@ -63,6 +63,7 @@ def add_to_calendar(store, date, start_time, end_time, customer_name='予約'):
         start_time (str): 開始時刻（HH:MM）
         end_time (str): 終了時刻（HH:MM）
         customer_name (str): 顧客名（デフォルト: '予約'）
+        room_name (str): 部屋名（デフォルト: '個室B'、個室A or 個室B）
 
     Returns:
         dict: カレンダーイベントID（成功時）またはNone（失敗時）
@@ -86,7 +87,7 @@ def add_to_calendar(store, date, start_time, end_time, customer_name='予約'):
         end_datetime = f"{date}T{end_time}:00"
 
         event = {
-            'summary': f'{customer_name}様',
+            'summary': f'{customer_name} - HALLEL-{room_name}',
             'description': f'予約（{store}店）',
             'start': {
                 'dateTime': start_datetime,
@@ -99,20 +100,25 @@ def add_to_calendar(store, date, start_time, end_time, customer_name='予約'):
         }
 
         # カレンダーにイベントを追加
-        event = service.events().insert(calendarId=calendar_id, body=event).execute()
+        created_event = service.events().insert(calendarId=calendar_id, body=event).execute()
         print(f"✓ Calendar event added: {store} - {date} {start_time}-{end_time} - {customer_name}")
 
         return {
-            'event_id': event.get('id'),
+            'event_id': created_event.get('id'),
             'calendar_id': calendar_id,
             'store': store
         }
 
     except HttpError as e:
         print(f"Calendar API error (add): {e}")
+        print(f"[DEBUG] Error details: status={e.resp.status}, reason={e._get_reason()}")
+        import traceback
+        traceback.print_exc()
         return None
     except Exception as e:
         print(f"Error adding to calendar: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -177,7 +183,7 @@ def delete_from_calendar(store, date, start_time, end_time):
         return False
 
 
-def update_in_calendar(store, old_date, old_start, old_end, new_date, new_start, new_end, customer_name='予約'):
+def update_in_calendar(store, old_date, old_start, old_end, new_date, new_start, new_end, customer_name='予約', room_name='個室B'):
     """
     Google Calendarの予約を更新
 
@@ -190,6 +196,7 @@ def update_in_calendar(store, old_date, old_start, old_end, new_date, new_start,
         new_start (str): 新開始時刻（HH:MM）
         new_end (str): 新終了時刻（HH:MM）
         customer_name (str): 顧客名（デフォルト: '予約'）
+        room_name (str): 部屋名（デフォルト: '個室B'、個室A or 個室B）
 
     Returns:
         bool: 更新成功時True、失敗時False
@@ -203,7 +210,7 @@ def update_in_calendar(store, old_date, old_start, old_end, new_date, new_start,
         delete_from_calendar(store, old_date, old_start, old_end)
 
         # 新しいイベントを追加
-        result = add_to_calendar(store, new_date, new_start, new_end, customer_name)
+        result = add_to_calendar(store, new_date, new_start, new_end, customer_name, room_name)
 
         return result is not None
 

@@ -223,6 +223,22 @@ function extractCustomerName(body) {
 }
 
 /**
+ * メール本文から部屋名を抽出
+ */
+function extractRoomName(body) {
+  // 個室A or 個室B のパターンを検索
+  if (body.includes('個室A')) {
+    return '個室A';
+  }
+  if (body.includes('個室B')) {
+    return '個室B';
+  }
+
+  // デフォルトは個室B（恵比寿・半蔵門で使用）
+  return '個室B';
+}
+
+/**
  * 時刻をHH:MM形式に整形
  */
 function formatTime(time) {
@@ -247,6 +263,9 @@ function parseEmailBody(body) {
   // 顧客名を抽出
   const customerName = extractCustomerName(body);
 
+  // 部屋名を抽出
+  const roomName = extractRoomName(body);
+
   // キャンセルかどうかを判定（件名や本文に「キャンセル」が含まれる）
   const isCancellation = body.includes('キャンセル') || body.includes('cancel');
 
@@ -264,6 +283,7 @@ function parseEmailBody(body) {
       start_time: formatTime(startTime),
       end_time: formatTime(endTime),
       customer_name: customerName,
+      room_name: roomName,
       store: store
     };
   }
@@ -280,6 +300,7 @@ function parseEmailBody(body) {
       start_time: formatTime(bookingMatch[2]),
       end_time: formatTime(bookingMatch[3]),
       customer_name: customerName,
+      room_name: roomName,
       store: store
     };
   }
@@ -294,6 +315,7 @@ function parseEmailBody(body) {
       date: cancelMatch[1],
       start_time: formatTime(cancelMatch[2]),
       customer_name: customerName,
+      room_name: roomName,
       store: store
     };
   }
@@ -314,6 +336,7 @@ function sendBatchToAPI(reservations) {
         start: r.start_time,
         end: r.end_time || r.start_time,
         customer_name: r.customer_name || 'N/A',
+        room_name: r.room_name || '個室B',
         store: r.store || 'shibuya',
         type: 'gmail',
         is_cancellation: r.action_type === 'cancellation',
