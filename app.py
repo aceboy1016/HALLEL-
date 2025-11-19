@@ -1129,6 +1129,75 @@ def gas_webhook():
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 # ============================================================
+# Gmail予約全削除API
+# ============================================================
+
+@app.route('/api/gas/clear-gmail-reservations', methods=['DELETE'])
+def clear_gmail_reservations():
+    """
+    Gmail経由の予約データを全削除
+
+    Headers:
+    - X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ
+
+    Response:
+    {
+        "status": "success",
+        "message": "Gmail予約を全削除しました",
+        "deleted_count": 123
+    }
+    """
+    try:
+        # API Key認証
+        api_key = request.headers.get('X-API-Key')
+        if api_key != 'Wh00k@2025!Secure$Token#ABC123XYZ':
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        print('[DEBUG] Clear Gmail reservations request received')
+
+        conn = get_db_conn()
+        try:
+            with conn.cursor() as cur:
+                # 削除前の件数を確認
+                cur.execute("SELECT COUNT(*) FROM reservations WHERE type = 'gmail'")
+                count_before = cur.fetchone()[0]
+                print(f'[DEBUG] Gmail reservations before deletion: {count_before}')
+
+                # Gmail予約を全削除
+                cur.execute("DELETE FROM reservations WHERE type = 'gmail'")
+                deleted_count = cur.rowcount
+
+                conn.commit()
+                print(f'[DEBUG] Deleted {deleted_count} Gmail reservations')
+
+                # 削除後の確認
+                cur.execute("SELECT COUNT(*) FROM reservations WHERE type = 'gmail'")
+                count_after = cur.fetchone()[0]
+
+                log_activity(f'Cleared all Gmail reservations: {deleted_count} records deleted')
+
+                return jsonify({
+                    'status': 'success',
+                    'message': f'{deleted_count}件のGmail予約を削除しました',
+                    'deleted_count': deleted_count,
+                    'count_before': count_before,
+                    'count_after': count_after
+                }), 200
+
+        except Exception as e:
+            print(f'[DEBUG] Error deleting Gmail reservations: {str(e)}')
+            conn.rollback()
+            log_activity(f'clear_gmail_reservations error: {str(e)}')
+            return jsonify({'error': str(e)}), 500
+        finally:
+            return_db_conn(conn)
+            print('[DEBUG] Connection returned to pool')
+
+    except Exception as e:
+        log_activity(f'clear_gmail_reservations exception: {str(e)}')
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+# ============================================================
 # 空き状況API（統合検索システム用）
 # ============================================================
 
