@@ -180,6 +180,128 @@ function processLatestReservationsOnly() {
 }
 
 /**
+ * メール本文から店舗を抽出
+ */
+function extractStore(body) {
+  const storeMap = {
+    '恵比寿店': 'ebisu',
+    '半蔵門店': 'hanzomon',
+    '代々木上原店': 'yoyogi-uehara',
+    '中目黒店': 'nakameguro',
+    '渋谷店': 'shibuya'
+  };
+
+  for (const [storeName, storeId] of Object.entries(storeMap)) {
+    if (body.includes(storeName)) {
+      return storeId;
+    }
+  }
+
+  // HALLEL店舗が見つからない場合はnullを返す（他のジムを除外）
+  return null;
+}
+
+/**
+ * メール本文から顧客名を抽出
+ */
+function extractCustomerName(body) {
+  // パターン1: [顧客名]様
+  const pattern1 = /^(.+?)様/m;
+  const match1 = body.match(pattern1);
+  if (match1) {
+    return match1[1].trim();
+  }
+
+  // パターン2: お客様名：[顧客名]
+  const pattern2 = /お客様名[：:]\s*(.+?)[\n\r]/;
+  const match2 = body.match(pattern2);
+  if (match2) {
+    return match2[1].trim();
+  }
+
+  return 'N/A';
+}
+
+/**
+ * 時刻をHH:MM形式に整形
+ */
+function formatTime(time) {
+  const parts = time.split(':');
+  const hours = parts[0].padStart(2, '0');
+  const minutes = parts[1].padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+/**
+ * メール本文から予約情報を抽出（Coubic＋Hacomono両対応）
+ */
+function parseEmailBody(body) {
+  // 店舗を抽出（HALLEL店舗以外はnullが返る）
+  const store = extractStore(body);
+
+  // HALLEL店舗でない場合は処理しない
+  if (!store) {
+    return null;
+  }
+
+  // 顧客名を抽出
+  const customerName = extractCustomerName(body);
+
+  // キャンセルかどうかを判定（件名や本文に「キャンセル」が含まれる）
+  const isCancellation = body.includes('キャンセル') || body.includes('cancel');
+
+  // Hacomonoメール形式: 日時：2025年12月31日(水) 02:00~03:00
+  const hacomonoPattern = /日時[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日[^)]*\)\s*(\d{1,2}:\d{2})[~〜～](\d{1,2}:\d{2})/;
+  const hacomonoMatch = body.match(hacomonoPattern);
+
+  if (hacomonoMatch) {
+    const [, year, month, day, startTime, endTime] = hacomonoMatch;
+    const date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+    return {
+      action_type: isCancellation ? 'cancellation' : 'booking',
+      date: date,
+      start_time: formatTime(startTime),
+      end_time: formatTime(endTime),
+      customer_name: customerName,
+      store: store
+    };
+  }
+
+  // 旧形式（後方互換性のため残す）
+  // 予約パターン: 予約: 2025-08-05 14:00-15:30
+  const bookingPattern = /予約[：:]\s*(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*[-~〜ー]\s*(\d{1,2}:\d{2})/;
+  const bookingMatch = body.match(bookingPattern);
+
+  if (bookingMatch) {
+    return {
+      action_type: 'booking',
+      date: bookingMatch[1],
+      start_time: formatTime(bookingMatch[2]),
+      end_time: formatTime(bookingMatch[3]),
+      customer_name: customerName,
+      store: store
+    };
+  }
+
+  // キャンセルパターン: キャンセル: 2025-08-05 14:00
+  const cancelPattern = /キャンセル[：:]\s*(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/;
+  const cancelMatch = body.match(cancelPattern);
+
+  if (cancelMatch) {
+    return {
+      action_type: 'cancellation',
+      date: cancelMatch[1],
+      start_time: formatTime(cancelMatch[2]),
+      customer_name: customerName,
+      store: store
+    };
+  }
+
+  return null;
+}
+
+/**
  * 【バッチAPI送信】複数の予約を一度に送信
  */
 function sendBatchToAPI(reservations) {
