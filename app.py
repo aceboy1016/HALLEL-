@@ -1418,6 +1418,94 @@ def run_migration():
             print('[DEBUG] Connection returned to pool')
 
 # ============================================================
+# Google Calendar環境変数テストAPI
+# ============================================================
+
+@app.route('/api/test-calendar-env', methods=['GET'])
+def test_calendar_env():
+    """
+    Google Calendar API環境変数と接続テスト
+
+    Headers:
+    - X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ
+
+    Response:
+    {
+        "env": {
+            "has_service_account_json": true/false,
+            "ebisu_calendar_id": "...",
+            "hanzomon_calendar_id": "..."
+        },
+        "calendar_api": {
+            "connected": true/false,
+            "accessible_calendars": [...],
+            "ebisu_calendar_accessible": true/false
+        }
+    }
+    """
+    # API Key認証
+    api_key = request.headers.get('X-API-Key')
+    if api_key != 'Wh00k@2025!Secure$Token#ABC123XYZ':
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    print('[DEBUG] Test calendar environment request received')
+
+    result = {
+        'env': {},
+        'calendar_api': {}
+    }
+
+    try:
+        # 環境変数チェック
+        service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+        result['env']['has_service_account_json'] = bool(service_account_json)
+        result['env']['ebisu_calendar_id'] = os.environ.get('EBISU_CALENDAR_ID', 'ebisu@topform.jp')
+        result['env']['hanzomon_calendar_id'] = os.environ.get('HANZOMON_CALENDAR_ID', 'light@topform.jp')
+
+        if service_account_json:
+            result['env']['service_account_length'] = len(service_account_json)
+
+        # Google Calendar API接続テスト
+        try:
+            from calendar_sync import get_calendar_service, CALENDAR_IDS
+
+            service = get_calendar_service()
+            if service:
+                result['calendar_api']['connected'] = True
+
+                # カレンダー一覧取得
+                calendar_list = service.calendarList().list().execute()
+                calendars = calendar_list.get('items', [])
+
+                result['calendar_api']['accessible_calendars'] = [
+                    f"{cal.get('summary')} ({cal.get('id')})"
+                    for cal in calendars[:10]  # 最初の10件のみ
+                ]
+
+                # 恵比寿店のカレンダーにアクセス可能か
+                ebisu_calendar_id = CALENDAR_IDS.get('ebisu')
+                result['calendar_api']['ebisu_calendar_id'] = ebisu_calendar_id
+                result['calendar_api']['ebisu_calendar_accessible'] = any(
+                    cal.get('id') == ebisu_calendar_id for cal in calendars
+                )
+
+            else:
+                result['calendar_api']['connected'] = False
+                result['calendar_api']['error'] = 'get_calendar_service() returned None'
+
+        except Exception as e:
+            result['calendar_api']['connected'] = False
+            result['calendar_api']['error'] = str(e)
+            import traceback
+            result['calendar_api']['traceback'] = traceback.format_exc()
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        print(f'[ERROR] test_calendar_env error: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================
 # 空き状況API（統合検索システム用）
 # ============================================================
 
