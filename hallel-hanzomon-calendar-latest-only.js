@@ -460,3 +460,157 @@ function checkProgress() {
     roomCounts: roomCounts
   };
 }
+
+// ============================================================
+// Vercel APIへのデータ送信
+// ============================================================
+
+/**
+ * 最新状態のみをVercel APIに送信
+ */
+function syncLatestReservationsToAPI() {
+  Logger.log('='.repeat(80));
+  Logger.log('【半蔵門店：最新状態のみをVercel APIに送信】');
+  Logger.log('='.repeat(80));
+
+  try {
+    // ステップ1: 全メールを取得
+    Logger.log('\n📧 全メールを取得中...');
+    const allEmails = getAllReservationEmails();
+    Logger.log(`✅ 取得完了: ${allEmails.length}件\n`);
+
+    // ステップ2: 日時・時間枠ごとに最新のメールのみを選択
+    Logger.log('🔍 最新状態のみを抽出中...');
+    const latestOnly = extractLatestReservations(allEmails);
+    Logger.log(`✅ 抽出完了: ${latestOnly.length}件\n`);
+
+    // ステップ3: 予約のみをフィルタ（キャンセルは除外）
+    const reservationsOnly = latestOnly.filter(r => r.actionType === 'reservation');
+    Logger.log(`📤 送信対象（予約のみ）: ${reservationsOnly.length}件\n`);
+
+    // ステップ4: Vercel APIに送信
+    Logger.log('='.repeat(80));
+    Logger.log('Vercel APIに送信中...');
+    Logger.log('='.repeat(80));
+
+    const BATCH_SIZE = 50;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+
+    for (let i = 0; i < reservationsOnly.length; i += BATCH_SIZE) {
+      const batch = reservationsOnly.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(reservationsOnly.length / BATCH_SIZE);
+
+      Logger.log(`\n【バッチ ${batchNum}/${totalBatches}】 ${batch.length}件を送信中...`);
+
+      const result = sendBatchToVercelAPI(batch);
+
+      if (result.success) {
+        Logger.log(`✓ 成功: ${result.count}件`);
+        totalSuccess += result.count;
+      } else {
+        Logger.log(`✗ 失敗: ${result.error}`);
+        totalFailed += batch.length;
+      }
+
+      if (i + BATCH_SIZE < reservationsOnly.length) {
+        Utilities.sleep(1000);
+      }
+    }
+
+    // 最終結果
+    Logger.log('\n' + '='.repeat(80));
+    Logger.log('【処理完了】');
+    Logger.log(`全メール数: ${allEmails.length}件`);
+    Logger.log(`最新状態: ${latestOnly.length}件`);
+    Logger.log(`送信対象（予約のみ）: ${reservationsOnly.length}件`);
+    Logger.log(`API送信成功: ${totalSuccess}件`);
+    Logger.log(`API送信失敗: ${totalFailed}件`);
+    Logger.log('='.repeat(80));
+
+    if (totalSuccess === reservationsOnly.length) {
+      Logger.log('\n✅ 半蔵門店の最新状態をVercel APIに送信完了！');
+    } else if (totalFailed > 0) {
+      Logger.log('\n⚠️ 一部のメールでAPI送信が失敗しました。');
+    }
+
+    return {
+      success: true,
+      total: allEmails.length,
+      latest: latestOnly.length,
+      sent: reservationsOnly.length,
+      apiSuccess: totalSuccess,
+      apiFailed: totalFailed
+    };
+
+  } catch (error) {
+    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(error.stack);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * バッチデータをVercel APIに送信
+ */
+function sendBatchToVercelAPI(reservations) {
+  try {
+    const payload = {
+      source: 'gas',
+      timestamp: new Date().toISOString(),
+      reservations: reservations.map(r => ({
+        date: formatDate(r.startTime),
+        start: formatTimeOnly(r.startTime),
+        end: formatTimeOnly(r.endTime),
+        customer_name: r.fullName || 'N/A',
+        room_name: r.studio || '個室B',
+        store: 'hanzomon',
+        type: 'gmail',
+        is_cancellation: false,
+        source: 'gas_sync',
+        email_id: '',
+        email_subject: '',
+        email_date: r.emailDate.toISOString()
+      }))
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        'X-API-Key': 'Wh00k@2025!Secure$Token#ABC123XYZ'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://hallel-shibuya.vercel.app/api/gas/webhook', options);
+    const statusCode = response.getResponseCode();
+
+    if (statusCode >= 200 && statusCode < 300) {
+      return { success: true, count: reservations.length };
+    } else {
+      return {
+        success: false,
+        error: `HTTP ${statusCode}: ${response.getContentText()}`
+      };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Date を YYYY-MM-DD 形式に変換
+ */
+function formatDate(date) {
+  return Utilities.formatDate(date, 'JST', 'yyyy-MM-dd');
+}
+
+/**
+ * Date を HH:mm 形式に変換
+ */
+function formatTimeOnly(date) {
+  return Utilities.formatDate(date, 'JST', 'HH:mm');
+}
