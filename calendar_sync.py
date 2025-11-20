@@ -73,14 +73,19 @@ def add_to_calendar(store, date, start_time, end_time, customer_name='予約', r
         return None
 
     try:
+        print(f"[DEBUG] add_to_calendar called: store={store}, date={date}, start={start_time}, end={end_time}, customer={customer_name}, room={room_name}")
+
         service = get_calendar_service()
         if not service:
+            print(f"[ERROR] get_calendar_service returned None - check GOOGLE_SERVICE_ACCOUNT_JSON")
             return None
 
         calendar_id = CALENDAR_IDS.get(store)
         if not calendar_id:
-            print(f"⚠️  Calendar ID not found for store: {store}")
+            print(f"[ERROR] Calendar ID not found for store: {store}")
             return None
+
+        print(f"[DEBUG] Using calendar_id: {calendar_id}")
 
         # イベント作成
         start_datetime = f"{date}T{start_time}:00"
@@ -99,9 +104,11 @@ def add_to_calendar(store, date, start_time, end_time, customer_name='予約', r
             },
         }
 
+        print(f"[DEBUG] Event to create: {event}")
+
         # カレンダーにイベントを追加
         created_event = service.events().insert(calendarId=calendar_id, body=event).execute()
-        print(f"✓ Calendar event added: {store} - {date} {start_time}-{end_time} - {customer_name}")
+        print(f"[SUCCESS] Calendar event added: {store} - {date} {start_time}-{end_time} - {customer_name} - {room_name}")
 
         return {
             'event_id': created_event.get('id'),
@@ -110,13 +117,13 @@ def add_to_calendar(store, date, start_time, end_time, customer_name='予約', r
         }
 
     except HttpError as e:
-        print(f"Calendar API error (add): {e}")
-        print(f"[DEBUG] Error details: status={e.resp.status}, reason={e._get_reason()}")
+        print(f"[ERROR] Calendar API HttpError: {e}")
+        print(f"[ERROR] Status: {e.resp.status}, Reason: {e._get_reason()}")
         import traceback
         traceback.print_exc()
         return None
     except Exception as e:
-        print(f"Error adding to calendar: {e}")
+        print(f"[ERROR] Exception in add_to_calendar: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
         return None
