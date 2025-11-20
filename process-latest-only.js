@@ -228,8 +228,18 @@ function extractCustomerName(body) {
  * 対応パターン:
  * - 恵比寿店: 「STUDIO A」「STUDIO B」
  * - 半蔵門店: 「個室A」「個室B」
+ * - 中目黒店: 「格闘技エリア」「フリーウエイトエリア」
  */
 function extractRoomName(body) {
+  // 中目黒店: 格闘技エリア
+  if (body.includes('格闘技エリア')) {
+    return '格闘技エリア';
+  }
+  // 中目黒店: フリーウエイトエリア
+  if (body.includes('フリーウエイトエリア')) {
+    return 'フリーウエイトエリア';
+  }
+
   // 恵比寿店: STUDIO A → 個室A
   if (body.includes('STUDIO A')) {
     return '個室A';
