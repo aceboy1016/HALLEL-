@@ -1272,10 +1272,11 @@ def sync_ebisu_calendar():
         errors = []
 
         for res in reservations:
-            date_str, start_time, end_time, customer_name, room_name, reservation_id = res
+            date_obj, start_time, end_time, customer_name, room_name, reservation_id = res
 
             try:
-                # 時刻をHH:MM形式の文字列に変換
+                # 日付と時刻を文字列に変換
+                date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
                 start_time_str = start_time.strftime('%H:%M') if hasattr(start_time, 'strftime') else str(start_time)
                 end_time_str = end_time.strftime('%H:%M') if hasattr(end_time, 'strftime') else str(end_time)
 
