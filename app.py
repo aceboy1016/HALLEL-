@@ -675,15 +675,16 @@ def add_reservation():
             ))
         conn.commit()
 
-        # Google Calendar同期（恵比寿・半蔵門のみ）
-        if store in ['ebisu', 'hanzomon']:
-            add_to_calendar(
-                store=store,
-                date=data.get('date'),
-                start_time=data.get('start'),
-                end_time=data.get('end'),
-                customer_name=data.get('customer_name', 'N/A')
-            )
+        # Google Calendar同期（GAS側で実行しているため、Vercel側からは不要）
+        # GASが ebisu@topform.jp のカレンダーに直接書き込み
+        # if store in ['ebisu', 'hanzomon']:
+        #     add_to_calendar(
+        #         store=store,
+        #         date=data.get('date'),
+        #         start_time=data.get('start'),
+        #         end_time=data.get('end'),
+        #         customer_name=data.get('customer_name', 'N/A')
+        #     )
 
         log_activity(f"Manual reservation added: {data}")
         return jsonify({'message': 'Reservation added'})
@@ -1093,19 +1094,21 @@ def gas_webhook():
                 except Exception as cal_err:
                     print(f'[WARNING] Calendar delete failed: {str(cal_err)}')
 
-            for event in calendar_events_to_add:
-                try:
-                    add_to_calendar(
-                        store=event['store'],
-                        date=event['date'],
-                        start_time=event['start_time'],
-                        end_time=event['end_time'],
-                        customer_name=event['customer_name'],
-                        room_name=event.get('room_name', '個室B')
-                    )
-                    print(f'[DEBUG] Calendar add success: {event["store"]} {event["date"]} {event["start_time"]} - {event["customer_name"]} - {event.get("room_name", "個室B")}')
-                except Exception as cal_err:
-                    print(f'[WARNING] Calendar add failed: {str(cal_err)}')
+            # Google Calendar同期（GAS側で実行しているため、Vercel側からは不要）
+            # GASが ebisu@topform.jp のカレンダーに直接書き込み
+            # for event in calendar_events_to_add:
+            #     try:
+            #         add_to_calendar(
+            #             store=event['store'],
+            #             date=event['date'],
+            #             start_time=event['start_time'],
+            #             end_time=event['end_time'],
+            #             customer_name=event['customer_name'],
+            #             room_name=event.get('room_name', '個室B')
+            #         )
+            #         print(f'[DEBUG] Calendar add success: {event["store"]} {event["date"]} {event["start_time"]} - {event["customer_name"]} - {event.get("room_name", "個室B")}')
+            #     except Exception as cal_err:
+            #         print(f'[WARNING] Calendar add failed: {str(cal_err)}')
 
             return jsonify({
                 'status': 'success',
@@ -1217,16 +1220,22 @@ def clear_gmail_reservations():
 @csrf.exempt
 def sync_ebisu_calendar():
     """
-    恵比寿店の全予約をGoogleカレンダーに同期
+    【廃止】恵比寿店の全予約をGoogleカレンダーに同期
+
+    現在はGAS側で直接カレンダー同期を行っているため、このエンドポイントは使用していません。
+
+    カレンダー同期の仕組み:
+    - GAS（ebisu@topform.jp）→ 直接Googleカレンダーに書き込み
+    - OAuth認証不要、GOOGLE_SERVICE_ACCOUNT_JSON不要
+    - 完璧に動作中
 
     Headers:
     - X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ
 
     Response:
     {
-        "status": "success",
-        "synced_count": 123,
-        "error_count": 0
+        "status": "deprecated",
+        "message": "カレンダー同期はGAS側で実行されています"
     }
     """
     # API Key認証
@@ -1234,101 +1243,21 @@ def sync_ebisu_calendar():
     if api_key != 'Wh00k@2025!Secure$Token#ABC123XYZ':
         return jsonify({'error': 'Unauthorized'}), 401
 
-    print('[DEBUG] Sync Ebisu calendar request received')
+    print('[INFO] sync_ebisu_calendar called (deprecated - using GAS instead)')
 
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-
-        # 恵比寿店の今日以降の予約を取得
-        from datetime import date as date_module
-        today = date_module.today().isoformat()
-
-        cur.execute("""
-            SELECT date, start_time, end_time, customer_name, room_name, id
-            FROM reservations
-            WHERE store = 'ebisu'
-            AND date >= %s
-            ORDER BY date, start_time
-        """, (today,))
-
-        reservations = cur.fetchall()
-        total_count = len(reservations)
-
-        print(f'[DEBUG] Ebisu reservations to sync: {total_count}')
-
-        if total_count == 0:
-            cur.close()
-            return jsonify({
-                'status': 'success',
-                'message': '同期する予約がありません',
-                'synced_count': 0,
-                'error_count': 0
-            }), 200
-
-        success_count = 0
-        error_count = 0
-        errors = []
-
-        for res in reservations:
-            date_obj, start_time, end_time, customer_name, room_name, reservation_id = res
-
-            try:
-                # 日付と時刻を文字列に変換
-                date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
-                start_time_str = start_time.strftime('%H:%M') if hasattr(start_time, 'strftime') else str(start_time)
-                end_time_str = end_time.strftime('%H:%M') if hasattr(end_time, 'strftime') else str(end_time)
-
-                # Googleカレンダーに追加
-                result = add_to_calendar(
-                    store='ebisu',
-                    date=date_str,
-                    start_time=start_time_str,
-                    end_time=end_time_str,
-                    customer_name=customer_name or '予約',
-                    room_name=room_name or '個室B'
-                )
-
-                if result:
-                    print(f'[DEBUG] Calendar sync success: {date_str} {start_time} {customer_name}')
-                    success_count += 1
-                else:
-                    print(f'[DEBUG] Calendar sync failed: {date_str} {start_time} {customer_name}')
-                    error_count += 1
-                    errors.append(f'{date_str} {start_time} {customer_name}')
-
-            except Exception as e:
-                print(f'[DEBUG] Calendar sync error: {str(e)}')
-                error_count += 1
-                errors.append(f'{date_str} {start_time} {customer_name}: {str(e)}')
-
-        cur.close()
-
-        log_activity(f'Synced Ebisu calendar: {success_count} success, {error_count} errors')
-
-        response = {
-            'status': 'success',
-            'message': f'{success_count}件同期完了、{error_count}件失敗',
-            'total_count': total_count,
-            'synced_count': success_count,
-            'error_count': error_count
+    return jsonify({
+        'status': 'deprecated',
+        'message': 'カレンダー同期はGAS側で実行されています',
+        'info': {
+            'sync_method': 'GAS直接書き込み',
+            'calendar_id': 'ebisu@topform.jp',
+            'benefits': [
+                'OAuth認証不要',
+                'GOOGLE_SERVICE_ACCOUNT_JSON不要',
+                '完璧に動作中'
+            ]
         }
-
-        if errors:
-            response['errors'] = errors[:10]  # 最初の10件のみ
-
-        return jsonify(response), 200
-
-    except Exception as e:
-        print(f'[DEBUG] Error syncing Ebisu calendar: {str(e)}')
-        log_activity(f'sync_ebisu_calendar error: {str(e)}')
-        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
-
-    finally:
-        if conn:
-            return_db_conn(conn)
-            print('[DEBUG] Connection returned to pool')
+    }), 200
 
 # ============================================================
 # データベースマイグレーションAPI
