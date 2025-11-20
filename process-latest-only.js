@@ -224,17 +224,31 @@ function extractCustomerName(body) {
 
 /**
  * メール本文から部屋名を抽出
+ *
+ * 対応パターン:
+ * - 恵比寿店: 「STUDIO A」「STUDIO B」
+ * - 半蔵門店: 「個室A」「個室B」
  */
 function extractRoomName(body) {
-  // 個室A or 個室B のパターンを検索
+  // 恵比寿店: STUDIO A → 個室A
+  if (body.includes('STUDIO A')) {
+    return '個室A';
+  }
+  // 恵比寿店: STUDIO B → 個室B
+  if (body.includes('STUDIO B')) {
+    return '個室B';
+  }
+
+  // 半蔵門店: 個室A
   if (body.includes('個室A')) {
     return '個室A';
   }
+  // 半蔵門店: 個室B
   if (body.includes('個室B')) {
     return '個室B';
   }
 
-  // デフォルトは個室B（恵比寿・半蔵門で使用）
+  // デフォルトは個室B
   return '個室B';
 }
 

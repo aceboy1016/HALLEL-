@@ -1275,12 +1275,16 @@ def sync_ebisu_calendar():
             date_str, start_time, end_time, customer_name, room_name, reservation_id = res
 
             try:
+                # 時刻をHH:MM形式の文字列に変換
+                start_time_str = start_time.strftime('%H:%M') if hasattr(start_time, 'strftime') else str(start_time)
+                end_time_str = end_time.strftime('%H:%M') if hasattr(end_time, 'strftime') else str(end_time)
+
                 # Googleカレンダーに追加
                 result = add_to_calendar(
                     store='ebisu',
                     date=date_str,
-                    start_time=start_time,
-                    end_time=end_time,
+                    start_time=start_time_str,
+                    end_time=end_time_str,
                     customer_name=customer_name or '予約',
                     room_name=room_name or '個室B'
                 )
