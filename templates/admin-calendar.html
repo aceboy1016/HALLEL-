@@ -665,7 +665,6 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const MAX_CAPACITY = 7;
             const timeline = document.getElementById('timeline');
             const currentDateEl = document.getElementById('current-date');
             const reservationCountEl = document.getElementById('reservation-count');
@@ -691,6 +690,18 @@
                 'ebisu': '恵比寿店',
                 'hanzomon': '半蔵門店'
             };
+
+            // 店舗ごとの最大枠数
+            const storeCapacities = {
+                'shibuya': 7,
+                'yoyogi-uehara': 2,
+                'nakameguro': 2,
+                'ebisu': 2,
+                'hanzomon': 4
+            };
+
+            // 現在の店舗の最大枠数
+            const MAX_CAPACITY = storeCapacities[currentStore] || 7;
 
             // タイトルを更新
             const storeTitleEl = document.getElementById('store-title');
