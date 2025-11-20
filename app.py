@@ -466,7 +466,20 @@ def admin_calendar():
     if not is_logged_in():
         return redirect(url_for('login'))
     log_activity('Admin calendar accessed')
-    return render_template('admin-calendar.html')
+
+    # URLパラメータから店舗を取得
+    store = request.args.get('store', 'shibuya')
+
+    if store not in STORE_CONFIG:
+        store = 'shibuya'
+
+    store_info = STORE_CONFIG[store]
+
+    return render_template('admin-calendar.html',
+                         store=store,
+                         store_name=store_info['name_jp'],
+                         max_slots=store_info['max_slots'],
+                         rooms=store_info.get('rooms'))
 
 @app.route('/admin/change_password', methods=['POST'])
 @limiter.limit("3 per hour")  # パスワード変更の頻度制限

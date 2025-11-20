@@ -703,6 +703,9 @@
             // 現在の店舗の最大枠数
             const MAX_CAPACITY = storeCapacities[currentStore] || 7;
 
+            // エリア情報（Pythonから渡される）
+            const ROOMS = {{ rooms | tojson if rooms else 'null' }};
+
             // タイトルを更新
             const storeTitleEl = document.getElementById('store-title');
             storeTitleEl.innerHTML = `HALLEL ${storeNames[currentStore] || currentStore} <span class="badge">管理者用</span>`;
@@ -784,6 +787,18 @@
                 // 予約件数を表示
                 reservationCountEl.textContent = `📊 予約件数: ${reservations.length}件`;
 
+                if (ROOMS) {
+                    // エリア別表示
+                    renderTimelineWithRooms(reservations);
+                } else {
+                    // 従来の表示（全体の人数のみ）
+                    renderTimelineSimple(reservations);
+                }
+
+                addSlotClickListeners();
+            }
+
+            function renderTimelineSimple(reservations) {
                 const timeSlots = [];
                 for (let h = 0; h < 24; h++) {
                     for (let m = 0; m < 60; m += 30) {
@@ -840,7 +855,101 @@
                 });
 
                 timeline.innerHTML = html;
-                addSlotClickListeners();
+            }
+
+            function renderTimelineWithRooms(reservations) {
+                const timeSlots = [];
+                for (let h = 0; h < 24; h++) {
+                    for (let m = 0; m < 60; m += 30) {
+                        const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        const roomCounts = {};
+                        Object.keys(ROOMS).forEach(roomKey => {
+                            roomCounts[roomKey] = 0;
+                        });
+                        timeSlots.push({
+                            timeLabel: startTime,
+                            start: startTime,
+                            rooms: roomCounts,
+                            isCharter: false
+                        });
+                    }
+                }
+
+                timeSlots.forEach(slot => {
+                    const slotStart = timeToMinutes(slot.start);
+                    const slotEnd = slotStart + 30;
+                    reservations.forEach(res => {
+                        const resStart = timeToMinutes(res.start);
+                        const resEnd = timeToMinutes(res.end);
+                        if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
+                            if(res.type === 'charter') {
+                                slot.isCharter = true;
+                            } else {
+                                const roomName = res.room_name || '個室B';
+                                if (slot.rooms.hasOwnProperty(roomName)) {
+                                    slot.rooms[roomName]++;
+                                }
+                            }
+                        }
+                    });
+                });
+
+                let html = '';
+                timeSlots.forEach(slot => {
+                    if (slot.isCharter) {
+                        // 貸切の場合は従来の表示
+                        html += `
+                            <li class="time-slot" data-start="${slot.start}">
+                                <div class="time-label">${slot.start}</div>
+                                <div class="occupancy-bar-container">
+                                    <div class="occupancy-bar">
+                                        <div class="occupancy-fill status-danger" style="width: 100%;">
+                                            貸切
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="occupancy-text">貸切</div>
+                            </li>
+                        `;
+                    } else {
+                        // エリア別表示
+                        html += `<li class="time-slot" data-start="${slot.start}">
+                            <div class="time-label">${slot.start}</div>
+                            <div style="flex: 1;">`;
+
+                        Object.keys(ROOMS).forEach(roomKey => {
+                            const roomInfo = ROOMS[roomKey];
+                            const count = slot.rooms[roomKey];
+                            const maxCapacity = roomInfo.max_capacity;
+                            const percentage = (count / maxCapacity) * 100;
+
+                            let colorClass = 'status-available';
+                            if (percentage >= 100) {
+                                colorClass = 'status-danger';
+                            } else if (percentage >= 50) {
+                                colorClass = 'status-warning';
+                            }
+
+                            html += `
+                                <div style="margin-bottom: 8px;">
+                                    <div style="font-size: 12px; color: #5E6C84; margin-bottom: 4px;">${roomInfo.display_name}</div>
+                                    <div class="occupancy-bar-container">
+                                        <div class="occupancy-bar">
+                                            <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
+                                                ${count > 0 ? count : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="occupancy-text" style="font-size: 11px;">${count} / ${maxCapacity}</div>
+                                </div>
+                            `;
+                        });
+
+                        html += `</div></li>`;
+                    }
+                });
+
+                timeline.innerHTML = html;
             }
 
             function addSlotClickListeners() {
