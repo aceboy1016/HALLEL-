@@ -293,6 +293,9 @@ function parseEmailBody(body) {
   // 顧客名を抽出
   const customerName = extractCustomerName(body);
 
+  // 貸切かどうかを判定（ルームに「貸切利用」が含まれる）
+  const isCharter = body.includes('貸切利用');
+
   // 部屋名を抽出
   const roomName = extractRoomName(body);
 
@@ -314,7 +317,8 @@ function parseEmailBody(body) {
       end_time: formatTime(endTime),
       customer_name: customerName,
       room_name: roomName,
-      store: store
+      store: store,
+      is_charter: isCharter
     };
   }
 
@@ -331,7 +335,8 @@ function parseEmailBody(body) {
       end_time: formatTime(bookingMatch[3]),
       customer_name: customerName,
       room_name: roomName,
-      store: store
+      store: store,
+      is_charter: isCharter
     };
   }
 
@@ -346,7 +351,8 @@ function parseEmailBody(body) {
       start_time: formatTime(cancelMatch[2]),
       customer_name: customerName,
       room_name: roomName,
-      store: store
+      store: store,
+      is_charter: isCharter
     };
   }
 
@@ -368,8 +374,9 @@ function sendBatchToAPI(reservations) {
         customer_name: r.customer_name || 'N/A',
         room_name: r.room_name || '個室B',
         store: r.store || 'shibuya',
-        type: 'gmail',
+        type: r.is_charter ? 'charter' : 'gmail',
         is_cancellation: r.action_type === 'cancellation',
+        is_charter: r.is_charter || false,
         source: 'gas_sync',
         email_id: r.email_id || '',
         email_subject: r.email_subject || '',

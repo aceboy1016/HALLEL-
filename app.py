@@ -1050,7 +1050,7 @@ def gas_webhook():
                                 # 既存の予約を更新
                                 cur.execute("""
                                     UPDATE reservations
-                                    SET date = %s, start_time = %s, end_time = %s, customer_name = %s, room_name = %s
+                                    SET date = %s, start_time = %s, end_time = %s, customer_name = %s, room_name = %s, type = %s
                                     WHERE email_id = %s AND store = %s
                                 """, (
                                     res['date'],
@@ -1058,16 +1058,17 @@ def gas_webhook():
                                     res['end'],
                                     res.get('customer_name', 'N/A'),
                                     res.get('room_name', '個室B'),
+                                    res.get('type', 'gmail'),
                                     email_id,
                                     res.get('store', 'shibuya')
                                 ))
                                 updated_count += 1
-                                print(f'[DEBUG] Updated [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                                print(f'[DEBUG] Updated [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")} (type: {res.get("type", "gmail")})')
                             else:
                                 # 新規予約を追加
                                 cur.execute("""
                                     INSERT INTO reservations (date, start_time, end_time, customer_name, room_name, store, type, source, email_id)
-                                    VALUES (%s, %s, %s, %s, %s, %s, 'gmail', %s, %s)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 """, (
                                     res['date'],
                                     res['start'],
@@ -1075,11 +1076,12 @@ def gas_webhook():
                                     res.get('customer_name', 'N/A'),
                                     res.get('room_name', '個室B'),
                                     res.get('store', 'shibuya'),
+                                    res.get('type', 'gmail'),  # GASから送られた type を使用（貸切の場合は 'charter'）
                                     res.get('source', 'gas_sync'),
                                     email_id
                                 ))
                                 inserted_count += 1
-                                print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                                print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")} (type: {res.get("type", "gmail")})')
 
                                 # Google Calendar同期が必要な場合はリストに追加
                                 if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
@@ -1106,23 +1108,24 @@ def gas_webhook():
                             existing = cur.fetchone()
 
                             if existing:
-                                # 既存の予約を更新（顧客名と部屋名を最新に）
+                                # 既存の予約を更新（顧客名と部屋名とタイプを最新に）
                                 cur.execute("""
                                     UPDATE reservations
-                                    SET customer_name = %s, room_name = %s
+                                    SET customer_name = %s, room_name = %s, type = %s
                                     WHERE id = %s
                                 """, (
                                     res.get('customer_name', 'N/A'),
                                     res.get('room_name', '個室B'),
+                                    res.get('type', 'gmail'),
                                     existing[0]
                                 ))
                                 updated_count += 1
-                                print(f'[DEBUG] Updated (no email_id) [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                                print(f'[DEBUG] Updated (no email_id) [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")} (type: {res.get("type", "gmail")})')
                             else:
                                 # 重複がない場合のみ追加
                                 cur.execute("""
                                     INSERT INTO reservations (date, start_time, end_time, customer_name, room_name, store, type, source, email_id)
-                                    VALUES (%s, %s, %s, %s, %s, %s, 'gmail', %s, %s)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 """, (
                                     res['date'],
                                     res['start'],
@@ -1130,11 +1133,12 @@ def gas_webhook():
                                     res.get('customer_name', 'N/A'),
                                     res.get('room_name', '個室B'),
                                     res.get('store', 'shibuya'),
+                                    res.get('type', 'gmail'),  # GASから送られた type を使用（貸切の場合は 'charter'）
                                     res.get('source', 'gas_sync'),
                                     None
                                 ))
                                 inserted_count += 1
-                                print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")}')
+                                print(f'[DEBUG] Inserted [{i+1}/{len(reservations)}]: {res["date"]} {res["start"]}-{res["end"]} {res.get("customer_name")} (type: {res.get("type", "gmail")})')
 
                                 # Google Calendar同期が必要な場合はリストに追加
                                 if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:
