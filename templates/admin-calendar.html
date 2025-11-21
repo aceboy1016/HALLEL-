@@ -714,6 +714,9 @@
             // エリア情報（Pythonから渡される）
             const ROOMS = {{ rooms | tojson if rooms else 'null' }};
 
+            // 営業時間情報（Pythonから渡される）
+            const HOURS = {{ hours | tojson }};
+
             // タイトルを更新
             const storeTitleEl = document.getElementById('store-title');
             storeTitleEl.innerHTML = `HALLEL ${storeNames[currentStore] || currentStore} <span class="badge">管理者用</span>`;
@@ -808,7 +811,10 @@
 
             function renderTimelineSimple(reservations) {
                 const timeSlots = [];
-                for (let h = 0; h < 24; h++) {
+                const startHour = HOURS.start;
+                const endHour = HOURS.end;
+
+                for (let h = startHour; h < endHour; h++) {
                     for (let m = 0; m < 60; m += 30) {
                         const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                         timeSlots.push({ timeLabel: startTime, start: startTime, count: 0, isCharter: false });
@@ -867,7 +873,10 @@
 
             function renderTimelineWithRooms(reservations) {
                 const timeSlots = [];
-                for (let h = 0; h < 24; h++) {
+                const startHour = HOURS.start;
+                const endHour = HOURS.end;
+
+                for (let h = startHour; h < endHour; h++) {
                     for (let m = 0; m < 60; m += 30) {
                         const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                         const roomCounts = {};
