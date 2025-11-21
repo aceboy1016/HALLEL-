@@ -50,12 +50,14 @@ STORE_CONFIG = {
     'shibuya': {
         'name_jp': '渋谷店',
         'max_slots': 7,
-        'rooms': None  # エリア分けなし
+        'rooms': None,  # エリア分けなし
+        'hours': {'start': 0, 'end': 24}  # 24時間営業
     },
     'yoyogi-uehara': {
         'name_jp': '代々木上原店',
         'max_slots': 2,
-        'rooms': None  # エリア分けなし
+        'rooms': None,  # エリア分けなし
+        'hours': {'start': 0, 'end': 24}  # 24時間営業
     },
     'nakameguro': {
         'name_jp': '中目黒店',
@@ -63,7 +65,8 @@ STORE_CONFIG = {
         'rooms': {
             '格闘技エリア': {'display_name': '格闘技エリア', 'max_capacity': 1},
             'フリーウエイトエリア': {'display_name': 'フリーウエイトエリア', 'max_capacity': 1}
-        }
+        },
+        'hours': {'start': 0, 'end': 24}  # 24時間営業
     },
     'ebisu': {
         'name_jp': '恵比寿店',
@@ -71,7 +74,8 @@ STORE_CONFIG = {
         'rooms': {
             '個室A': {'display_name': '個室A', 'max_capacity': 1},
             '個室B': {'display_name': '個室B', 'max_capacity': 1}
-        }
+        },
+        'hours': {'start': 0, 'end': 24}  # 24時間営業
     },
     'hanzomon': {
         'name_jp': '半蔵門店',
@@ -79,7 +83,8 @@ STORE_CONFIG = {
         'rooms': {
             '個室A': {'display_name': 'STUDIO A（個室）', 'max_capacity': 1},
             '個室B': {'display_name': 'STUDIO B（オープン）', 'max_capacity': 3}
-        }
+        },
+        'hours': {'start': 8, 'end': 22}  # 8:00-22:00
     }
 }
 
@@ -299,7 +304,8 @@ def store_page(store):
                          store=store,
                          store_name=store_info['name_jp'],
                          max_slots=store_info['max_slots'],
-                         rooms=store_info.get('rooms'))
+                         rooms=store_info.get('rooms'),
+                         hours=store_info.get('hours', {'start': 0, 'end': 24}))
 
 @app.route('/search')
 def integrated_search():
@@ -479,7 +485,8 @@ def admin_calendar():
                          store=store,
                          store_name=store_info['name_jp'],
                          max_slots=store_info['max_slots'],
-                         rooms=store_info.get('rooms'))
+                         rooms=store_info.get('rooms'),
+                         hours=store_info.get('hours', {'start': 0, 'end': 24}))
 
 @app.route('/admin/change_password', methods=['POST'])
 @limiter.limit("3 per hour")  # パスワード変更の頻度制限
