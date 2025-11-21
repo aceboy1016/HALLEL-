@@ -228,8 +228,20 @@ function extractCustomerName(body) {
  * 対応パターン:
  * - 恵比寿店: 「STUDIO A」「STUDIO B」
  * - 半蔵門店: 「個室A」「個室B」
+ * - 中目黒店: 「格闘技エリア」「フリーウエイトエリア」
  */
 function extractRoomName(body) {
+  // 中目黒店: 格闘技エリア
+  if (body.includes('格闘技エリア')) {
+    Logger.log('[DEBUG] 格闘技エリアを検出');
+    return '格闘技エリア';
+  }
+  // 中目黒店: フリーウエイトエリア
+  if (body.includes('フリーウエイトエリア')) {
+    Logger.log('[DEBUG] フリーウエイトエリアを検出');
+    return 'フリーウエイトエリア';
+  }
+
   // 恵比寿店: STUDIO A → 個室A
   if (body.includes('STUDIO A')) {
     return '個室A';
@@ -247,6 +259,10 @@ function extractRoomName(body) {
   if (body.includes('個室B')) {
     return '個室B';
   }
+
+  // デバッグ: デフォルト値になる場合は本文の一部をログ出力
+  Logger.log('[DEBUG] デフォルト値（個室B）を使用 - 本文の最初の200文字:');
+  Logger.log(body.substring(0, 200));
 
   // デフォルトは個室B
   return '個室B';

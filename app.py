@@ -49,23 +49,37 @@ if not WEBHOOK_API_KEY:
 STORE_CONFIG = {
     'shibuya': {
         'name_jp': '渋谷店',
-        'max_slots': 7
+        'max_slots': 7,
+        'rooms': None  # エリア分けなし
     },
     'yoyogi-uehara': {
         'name_jp': '代々木上原店',
-        'max_slots': 2
+        'max_slots': 2,
+        'rooms': None  # エリア分けなし
     },
     'nakameguro': {
         'name_jp': '中目黒店',
-        'max_slots': 1  # フリーウエイトエリアのみ
+        'max_slots': 2,
+        'rooms': {
+            '格闘技エリア': {'display_name': '格闘技エリア', 'max_capacity': 1},
+            'フリーウエイトエリア': {'display_name': 'フリーウエイトエリア', 'max_capacity': 1}
+        }
     },
     'ebisu': {
         'name_jp': '恵比寿店',
-        'max_slots': 2  # 個室A + 個室B
+        'max_slots': 2,
+        'rooms': {
+            '個室A': {'display_name': '個室A', 'max_capacity': 1},
+            '個室B': {'display_name': '個室B', 'max_capacity': 1}
+        }
     },
     'hanzomon': {
         'name_jp': '半蔵門店',
-        'max_slots': 4  # 3枠 + 個室1枠
+        'max_slots': 4,
+        'rooms': {
+            '個室A': {'display_name': 'STUDIO A（個室）', 'max_capacity': 1},
+            '個室B': {'display_name': 'STUDIO B（オープン）', 'max_capacity': 3}
+        }
     }
 }
 
@@ -284,7 +298,8 @@ def store_page(store):
     return render_template('booking-status.html',
                          store=store,
                          store_name=store_info['name_jp'],
-                         max_slots=store_info['max_slots'])
+                         max_slots=store_info['max_slots'],
+                         rooms=store_info.get('rooms'))
 
 @app.route('/search')
 def integrated_search():
@@ -451,7 +466,20 @@ def admin_calendar():
     if not is_logged_in():
         return redirect(url_for('login'))
     log_activity('Admin calendar accessed')
-    return render_template('admin-calendar.html')
+
+    # URLパラメータから店舗を取得
+    store = request.args.get('store', 'shibuya')
+
+    if store not in STORE_CONFIG:
+        store = 'shibuya'
+
+    store_info = STORE_CONFIG[store]
+
+    return render_template('admin-calendar.html',
+                         store=store,
+                         store_name=store_info['name_jp'],
+                         max_slots=store_info['max_slots'],
+                         rooms=store_info.get('rooms'))
 
 @app.route('/admin/change_password', methods=['POST'])
 @limiter.limit("3 per hour")  # パスワード変更の頻度制限
@@ -596,14 +624,14 @@ def get_reservations():
             # クエリ：店舗フィルタがあれば特定店舗、なければ全店舗
             if store_filter:
                 cur.execute("""
-                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store
+                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store, room_name
                     FROM reservations
                     WHERE store = %s
                     ORDER BY date, start_time
                 """, (store_filter,))
             else:
                 cur.execute("""
-                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store
+                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store, room_name
                     FROM reservations
                     ORDER BY date, start_time
                 """)
@@ -626,7 +654,8 @@ def get_reservations():
                 'end': row['end_time'].strftime('%H:%M'),
                 'customer_name': row['customer_name'],
                 'store_id': store_id,
-                'store_name': store_name
+                'store_name': store_name,
+                'room_name': row.get('room_name', '個室B')
             })
 
         # デバッグ情報を追加

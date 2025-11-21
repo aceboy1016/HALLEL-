@@ -644,6 +644,7 @@
             const STORE_ID = '{{ store }}';
             const STORE_NAME = '{{ store_name }}';
             const MAX_CAPACITY = {{ max_slots }};
+            const ROOMS = {{ rooms | tojson if rooms else 'null' }};
 
             const timeline = document.getElementById('timeline');
             const currentDateEl = document.getElementById('current-date');
@@ -729,6 +730,16 @@
 
                 const reservations = reservationsByDate[dateString] || [];
 
+                if (ROOMS) {
+                    // エリア別表示
+                    renderTimelineWithRooms(reservations);
+                } else {
+                    // 従来の表示（全体の人数のみ）
+                    renderTimelineSimple(reservations);
+                }
+            }
+
+            function renderTimelineSimple(reservations) {
                 const timeSlots = [];
                 for (let h = 0; h < 24; h++) {
                     for (let m = 0; m < 60; m += 30) {
@@ -736,8 +747,7 @@
                         timeSlots.push({
                             timeLabel: startTime,
                             start: startTime,
-                            count: 0,
-                            isCharter: false
+                            count: 0
                         });
                     }
                 }
@@ -760,7 +770,6 @@
                     let colorClass = 'status-available';
                     let label = `${slot.count} / ${MAX_CAPACITY}`;
 
-                    // 1~3人: 空いてる, 4~5人: 普通, 6~7人: 混んでる
                     if (slot.count >= 6) {
                         colorClass = 'status-danger';
                     } else if (slot.count >= 4) {
@@ -780,6 +789,78 @@
                             <div class="occupancy-text">${label}</div>
                         </li>
                     `;
+                });
+
+                timeline.innerHTML = html;
+            }
+
+            function renderTimelineWithRooms(reservations) {
+                const timeSlots = [];
+                for (let h = 0; h < 24; h++) {
+                    for (let m = 0; m < 60; m += 30) {
+                        const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        const roomCounts = {};
+                        Object.keys(ROOMS).forEach(roomKey => {
+                            roomCounts[roomKey] = 0;
+                        });
+                        timeSlots.push({
+                            timeLabel: startTime,
+                            start: startTime,
+                            rooms: roomCounts
+                        });
+                    }
+                }
+
+                timeSlots.forEach(slot => {
+                    const slotStart = timeToMinutes(slot.start);
+                    const slotEnd = slotStart + 30;
+                    reservations.forEach(res => {
+                        const resStart = timeToMinutes(res.start);
+                        const resEnd = timeToMinutes(res.end);
+                        if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
+                            const roomName = res.room_name || '個室B';
+                            if (slot.rooms.hasOwnProperty(roomName)) {
+                                slot.rooms[roomName]++;
+                            }
+                        }
+                    });
+                });
+
+                let html = '';
+                timeSlots.forEach(slot => {
+                    html += `<li class="time-slot">
+                        <div class="time-label">${slot.start}</div>
+                        <div style="flex: 1;">`;
+
+                    Object.keys(ROOMS).forEach(roomKey => {
+                        const roomInfo = ROOMS[roomKey];
+                        const count = slot.rooms[roomKey];
+                        const maxCapacity = roomInfo.max_capacity;
+                        const percentage = (count / maxCapacity) * 100;
+
+                        let colorClass = 'status-available';
+                        if (percentage >= 100) {
+                            colorClass = 'status-danger';
+                        } else if (percentage >= 50) {
+                            colorClass = 'status-warning';
+                        }
+
+                        html += `
+                            <div style="margin-bottom: 8px;">
+                                <div style="font-size: 12px; color: #5E6C84; margin-bottom: 4px;">${roomInfo.display_name}</div>
+                                <div class="occupancy-bar-container">
+                                    <div class="occupancy-bar">
+                                        <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
+                                            ${count > 0 ? count : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="occupancy-text" style="font-size: 11px;">${count} / ${maxCapacity}</div>
+                            </div>
+                        `;
+                    });
+
+                    html += `</div></li>`;
                 });
 
                 timeline.innerHTML = html;
