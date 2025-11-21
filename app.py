@@ -895,6 +895,56 @@ def debug_duplicates():
     finally:
         return_db_conn(conn)
 
+@app.route('/api/admin/debug-nakameguro')
+def debug_nakameguro():
+    """中目黒店のroom_nameをデバッグ（管理者専用）"""
+    if not is_logged_in():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db_conn()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # 中目黒店の総件数
+            cur.execute("SELECT COUNT(*) as total FROM reservations WHERE store = 'nakameguro'")
+            total = cur.fetchone()['total']
+
+            # room_name別の件数
+            cur.execute("""
+                SELECT room_name, COUNT(*) as count
+                FROM reservations
+                WHERE store = 'nakameguro'
+                GROUP BY room_name
+                ORDER BY count DESC
+            """)
+            room_counts = [dict(row) for row in cur.fetchall()]
+
+            # 最新20件のデータ
+            cur.execute("""
+                SELECT date, start_time, end_time, customer_name, room_name, type
+                FROM reservations
+                WHERE store = 'nakameguro'
+                ORDER BY date DESC, start_time DESC
+                LIMIT 20
+            """)
+            latest = []
+            for row in cur.fetchall():
+                latest.append({
+                    'date': row['date'].strftime('%Y-%m-%d'),
+                    'start_time': row['start_time'].strftime('%H:%M'),
+                    'end_time': row['end_time'].strftime('%H:%M'),
+                    'customer_name': row['customer_name'],
+                    'room_name': row['room_name'],
+                    'type': row['type']
+                })
+
+            return jsonify({
+                'total_reservations': total,
+                'room_name_breakdown': room_counts,
+                'latest_20': latest
+            })
+    finally:
+        return_db_conn(conn)
+
 @app.route('/api/debug/env')
 def debug_env():
     """デバッグ用：環境変数とDB接続確認"""
