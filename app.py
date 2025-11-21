@@ -692,13 +692,14 @@ def add_reservation():
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO reservations (date, start_time, end_time, customer_name, store, type)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO reservations (date, start_time, end_time, customer_name, room_name, store, type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 data.get('date'),
                 data.get('start'),
                 data.get('end'),
                 data.get('customer_name', 'N/A'),
+                data.get('room_name', '個室B'),  # room_nameを追加
                 store,
                 data.get('type', 'manual')
             ))
@@ -742,18 +743,37 @@ def delete_reservation():
     conn = get_db_conn()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # まず該当する予約を検索
-            cur.execute("""
-                SELECT id, customer_name, date, start_time, end_time
-                FROM reservations
-                WHERE date = %s AND start_time = %s AND end_time = %s
-                AND store = %s
-            """, (
-                data.get('date'),
-                data.get('start'),
-                data.get('end'),
-                store
-            ))
+            # まず該当する予約を検索（room_nameも含む）
+            target_room = data.get('room_name')
+            target_customer = data.get('customer_name')
+
+            # room_nameがある場合は検索条件に含める
+            if target_room:
+                cur.execute("""
+                    SELECT id, customer_name, room_name, date, start_time, end_time
+                    FROM reservations
+                    WHERE date = %s AND start_time = %s AND end_time = %s
+                    AND store = %s AND room_name = %s
+                """, (
+                    data.get('date'),
+                    data.get('start'),
+                    data.get('end'),
+                    store,
+                    target_room
+                ))
+            else:
+                cur.execute("""
+                    SELECT id, customer_name, room_name, date, start_time, end_time
+                    FROM reservations
+                    WHERE date = %s AND start_time = %s AND end_time = %s
+                    AND store = %s
+                """, (
+                    data.get('date'),
+                    data.get('start'),
+                    data.get('end'),
+                    store
+                ))
+
             found_reservations = cur.fetchall()
             print(f'[DELETE] Found {len(found_reservations)} matching reservations')
 
@@ -761,7 +781,6 @@ def delete_reservation():
                 return jsonify({'error': 'Reservation not found'}), 404
 
             # customer_nameでフィルタリング（完全一致またはNULL対応）
-            target_customer = data.get('customer_name')
             reservation_to_delete = None
 
             for res in found_reservations:
