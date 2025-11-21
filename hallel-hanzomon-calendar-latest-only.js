@@ -128,11 +128,15 @@ function parseReservationEmail(subject, body, emailDate) {
       return null;
     }
 
+    // 貸切かどうかを判定（ルームに「貸切利用」が含まれる）
+    const isCharter = body.includes('貸切利用');
+
     return {
       fullName: fullName,
       startTime: eventTime.startTime,
       endTime: eventTime.endTime,
       studio: studio,
+      isCharter: isCharter,
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       // 一意のキー（同じ人、同じ日時、同じ時間枠）
@@ -259,7 +263,10 @@ function applyToCalendarWithRateLimit(calendar, latestReservations) {
  */
 function addReservationToCalendar(calendar, res) {
   try {
-    const eventTitle = `${res.fullName} - HALLEL-${res.studio}`;
+    // 貸切の場合はタイトルに「【貸切】」を追加
+    const eventTitle = res.isCharter
+      ? `${res.fullName} - HALLEL-【貸切】`
+      : `${res.fullName} - HALLEL-${res.studio}`;
 
     // 重複チェック：同じ人、同じ時間帯のイベントを削除（旧形式も含む）
     const searchStart = new Date(res.startTime.getTime() - 60000); // -1分
@@ -566,8 +573,9 @@ function sendBatchToVercelAPI(reservations) {
         customer_name: r.fullName || 'N/A',
         room_name: r.studio || '個室B',
         store: 'hanzomon',
-        type: 'gmail',
+        type: r.isCharter ? 'charter' : 'gmail',  // 貸切の場合は 'charter'
         is_cancellation: false,
+        is_charter: r.isCharter || false,
         source: 'gas_sync',
         email_id: '',
         email_subject: '',
