@@ -639,6 +639,12 @@
                         <input class="form-check-input" type="checkbox" role="switch" id="charter-switch">
                         <label class="form-check-label" for="charter-switch">これを貸切予約にする</label>
                     </div>
+                    <div class="mb-3" id="room-select-container" style="display: none;">
+                        <label for="room-select" class="form-label">部屋 / エリア</label>
+                        <select id="room-select" class="form-select">
+                            <option value="">-- 選択してください --</option>
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label for="booking-duration" class="form-label">利用時間</label>
                         <select id="booking-duration" class="form-select">
@@ -677,6 +683,8 @@
             const saveBookingBtn = document.getElementById('save-booking');
             const existingBookingsEl = document.getElementById('existing-bookings');
             const charterSwitch = document.getElementById('charter-switch');
+            const roomSelectContainer = document.getElementById('room-select-container');
+            const roomSelect = document.getElementById('room-select');
 
             // URLパラメータから店舗を取得
             const urlParams = new URLSearchParams(window.location.search);
@@ -958,11 +966,48 @@
                         selectedSlot = { start: slotEl.dataset.start };
                         modalTitle.textContent = `予約登録 @ ${formatDate(currentDate)} ${selectedSlot.start}`;
                         charterSwitch.checked = false;
+
+                        // 部屋選択を初期化
+                        initializeRoomSelect();
+
                         showExistingBookings();
                         bookingModal.show();
                     });
                 });
             }
+
+            // 部屋選択のドロップダウンを初期化
+            function initializeRoomSelect() {
+                if (ROOMS && Object.keys(ROOMS).length > 0) {
+                    // 部屋がある店舗の場合
+                    roomSelectContainer.style.display = 'block';
+                    roomSelect.innerHTML = '<option value="">-- 選択してください --</option>';
+
+                    Object.keys(ROOMS).forEach(roomKey => {
+                        const roomInfo = ROOMS[roomKey];
+                        const option = document.createElement('option');
+                        option.value = roomKey;
+                        option.textContent = roomInfo.display_name;
+                        roomSelect.appendChild(option);
+                    });
+                } else {
+                    // 部屋がない店舗の場合は非表示
+                    roomSelectContainer.style.display = 'none';
+                }
+            }
+
+            // 貸切スイッチの切り替えで部屋選択の表示/非表示を切り替え
+            charterSwitch.addEventListener('change', () => {
+                if (charterSwitch.checked) {
+                    // 貸切ONの場合は部屋選択を非表示
+                    roomSelectContainer.style.display = 'none';
+                } else {
+                    // 貸切OFFで、部屋がある店舗の場合は部屋選択を表示
+                    if (ROOMS && Object.keys(ROOMS).length > 0) {
+                        roomSelectContainer.style.display = 'block';
+                    }
+                }
+            });
 
             function showExistingBookings() {
                 const dateString = formatDate(currentDate);
@@ -978,13 +1023,14 @@
                     if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
                         let displayName = '';
                         let customerName = res.customer_name || 'N/A';
+                        let roomInfo = res.room_name ? `（${res.room_name}）` : '';
 
                         if (res.type === 'charter') {
                             displayName = `<strong>🔒 貸切予約</strong>`;
                         } else if (res.type === 'manual') {
-                            displayName = `📝 手動予約: ${customerName}`;
+                            displayName = `📝 手動予約: ${customerName} ${roomInfo}`;
                         } else {
-                            displayName = `✉️ Gmail予約: ${customerName}`;
+                            displayName = `✉️ Gmail予約: ${customerName} ${roomInfo}`;
                         }
 
                         bookingsHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
@@ -1056,6 +1102,15 @@
                 const isCharter = charterSwitch.checked;
                 const dateString = formatDate(currentDate);
 
+                // 部屋選択のバリデーション（部屋がある店舗で、貸切でない場合）
+                if (ROOMS && Object.keys(ROOMS).length > 0 && !isCharter) {
+                    const selectedRoom = roomSelect.value;
+                    if (!selectedRoom) {
+                        alert('部屋 / エリアを選択してください');
+                        return;
+                    }
+                }
+
                 const duration = parseInt(bookingDurationSelect.value, 10);
                 const [startHour, startMinute] = selectedSlot.start.split(':').map(Number);
                 const endDate = new Date();
@@ -1067,7 +1122,8 @@
                     type: isCharter ? 'charter' : 'manual',
                     start: selectedSlot.start,
                     end: endTime,
-                    store: currentStore
+                    store: currentStore,
+                    room_name: isCharter ? null : (roomSelect.value || '個室B')  // 部屋選択を追加
                 };
 
                 try {
