@@ -747,7 +747,8 @@
                         timeSlots.push({
                             timeLabel: startTime,
                             start: startTime,
-                            count: 0
+                            count: 0,
+                            isCharter: false  // 貸切フラグ
                         });
                     }
                 }
@@ -759,36 +760,56 @@
                         const resStart = timeToMinutes(res.start);
                         const resEnd = timeToMinutes(res.end);
                         if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
-                            slot.count++;
+                            // 貸切の場合はフラグを立てる
+                            if (res.type === 'charter') {
+                                slot.isCharter = true;
+                            } else {
+                                slot.count++;
+                            }
                         }
                     });
                 });
 
                 let html = '';
                 timeSlots.forEach(slot => {
-                    let percentage = (slot.count / MAX_CAPACITY) * 100;
-                    let colorClass = 'status-available';
-                    let label = `${slot.count} / ${MAX_CAPACITY}`;
-
-                    if (slot.count >= 6) {
-                        colorClass = 'status-danger';
-                    } else if (slot.count >= 4) {
-                        colorClass = 'status-warning';
-                    }
-
-                    html += `
-                        <li class="time-slot">
-                            <div class="time-label">${slot.start}</div>
-                            <div class="occupancy-bar-container">
-                                <div class="occupancy-bar">
-                                    <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
-                                        ${slot.count > 0 ? slot.count : ''}
+                    // 貸切の場合は満枠表示
+                    if (slot.isCharter) {
+                        html += `
+                            <li class="time-slot">
+                                <div class="time-label">${slot.start}</div>
+                                <div class="occupancy-bar-container">
+                                    <div style="padding: 12px; background: linear-gradient(135deg, #FF5630 0%, #FF7452 100%); border-radius: 8px; text-align: center; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 86, 48, 0.3);">
+                                        🔒 貸切利用
                                     </div>
                                 </div>
-                            </div>
-                            <div class="occupancy-text">${label}</div>
-                        </li>
-                    `;
+                                <div class="occupancy-text">${MAX_CAPACITY} / ${MAX_CAPACITY}</div>
+                            </li>
+                        `;
+                    } else {
+                        let percentage = (slot.count / MAX_CAPACITY) * 100;
+                        let colorClass = 'status-available';
+                        let label = `${slot.count} / ${MAX_CAPACITY}`;
+
+                        if (slot.count >= 6) {
+                            colorClass = 'status-danger';
+                        } else if (slot.count >= 4) {
+                            colorClass = 'status-warning';
+                        }
+
+                        html += `
+                            <li class="time-slot">
+                                <div class="time-label">${slot.start}</div>
+                                <div class="occupancy-bar-container">
+                                    <div class="occupancy-bar">
+                                        <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
+                                            ${slot.count > 0 ? slot.count : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="occupancy-text">${label}</div>
+                            </li>
+                        `;
+                    }
                 });
 
                 timeline.innerHTML = html;
@@ -806,7 +827,8 @@
                         timeSlots.push({
                             timeLabel: startTime,
                             start: startTime,
-                            rooms: roomCounts
+                            rooms: roomCounts,
+                            isCharter: false  // 貸切フラグ
                         });
                     }
                 }
@@ -818,9 +840,14 @@
                         const resStart = timeToMinutes(res.start);
                         const resEnd = timeToMinutes(res.end);
                         if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
-                            const roomName = res.room_name || '個室B';
-                            if (slot.rooms.hasOwnProperty(roomName)) {
-                                slot.rooms[roomName]++;
+                            // 貸切の場合は全枠を満枠にする
+                            if (res.type === 'charter') {
+                                slot.isCharter = true;
+                            } else {
+                                const roomName = res.room_name || '個室B';
+                                if (slot.rooms.hasOwnProperty(roomName)) {
+                                    slot.rooms[roomName]++;
+                                }
                             }
                         }
                     });
@@ -832,33 +859,42 @@
                         <div class="time-label">${slot.start}</div>
                         <div style="flex: 1;">`;
 
-                    Object.keys(ROOMS).forEach(roomKey => {
-                        const roomInfo = ROOMS[roomKey];
-                        const count = slot.rooms[roomKey];
-                        const maxCapacity = roomInfo.max_capacity;
-                        const percentage = (count / maxCapacity) * 100;
-
-                        let colorClass = 'status-available';
-                        if (percentage >= 100) {
-                            colorClass = 'status-danger';
-                        } else if (percentage >= 50) {
-                            colorClass = 'status-warning';
-                        }
-
+                    // 貸切の場合は全ての部屋を満枠表示
+                    if (slot.isCharter) {
                         html += `
-                            <div style="margin-bottom: 8px;">
-                                <div style="font-size: 12px; color: #5E6C84; margin-bottom: 4px;">${roomInfo.display_name}</div>
-                                <div class="occupancy-bar-container">
-                                    <div class="occupancy-bar">
-                                        <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
-                                            ${count > 0 ? count : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="occupancy-text" style="font-size: 11px;">${count} / ${maxCapacity}</div>
+                            <div style="padding: 12px; background: linear-gradient(135deg, #FF5630 0%, #FF7452 100%); border-radius: 8px; text-align: center; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 86, 48, 0.3);">
+                                🔒 貸切利用
                             </div>
                         `;
-                    });
+                    } else {
+                        Object.keys(ROOMS).forEach(roomKey => {
+                            const roomInfo = ROOMS[roomKey];
+                            const count = slot.rooms[roomKey];
+                            const maxCapacity = roomInfo.max_capacity;
+                            const percentage = (count / maxCapacity) * 100;
+
+                            let colorClass = 'status-available';
+                            if (percentage >= 100) {
+                                colorClass = 'status-danger';
+                            } else if (percentage >= 50) {
+                                colorClass = 'status-warning';
+                            }
+
+                            html += `
+                                <div style="margin-bottom: 8px;">
+                                    <div style="font-size: 12px; color: #5E6C84; margin-bottom: 4px;">${roomInfo.display_name}</div>
+                                    <div class="occupancy-bar-container">
+                                        <div class="occupancy-bar">
+                                            <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
+                                                ${count > 0 ? count : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="occupancy-text" style="font-size: 11px;">${count} / ${maxCapacity}</div>
+                                </div>
+                            `;
+                        });
+                    }
 
                     html += `</div></li>`;
                 });
