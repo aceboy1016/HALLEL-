@@ -67,6 +67,7 @@ function processNewReservations() {
     }
 
     const newReservations = [];
+    const newCancellations = [];
 
     for (let thread of threads) {
       const messages = thread.getMessages();
@@ -83,37 +84,57 @@ function processNewReservations() {
         if (!body.includes('恵比寿')) continue;
 
         const emailData = parseReservationEmail(subject, body, emailDate);
-        if (emailData && emailData.actionType === 'reservation') {
-          newReservations.push(emailData);
-          Logger.log(`📧 新規予約: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
+        if (emailData) {
+          if (emailData.actionType === 'reservation') {
+            newReservations.push(emailData);
+            Logger.log(`📧 新規予約: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
+          } else if (emailData.actionType === 'cancellation') {
+            newCancellations.push(emailData);
+            Logger.log(`🗑️ キャンセル: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
+          }
         }
       }
     }
 
-    Logger.log(`\n📤 送信対象: ${newReservations.length}件`);
+    // 予約とキャンセルを結合
+    const allData = [...newReservations, ...newCancellations];
+    Logger.log(`\n📤 送信対象: ${allData.length}件（予約: ${newReservations.length}件, キャンセル: ${newCancellations.length}件）`);
 
-    if (newReservations.length === 0) {
-      Logger.log('⏭️ 送信対象の予約がありません');
+    if (allData.length === 0) {
+      Logger.log('⏭️ 送信対象のデータがありません');
       return;
     }
 
-    // Vercel APIに送信
-    const result = sendBatchToVercelAPI(newReservations);
+    // Vercel APIに送信（予約とキャンセル両方）
+    const result = sendBatchToVercelAPI(allData);
 
     if (result.success) {
       Logger.log(`✅ Vercel API送信成功: ${result.count}件`);
 
-      // カレンダーにも追加
+      // カレンダーにも反映
       const calendar = CalendarApp.getCalendarById(CONFIG.CALENDAR_ID);
       if (calendar) {
-        let calendarSuccess = 0;
+        let calendarAddSuccess = 0;
+        let calendarDeleteSuccess = 0;
+
+        // 予約をカレンダーに追加
         for (let res of newReservations) {
           const addResult = addReservationToCalendar(calendar, res);
           if (addResult.success) {
-            calendarSuccess++;
+            calendarAddSuccess++;
           }
         }
-        Logger.log(`✅ カレンダー追加成功: ${calendarSuccess}件`);
+
+        // キャンセルをカレンダーから削除
+        for (let res of newCancellations) {
+          const deleted = deleteReservationFromCalendar(calendar, res);
+          if (deleted > 0) {
+            calendarDeleteSuccess++;
+          }
+        }
+
+        Logger.log(`✅ カレンダー追加成功: ${calendarAddSuccess}件`);
+        Logger.log(`🗑️ カレンダー削除成功: ${calendarDeleteSuccess}件`);
       }
     } else {
       Logger.log(`❌ Vercel API送信失敗: ${result.error}`);
