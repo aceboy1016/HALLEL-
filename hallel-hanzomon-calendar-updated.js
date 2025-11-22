@@ -2,7 +2,8 @@
  * HALLEL半蔵門店 - Google Calendar同期スクリプト（部屋名対応版）
  *
  * 更新内容:
- * - メール本文から「個室A」「個室B」を抽出
+ * - メール本文から「STUDIO B ①」「STUDIO B ②」「STUDIO B ③」を抽出（新形式）
+ * - 旧形式「個室A」「個室B」にも互換対応
  * - カレンダーに「{顧客名} - HALLEL-{部屋名}」として表示
  * - 重複予約の自動削除
  */
@@ -177,30 +178,38 @@ function extractEventTime(body) {
  * 部屋名を抽出
  *
  * 対応パターン:
- * - 半蔵門店: 「個室A」「個室B」
+ * - 半蔵門店（新形式）: 「STUDIO B ①」「STUDIO B ②」「STUDIO B ③」
+ * - 半蔵門店（旧形式）: 「個室A」「個室B」
  * - 恵比寿店: 「STUDIO A」「STUDIO B」（念のため対応）
  */
 function extractStudio(body) {
-  // パターン1: 「ルーム： 【個室A】」
+  // パターン1: 「ルーム： 【STUDIO B ①】」など（半蔵門店新形式）
+  const studioB123Match = body.match(/ルーム[：:]\s*【(STUDIO B [①②③])】/);
+  if (studioB123Match) {
+    return studioB123Match[1]; // 「STUDIO B ①」「STUDIO B ②」「STUDIO B ③」
+  }
+
+  // パターン2: 本文中に「STUDIO B ①」「STUDIO B ②」「STUDIO B ③」が含まれている
+  if (body.includes('STUDIO B ①') || body.includes('STUDIO B①')) return 'STUDIO B ①';
+  if (body.includes('STUDIO B ②') || body.includes('STUDIO B②')) return 'STUDIO B ②';
+  if (body.includes('STUDIO B ③') || body.includes('STUDIO B③')) return 'STUDIO B ③';
+
+  // 旧形式互換: 「ルーム： 【個室A】」
   const roomMatch1 = body.match(/ルーム[：:]\s*【(個室[AB])】/);
   if (roomMatch1) {
     return roomMatch1[1]; // 「個室A」または「個室B」
   }
 
-  // パターン2: 「ルーム： 【STUDIO A】」（恵比寿店形式）
+  // 旧形式互換: 「ルーム： 【STUDIO A】」（恵比寿店形式）
   const roomMatch2 = body.match(/ルーム[：:]\s*【(STUDIO [AB])】/);
   if (roomMatch2) {
     // STUDIO A → 個室A、STUDIO B → 個室B に変換
     return roomMatch2[1] === 'STUDIO A' ? '個室A' : '個室B';
   }
 
-  // パターン3: 本文中に「個室A」「個室B」が含まれている
-  if (body.includes('個室A')) {
-    return '個室A';
-  }
-  if (body.includes('個室B')) {
-    return '個室B';
-  }
+  // 旧形式互換: 本文中に「個室A」「個室B」が含まれている
+  if (body.includes('個室A')) return '個室A';
+  if (body.includes('個室B')) return '個室B';
 
   // デフォルト
   return 'Unknown';
@@ -265,22 +274,36 @@ function checkHanzomonReservations() {
 
   Logger.log(`📅 今後7日間の予約: ${events.length}件\n`);
 
-  // 部屋名別の集計
-  const roomCounts = { '個室A': 0, '個室B': 0, 'Unknown': 0, '旧形式': 0 };
+  // 部屋名別の集計（新形式 STUDIO B ①〜③ 対応）
+  const roomCounts = {
+    'STUDIO B ①': 0,
+    'STUDIO B ②': 0,
+    'STUDIO B ③': 0,
+    '個室A': 0,
+    '個室B': 0,
+    'Unknown': 0,
+    '旧形式': 0
+  };
 
   for (let event of events) {
     const title = event.getTitle();
     Logger.log(`${formatDateTime(event.getStartTime())} - ${formatTime(event.getEndTime())}: ${title}`);
 
-    if (title.includes('HALLEL-個室A')) roomCounts['個室A']++;
+    if (title.includes('HALLEL-STUDIO B ①')) roomCounts['STUDIO B ①']++;
+    else if (title.includes('HALLEL-STUDIO B ②')) roomCounts['STUDIO B ②']++;
+    else if (title.includes('HALLEL-STUDIO B ③')) roomCounts['STUDIO B ③']++;
+    else if (title.includes('HALLEL-個室A')) roomCounts['個室A']++;
     else if (title.includes('HALLEL-個室B')) roomCounts['個室B']++;
     else if (title.includes('HALLEL-Unknown')) roomCounts['Unknown']++;
     else if (title.includes('HALLEL') && !title.includes('-')) roomCounts['旧形式']++;
   }
 
   Logger.log(`\n部屋名別の集計:`);
-  Logger.log(`  個室A: ${roomCounts['個室A']}件`);
-  Logger.log(`  個室B: ${roomCounts['個室B']}件`);
+  Logger.log(`  STUDIO B ①: ${roomCounts['STUDIO B ①']}件`);
+  Logger.log(`  STUDIO B ②: ${roomCounts['STUDIO B ②']}件`);
+  Logger.log(`  STUDIO B ③: ${roomCounts['STUDIO B ③']}件`);
+  Logger.log(`  個室A（旧形式）: ${roomCounts['個室A']}件`);
+  Logger.log(`  個室B（旧形式）: ${roomCounts['個室B']}件`);
   Logger.log(`  Unknown: ${roomCounts['Unknown']}件`);
   Logger.log(`  旧形式（部屋名なし）: ${roomCounts['旧形式']}件`);
 
