@@ -379,19 +379,30 @@ function extractEventTime(body) {
 }
 
 function extractStudio(body) {
-  // パターン1: 「ルーム： 【個室A】」
+  // パターン1: 「ルーム： 【STUDIO B ①】」など（半蔵門店新形式）
+  const studioB123Match = body.match(/ルーム[：:]\s*【(STUDIO B [①②③])】/);
+  if (studioB123Match) {
+    return studioB123Match[1]; // 「STUDIO B ①」「STUDIO B ②」「STUDIO B ③」
+  }
+
+  // パターン2: 本文中に「STUDIO B ①」「STUDIO B ②」「STUDIO B ③」が含まれている
+  if (body.includes('STUDIO B ①') || body.includes('STUDIO B①')) return 'STUDIO B ①';
+  if (body.includes('STUDIO B ②') || body.includes('STUDIO B②')) return 'STUDIO B ②';
+  if (body.includes('STUDIO B ③') || body.includes('STUDIO B③')) return 'STUDIO B ③';
+
+  // 旧形式互換: 「ルーム： 【個室A】」
   const roomMatch1 = body.match(/ルーム[：:]\s*【(個室[AB])】/);
   if (roomMatch1) {
     return roomMatch1[1]; // 「個室A」または「個室B」
   }
 
-  // パターン2: 「ルーム： 【STUDIO A】」（恵比寿店形式）
+  // 旧形式互換: 「ルーム： 【STUDIO A】」（恵比寿店形式）
   const roomMatch2 = body.match(/ルーム[：:]\s*【(STUDIO [AB])】/);
   if (roomMatch2) {
     return roomMatch2[1] === 'STUDIO A' ? '個室A' : '個室B';
   }
 
-  // パターン3: 本文中に「個室A」「個室B」が含まれている
+  // 旧形式互換: 本文中に「個室A」「個室B」が含まれている
   if (body.includes('個室A')) return '個室A';
   if (body.includes('個室B')) return '個室B';
 
