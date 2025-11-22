@@ -7,8 +7,8 @@
  *
  * 解決:
  * - 各日時・時間枠ごとに最新のメールのみを選択
- * - 最新がキャンセルなら送信しない
- * - 最新が予約なら送信する
+ * - 最新の状態（予約またはキャンセル）をAPIに送信
+ * - キャンセル情報もVercel側で処理できるよう送信する
  */
 function processLatestReservationsOnly() {
   Logger.log('='.repeat(80));
@@ -107,17 +107,16 @@ function processLatestReservationsOnly() {
       Logger.log(`重複: ${key.split('|')[1]} ${key.split('|')[2]}-${key.split('|')[3]} ${key.split('|')[4]} (${emails.length}件 → 最新: ${latest.isCancellation ? 'キャンセル' : '予約'})`);
     }
 
-    // 最新がキャンセルでない場合のみ追加
-    if (!latest.isCancellation) {
-      latestOnly.push(latest);
-    } else {
+    // 最新の状態をAPIに送信（予約もキャンセルも両方送信）
+    latestOnly.push(latest);
+    if (latest.isCancellation) {
       cancelledCount++;
     }
   });
 
   Logger.log(`\n重複があった枠: ${duplicateCount}件`);
   Logger.log(`最新がキャンセル: ${cancelledCount}件`);
-  Logger.log(`送信対象の予約: ${latestOnly.length}件\n`);
+  Logger.log(`送信対象（予約＋キャンセル）: ${latestOnly.length}件\n`);
 
   // ステップ4: API送信
   Logger.log('='.repeat(80));
@@ -166,14 +165,14 @@ function processLatestReservationsOnly() {
   Logger.log(`全メール数: ${allEmails.length}件`);
   Logger.log(`重複あり: ${duplicateCount}件`);
   Logger.log(`最新がキャンセル: ${cancelledCount}件`);
-  Logger.log(`送信対象: ${latestOnly.length}件`);
+  Logger.log(`送信対象（予約＋キャンセル）: ${latestOnly.length}件`);
   Logger.log(`API送信成功: ${totalSuccess}件`);
   Logger.log(`API送信失敗: ${totalFailed}件`);
   Logger.log('='.repeat(80));
 
   if (totalSuccess === latestOnly.length) {
     Logger.log('\n✅ 最新状態のみをVercel APIに送信完了！');
-    Logger.log('重複と古い予約・キャンセルは除外されました。');
+    Logger.log('重複は除外され、キャンセル情報も含めて送信されました。');
   } else if (totalFailed > 0) {
     Logger.log('\n⚠️ 一部のメールでAPI送信が失敗しました。');
   }
