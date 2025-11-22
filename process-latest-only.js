@@ -225,11 +225,34 @@ function extractCustomerName(body) {
  * メール本文から部屋名を抽出
  *
  * 対応パターン:
+ * - 渋谷店: 「STUDIO ①」「STUDIO ②」「STUDIO ③」「STUDIO ④」「STUDIO ⑤」
  * - 恵比寿店: 「STUDIO A」「STUDIO B」
  * - 半蔵門店: 「個室A」「個室B」
  * - 中目黒店: 「格闘技エリア」「フリーウエイトエリア」
  */
 function extractRoomName(body) {
+  // 渋谷店: STUDIO ①〜⑤
+  if (body.includes('STUDIO ①') || body.includes('STUDIO①')) {
+    Logger.log('[DEBUG] STUDIO ①を検出');
+    return 'STUDIO ①';
+  }
+  if (body.includes('STUDIO ②') || body.includes('STUDIO②')) {
+    Logger.log('[DEBUG] STUDIO ②を検出');
+    return 'STUDIO ②';
+  }
+  if (body.includes('STUDIO ③') || body.includes('STUDIO③')) {
+    Logger.log('[DEBUG] STUDIO ③を検出');
+    return 'STUDIO ③';
+  }
+  if (body.includes('STUDIO ④') || body.includes('STUDIO④')) {
+    Logger.log('[DEBUG] STUDIO ④を検出');
+    return 'STUDIO ④';
+  }
+  if (body.includes('STUDIO ⑤') || body.includes('STUDIO⑤')) {
+    Logger.log('[DEBUG] STUDIO ⑤を検出');
+    return 'STUDIO ⑤';
+  }
+
   // 中目黒店: 格闘技エリア
   if (body.includes('格闘技エリア')) {
     Logger.log('[DEBUG] 格闘技エリアを検出');
