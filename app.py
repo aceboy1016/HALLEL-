@@ -1035,19 +1035,14 @@ def gas_webhook():
             with conn.cursor() as cur:
                 for i, res in enumerate(reservations):
                     # キャンセルの場合は削除
+                    # 注意: キャンセルメールと予約メールは別のメールなのでemail_idが異なる
+                    # そのため、日付・時間・顧客名で削除する
                     if res.get('is_cancellation'):
-                        email_id = res.get('email_id')
-                        if email_id:
-                            cur.execute("""
-                                DELETE FROM reservations
-                                WHERE email_id = %s AND store = %s AND type = 'gmail'
-                            """, (email_id, res.get('store', 'shibuya')))
-                        else:
-                            # email_idがない場合は日付・時間で削除
-                            cur.execute("""
-                                DELETE FROM reservations
-                                WHERE date = %s AND start_time = %s AND store = %s AND type = 'gmail'
-                            """, (res['date'], res['start'], res.get('store', 'shibuya')))
+                        customer_name = res.get('customer_name', 'N/A')
+                        cur.execute("""
+                            DELETE FROM reservations
+                            WHERE date = %s AND start_time = %s AND customer_name = %s AND store = %s AND type = 'gmail'
+                        """, (res['date'], res['start'], customer_name, res.get('store', 'shibuya')))
                         deleted_count += cur.rowcount
                         print(f'[DEBUG] Deleted cancellation: {res["date"]} {res["start"]}')
 
