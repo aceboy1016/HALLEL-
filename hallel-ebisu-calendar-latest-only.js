@@ -473,9 +473,10 @@ function syncLatestReservationsToAPI() {
     const latestOnly = extractLatestReservations(allEmails);
     Logger.log(`✅ 抽出完了: ${latestOnly.length}件\n`);
 
-    // ステップ3: 予約のみをフィルタ（キャンセルは除外）
-    const reservationsOnly = latestOnly.filter(r => r.actionType === 'reservation');
-    Logger.log(`📤 送信対象（予約のみ）: ${reservationsOnly.length}件\n`);
+    // ステップ3: 予約とキャンセルの両方を送信
+    const reservationCount = latestOnly.filter(r => r.actionType === 'reservation').length;
+    const cancellationCount = latestOnly.filter(r => r.actionType === 'cancellation').length;
+    Logger.log(`📤 送信対象: ${latestOnly.length}件（予約: ${reservationCount}件, キャンセル: ${cancellationCount}件）\n`);
 
     // ステップ4: Vercel APIに送信
     Logger.log('='.repeat(80));
@@ -486,10 +487,10 @@ function syncLatestReservationsToAPI() {
     let totalSuccess = 0;
     let totalFailed = 0;
 
-    for (let i = 0; i < reservationsOnly.length; i += BATCH_SIZE) {
-      const batch = reservationsOnly.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < latestOnly.length; i += BATCH_SIZE) {
+      const batch = latestOnly.slice(i, i + BATCH_SIZE);
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(reservationsOnly.length / BATCH_SIZE);
+      const totalBatches = Math.ceil(latestOnly.length / BATCH_SIZE);
 
       Logger.log(`\n【バッチ ${batchNum}/${totalBatches}】 ${batch.length}件を送信中...`);
 
@@ -503,7 +504,7 @@ function syncLatestReservationsToAPI() {
         totalFailed += batch.length;
       }
 
-      if (i + BATCH_SIZE < reservationsOnly.length) {
+      if (i + BATCH_SIZE < latestOnly.length) {
         Utilities.sleep(1000);
       }
     }
@@ -513,12 +514,13 @@ function syncLatestReservationsToAPI() {
     Logger.log('【処理完了】');
     Logger.log(`全メール数: ${allEmails.length}件`);
     Logger.log(`最新状態: ${latestOnly.length}件`);
-    Logger.log(`送信対象（予約のみ）: ${reservationsOnly.length}件`);
+    Logger.log(`  - 予約: ${reservationCount}件`);
+    Logger.log(`  - キャンセル: ${cancellationCount}件`);
     Logger.log(`API送信成功: ${totalSuccess}件`);
     Logger.log(`API送信失敗: ${totalFailed}件`);
     Logger.log('='.repeat(80));
 
-    if (totalSuccess === reservationsOnly.length) {
+    if (totalSuccess === latestOnly.length) {
       Logger.log('\n✅ 恵比寿店の最新状態をVercel APIに送信完了！');
     } else if (totalFailed > 0) {
       Logger.log('\n⚠️ 一部のメールでAPI送信が失敗しました。');
@@ -528,7 +530,8 @@ function syncLatestReservationsToAPI() {
       success: true,
       total: allEmails.length,
       latest: latestOnly.length,
-      sent: reservationsOnly.length,
+      reservations: reservationCount,
+      cancellations: cancellationCount,
       apiSuccess: totalSuccess,
       apiFailed: totalFailed
     };
@@ -556,7 +559,7 @@ function sendBatchToVercelAPI(reservations) {
         room_name: r.studio || '個室B',
         store: 'ebisu',
         type: 'gmail',
-        is_cancellation: false,
+        is_cancellation: r.actionType === 'cancellation',
         source: 'gas_sync',
         email_id: '',
         email_subject: '',
