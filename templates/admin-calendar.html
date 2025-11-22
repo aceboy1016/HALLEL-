@@ -525,7 +525,7 @@
             opacity: 0.5;
         }
 
-        /* 今月ボタンのカスタムアイコン */
+        /* 本日ボタンのカスタムアイコン */
         #today-btn {
             position: relative;
             padding-left: 2.5rem !important;
@@ -549,7 +549,7 @@
             -webkit-mask-position: center;
         }
 
-        /* flatpickrカレンダー内の今月ボタン */
+        /* flatpickrカレンダー内の本日ボタン */
         .flatpickr-calendar .flatpickr-today-btn {
             width: 100%;
             padding: 0.75rem;
@@ -612,7 +612,7 @@
                     <button id="prev-day" class="btn">‹ 前日</button>
                     <input type="date" id="date-picker" class="form-control">
                     <button id="next-day" class="btn">翌日 ›</button>
-                    <button id="today-btn" class="btn" style="background: linear-gradient(135deg, #0052CC 0%, #667eea 100%); color: white; border: none; font-weight: 600;">今月</button>
+                    <button id="today-btn" class="btn" style="background: linear-gradient(135deg, #0052CC 0%, #667eea 100%); color: white; border: none; font-weight: 600;">本日</button>
                 </div>
                 <p class="lead" id="current-date"></p>
                 <div class="reservation-count" id="reservation-count">📊 予約件数: 0件</div>
@@ -752,7 +752,7 @@
                     if (!calendarContainer.querySelector('.flatpickr-today-btn')) {
                         const todayButton = document.createElement('button');
                         todayButton.className = 'flatpickr-today-btn';
-                        todayButton.textContent = '今月';
+                        todayButton.textContent = '本日';
                         todayButton.type = 'button';
                         todayButton.addEventListener('click', function() {
                             instance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
