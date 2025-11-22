@@ -751,7 +751,9 @@
                             <label for="date-filter" class="form-label">日付を選択</label>
                             <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
                         </div>
-                        <button id="today-btn" class="btn btn-primary">今月</button>
+                        <button id="prev-day-btn" class="btn btn-outline-secondary">◀ 前日</button>
+                        <button id="today-btn" class="btn btn-primary">本日</button>
+                        <button id="next-day-btn" class="btn btn-outline-secondary">翌日 ▶</button>
                     </div>
                     <div>
                         <button id="cleanup-btn" class="btn btn-danger">
@@ -886,12 +888,12 @@
                     loadReservations();
                 },
                 onReady: function(selectedDates, dateStr, instance) {
-                    // カレンダー内に今月ボタンを追加
+                    // カレンダー内に本日ボタンを追加
                     const calendarContainer = instance.calendarContainer;
                     if (!calendarContainer.querySelector('.flatpickr-today-btn')) {
                         const todayButton = document.createElement('button');
                         todayButton.className = 'flatpickr-today-btn';
-                        todayButton.textContent = '今月';
+                        todayButton.textContent = '本日';
                         todayButton.type = 'button';
                         todayButton.addEventListener('click', function() {
                             instance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
@@ -902,10 +904,28 @@
                 }
             });
 
-            // 今月ボタン
+            // 本日ボタン
             const todayBtn = document.getElementById('today-btn');
             todayBtn.addEventListener('click', () => {
                 datePickerInstance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
+            });
+
+            // 前日ボタン
+            const prevDayBtn = document.getElementById('prev-day-btn');
+            prevDayBtn.addEventListener('click', () => {
+                const currentDate = datePickerInstance.selectedDates[0] || new Date();
+                const prevDay = new Date(currentDate);
+                prevDay.setDate(prevDay.getDate() - 1);
+                datePickerInstance.setDate(prevDay, true);
+            });
+
+            // 翌日ボタン
+            const nextDayBtn = document.getElementById('next-day-btn');
+            nextDayBtn.addEventListener('click', () => {
+                const currentDate = datePickerInstance.selectedDates[0] || new Date();
+                const nextDay = new Date(currentDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+                datePickerInstance.setDate(nextDay, true);
             });
 
             // 予約データを取得して表示
