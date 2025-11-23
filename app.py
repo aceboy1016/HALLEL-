@@ -1666,6 +1666,224 @@ def check_availability():
         }), 500
 
 
+@app.route('/api/availability/detailed', methods=['GET'])
+def check_availability_detailed():
+    """
+    詳細空き状況取得API（時間帯別・部屋別）
+
+    Query Parameters:
+    - date: 日付 (YYYY-MM-DD)
+    - start_time: 開始時刻 (HH:MM)
+    - end_time: 終了時刻 (HH:MM)
+
+    Response:
+    {
+        "date": "2025-12-01",
+        "start_time": "10:00",
+        "end_time": "17:00",
+        "stores": [
+            {
+                "store": "shibuya",
+                "store_name": "渋谷店",
+                "has_rooms": false,
+                "max_slots": 7,
+                "available_slots": [
+                    {"start": "10:00", "end": "12:00", "slots": 3},
+                    {"start": "14:00", "end": "17:00", "slots": 5}
+                ]
+            },
+            {
+                "store": "ebisu",
+                "store_name": "恵比寿店",
+                "has_rooms": true,
+                "rooms": [
+                    {"room_name": "個室A", "available_times": [{"start": "12:00", "end": "17:00"}]},
+                    {"room_name": "個室B", "available_times": [{"start": "10:00", "end": "17:00"}]}
+                ]
+            }
+        ]
+    }
+    """
+    try:
+        date = request.args.get('date')
+        start_time = request.args.get('start_time')
+        end_time = request.args.get('end_time')
+
+        if not all([date, start_time, end_time]):
+            return jsonify({
+                'error': 'Missing required parameters',
+                'required': ['date', 'start_time', 'end_time']
+            }), 400
+
+        def time_to_minutes(t):
+            h, m = map(int, t.split(':'))
+            return h * 60 + m
+
+        def minutes_to_time(minutes):
+            h, m = divmod(minutes, 60)
+            return f"{h:02d}:{m:02d}"
+
+        start_minutes = time_to_minutes(start_time)
+        end_minutes = time_to_minutes(end_time)
+
+        # 30分単位で時間スロットを生成
+        time_slots = []
+        current = start_minutes
+        while current < end_minutes:
+            time_slots.append(minutes_to_time(current))
+            current += 30
+
+        conn = get_db_conn()
+        try:
+            with conn.cursor() as cur:
+                results = []
+
+                for store_id, store_info in STORE_CONFIG.items():
+                    store_name = store_info['name_jp']
+                    max_slots = store_info['max_slots']
+                    has_rooms = store_info.get('rooms') is not None
+
+                    if has_rooms:
+                        # 部屋がある店舗: 各部屋の空き時間帯を取得
+                        rooms_data = []
+
+                        # 予約されている部屋と時間を取得
+                        cur.execute("""
+                            SELECT room_name, start_time, end_time
+                            FROM reservations
+                            WHERE date = %s AND store = %s
+                            ORDER BY room_name, start_time
+                        """, (date, store_id))
+                        reservations = cur.fetchall()
+
+                        # 部屋ごとの予約をマップ
+                        room_reservations = {}
+                        for room_name, res_start, res_end in reservations:
+                            if room_name not in room_reservations:
+                                room_reservations[room_name] = []
+                            room_reservations[room_name].append((str(res_start)[:5], str(res_end)[:5]))
+
+                        # 各部屋の空き時間を計算
+                        for room_name in store_info['rooms'].keys():
+                            available_times = []
+                            reservations_for_room = room_reservations.get(room_name, [])
+
+                            # 各時間スロットが空いているかチェック
+                            slot_available = []
+                            for slot in time_slots:
+                                slot_mins = time_to_minutes(slot)
+                                is_available = True
+                                for res_start, res_end in reservations_for_room:
+                                    res_start_mins = time_to_minutes(res_start)
+                                    res_end_mins = time_to_minutes(res_end)
+                                    if res_start_mins <= slot_mins < res_end_mins:
+                                        is_available = False
+                                        break
+                                slot_available.append((slot, is_available))
+
+                            # 連続した空き時間をまとめる
+                            i = 0
+                            while i < len(slot_available):
+                                if slot_available[i][1]:  # 空いている
+                                    range_start = slot_available[i][0]
+                                    j = i
+                                    while j < len(slot_available) and slot_available[j][1]:
+                                        j += 1
+                                    # 終了時刻は最後の空きスロット + 30分
+                                    range_end_mins = time_to_minutes(slot_available[j-1][0]) + 30
+                                    if range_end_mins > end_minutes:
+                                        range_end_mins = end_minutes
+                                    range_end = minutes_to_time(range_end_mins)
+                                    available_times.append({
+                                        'start': range_start,
+                                        'end': range_end
+                                    })
+                                    i = j
+                                else:
+                                    i += 1
+
+                            if available_times:
+                                rooms_data.append({
+                                    'room_name': room_name,
+                                    'available_times': available_times
+                                })
+
+                        if rooms_data:
+                            results.append({
+                                'store': store_id,
+                                'store_name': store_name,
+                                'has_rooms': True,
+                                'rooms': rooms_data
+                            })
+
+                    else:
+                        # 部屋がない店舗: 各時間帯の空き枠数を取得
+                        slot_data = []
+
+                        for slot in time_slots:
+                            cur.execute("""
+                                SELECT COUNT(*) FROM reservations
+                                WHERE date = %s
+                                AND store = %s
+                                AND start_time <= %s
+                                AND end_time > %s
+                            """, (date, store_id, slot, slot))
+                            occupied = cur.fetchone()[0]
+                            remaining = max_slots - occupied
+                            slot_data.append((slot, remaining))
+
+                        # 連続した同じ空き枠数の時間帯をまとめる
+                        available_slots = []
+                        i = 0
+                        while i < len(slot_data):
+                            if slot_data[i][1] > 0:  # 空きがある
+                                range_start = slot_data[i][0]
+                                current_slots = slot_data[i][1]
+                                min_slots = current_slots
+                                j = i
+                                while j < len(slot_data) and slot_data[j][1] > 0:
+                                    min_slots = min(min_slots, slot_data[j][1])
+                                    j += 1
+                                range_end_mins = time_to_minutes(slot_data[j-1][0]) + 30
+                                if range_end_mins > end_minutes:
+                                    range_end_mins = end_minutes
+                                range_end = minutes_to_time(range_end_mins)
+                                available_slots.append({
+                                    'start': range_start,
+                                    'end': range_end,
+                                    'slots': min_slots
+                                })
+                                i = j
+                            else:
+                                i += 1
+
+                        if available_slots:
+                            results.append({
+                                'store': store_id,
+                                'store_name': store_name,
+                                'has_rooms': False,
+                                'max_slots': max_slots,
+                                'available_slots': available_slots
+                            })
+
+                return jsonify({
+                    'date': date,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'stores': results
+                }), 200
+
+        finally:
+            return_db_conn(conn)
+
+    except Exception as e:
+        log_activity(f'availability_detailed error: {str(e)}')
+        return jsonify({
+            'error': 'Internal server error',
+            'details': str(e)
+        }), 500
+
+
 @app.route('/api/stores', methods=['GET'])
 def get_stores():
     """

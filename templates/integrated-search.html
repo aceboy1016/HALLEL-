@@ -145,54 +145,66 @@
             transform: translateY(-2px);
         }
 
-        .store-result.available {
-            border-left: 4px solid var(--success);
-        }
-
-        .store-result.unavailable {
-            border-left: 4px solid var(--danger);
-            opacity: 0.7;
-        }
-
         .store-result h3 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--neutral-100);
         }
 
-        .availability-badge {
-            display: inline-block;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 1rem;
+        .availability-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
         }
 
-        .availability-badge.available {
+        .availability-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--neutral-50);
+        }
+
+        .availability-item:last-child {
+            border-bottom: none;
+        }
+
+        .availability-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
             background: var(--success);
-            color: white;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
         }
 
-        .availability-badge.unavailable {
-            background: var(--danger);
-            color: white;
+        .availability-time {
+            font-weight: 500;
+            min-width: 110px;
         }
 
-        .store-info {
+        .availability-slots {
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            margin-left: auto;
+        }
+
+        .room-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-right: 0.5rem;
         }
 
         .btn-book {
             background: var(--primary-blue);
             color: white;
             text-decoration: none;
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 4px;
             display: inline-block;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
             transition: background 0.2s;
         }
 
@@ -298,7 +310,7 @@
             const dateStr = today.toISOString().split('T')[0];
             document.getElementById('search-date').value = dateStr;
             document.getElementById('search-start-time').value = '10:00';
-            document.getElementById('search-end-time').value = '12:00';
+            document.getElementById('search-end-time').value = '17:00';
         });
 
         async function searchAvailability() {
@@ -315,21 +327,10 @@
             resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div><p>検索中...</p></div>';
 
             try {
-                const promises = stores.map(store =>
-                    fetch(`/api/availability?date=${date}&start_time=${startTime}&end_time=${endTime}&store=${store.id}`)
-                        .then(res => res.json())
-                );
+                const response = await fetch(`/api/availability/detailed?date=${date}&start_time=${startTime}&end_time=${endTime}`);
+                const data = await response.json();
 
-                const results = await Promise.all(promises);
-
-                // 空き状況でソート（空きがある店舗を先に表示）
-                results.sort((a, b) => {
-                    if (a.available && !b.available) return -1;
-                    if (!a.available && b.available) return 1;
-                    return b.remaining_slots - a.remaining_slots;
-                });
-
-                renderResults(results);
+                renderResults(data);
 
             } catch (error) {
                 console.error('検索エラー:', error);
@@ -337,37 +338,50 @@
             }
         }
 
-        function renderResults(results) {
+        function renderResults(data) {
             const resultsContainer = document.getElementById('results');
 
-            if (results.length === 0) {
-                resultsContainer.innerHTML = '<div class="no-results"><p>結果が見つかりませんでした。</p></div>';
+            if (!data.stores || data.stores.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results"><p>指定の時間帯に空きのある店舗はありませんでした。</p></div>';
                 return;
             }
 
-            const availableCount = results.filter(r => r.available).length;
-
             let html = '';
 
-            if (availableCount === 0) {
-                html += '<div class="no-results"><p>すみません、指定の日時は全ての店舗で満室です。</p></div>';
-            }
+            data.stores.forEach(store => {
+                html += `<div class="store-result">`;
+                html += `<h3>${store.store_name}</h3>`;
+                html += `<ul class="availability-list">`;
 
-            results.forEach(result => {
-                const availableClass = result.available ? 'available' : 'unavailable';
-                const badgeText = result.available
-                    ? `予約可能（残り${result.remaining_slots}枠）`
-                    : '満室';
+                if (store.has_rooms) {
+                    // 部屋がある店舗
+                    store.rooms.forEach(room => {
+                        room.available_times.forEach(time => {
+                            html += `
+                                <li class="availability-item">
+                                    <span class="availability-dot"></span>
+                                    <span class="room-name">${room.room_name}:</span>
+                                    <span class="availability-time">${time.start}-${time.end}</span>
+                                </li>
+                            `;
+                        });
+                    });
+                } else {
+                    // 部屋がない店舗（枠数表示）
+                    store.available_slots.forEach(slot => {
+                        html += `
+                            <li class="availability-item">
+                                <span class="availability-dot"></span>
+                                <span class="availability-time">${slot.start}-${slot.end}</span>
+                                <span class="availability-slots">空き${slot.slots}枠</span>
+                            </li>
+                        `;
+                    });
+                }
 
-                html += `
-                    <div class="store-result ${availableClass}">
-                        <h3>${result.store_name}</h3>
-                        <div class="availability-badge ${availableClass}">${badgeText}</div>
-                        <div class="store-info">最大枠数: ${result.total_slots}枠</div>
-                        <div class="store-info">使用中: ${result.occupied_slots}枠</div>
-                        ${result.available ? `<a href="/${result.store}" class="btn-book">この店舗の予約状況を見る →</a>` : ''}
-                    </div>
-                `;
+                html += `</ul>`;
+                html += `<a href="/${store.store}" class="btn-book">予約状況を見る →</a>`;
+                html += `</div>`;
             });
 
             resultsContainer.innerHTML = html;
