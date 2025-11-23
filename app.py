@@ -84,7 +84,7 @@ STORE_CONFIG = {
             '個室A': {'display_name': 'STUDIO A（個室）', 'max_capacity': 1},
             '個室B': {'display_name': 'STUDIO B（オープン）', 'max_capacity': 3}
         },
-        'hours': {'start': 8, 'end': 22}  # 8:00-22:00
+        'hours': {'start': 8.5, 'end': 22}  # 8:30-22:00
     }
 }
 
@@ -1743,6 +1743,26 @@ def check_availability_detailed():
                     max_slots = store_info['max_slots']
                     has_rooms = store_info.get('rooms') is not None
 
+                    # 店舗の営業時間を取得し、検索範囲をクリップ
+                    store_hours = store_info.get('hours', {'start': 0, 'end': 24})
+                    store_open_minutes = int(store_hours['start'] * 60)
+                    store_close_minutes = int(store_hours['end'] * 60)
+
+                    # 検索範囲を営業時間でクリップ
+                    store_start_minutes = max(start_minutes, store_open_minutes)
+                    store_end_minutes = min(end_minutes, store_close_minutes)
+
+                    # 営業時間外の場合はスキップ
+                    if store_start_minutes >= store_end_minutes:
+                        continue
+
+                    # この店舗用の時間スロットを生成
+                    store_time_slots = []
+                    current = store_start_minutes
+                    while current < store_end_minutes:
+                        store_time_slots.append(minutes_to_time(current))
+                        current += 30
+
                     if has_rooms:
                         # 部屋がある店舗: 各部屋の空き時間帯を取得
                         rooms_data = []
@@ -1770,7 +1790,7 @@ def check_availability_detailed():
 
                             # 各時間スロットが空いているかチェック
                             slot_available = []
-                            for slot in time_slots:
+                            for slot in store_time_slots:
                                 slot_mins = time_to_minutes(slot)
                                 is_available = True
                                 for res_start, res_end in reservations_for_room:
@@ -1791,8 +1811,8 @@ def check_availability_detailed():
                                         j += 1
                                     # 終了時刻は最後の空きスロット + 30分
                                     range_end_mins = time_to_minutes(slot_available[j-1][0]) + 30
-                                    if range_end_mins > end_minutes:
-                                        range_end_mins = end_minutes
+                                    if range_end_mins > store_end_minutes:
+                                        range_end_mins = store_end_minutes
                                     range_end = minutes_to_time(range_end_mins)
                                     available_times.append({
                                         'start': range_start,
@@ -1820,10 +1840,10 @@ def check_availability_detailed():
                         # 部屋がない店舗: 1時間単位で空き枠数を取得
                         available_slots = []
 
-                        # 1時間単位でループ
-                        hour_start = start_minutes
-                        while hour_start < end_minutes:
-                            hour_end = min(hour_start + 60, end_minutes)
+                        # 1時間単位でループ（営業時間を考慮）
+                        hour_start = store_start_minutes
+                        while hour_start < store_end_minutes:
+                            hour_end = min(hour_start + 60, store_end_minutes)
 
                             # この1時間内の30分スロットの空き枠数を取得
                             slots_in_hour = []
