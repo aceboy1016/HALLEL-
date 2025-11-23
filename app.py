@@ -1595,16 +1595,52 @@ def check_availability():
         conn = get_db_conn()
         try:
             with conn.cursor() as cur:
-                # 指定日時に重なる予約を検索
-                cur.execute("""
-                    SELECT COUNT(*) FROM reservations
-                    WHERE date = %s
-                    AND start_time < %s
-                    AND end_time > %s
-                    AND store = %s
-                """, (date, end_time, start_time, store))
+                # 時間を分に変換するヘルパー関数
+                def time_to_minutes(t):
+                    h, m = map(int, t.split(':'))
+                    return h * 60 + m
 
-                occupied_slots = cur.fetchone()[0]
+                def minutes_to_time(minutes):
+                    h, m = divmod(minutes, 60)
+                    return f"{h:02d}:{m:02d}"
+
+                start_minutes = time_to_minutes(start_time)
+                end_minutes = time_to_minutes(end_time)
+
+                # 30分単位で時間スロットを生成
+                time_slots = []
+                current = start_minutes
+                while current < end_minutes:
+                    time_slots.append(minutes_to_time(current))
+                    current += 30
+
+                # 各時間スロットで使用中の部屋数をカウントし、最大値を取る
+                max_occupied = 0
+
+                for slot in time_slots:
+                    # room_nameがある店舗はDISTINCT room_nameでカウント
+                    # ない店舗（渋谷、代々木上原）は予約数をカウント
+                    if store_info.get('rooms'):
+                        cur.execute("""
+                            SELECT COUNT(DISTINCT room_name) FROM reservations
+                            WHERE date = %s
+                            AND store = %s
+                            AND start_time <= %s
+                            AND end_time > %s
+                        """, (date, store, slot, slot))
+                    else:
+                        cur.execute("""
+                            SELECT COUNT(*) FROM reservations
+                            WHERE date = %s
+                            AND store = %s
+                            AND start_time <= %s
+                            AND end_time > %s
+                        """, (date, store, slot, slot))
+
+                    occupied = cur.fetchone()[0]
+                    max_occupied = max(max_occupied, occupied)
+
+                occupied_slots = max_occupied
                 remaining_slots = max_slots - occupied_slots
 
                 return jsonify({
