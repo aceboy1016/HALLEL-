@@ -620,14 +620,20 @@ function testAPIConnection() {
     Logger.log(`ステータスコード: ${statusCode}`);
     Logger.log(`レスポンス: ${responseText.substring(0, 500)}`);
 
+    // 400エラーで"No reservations provided"は接続成功（空データを送ったため）
+    // 401/403は認証エラー、500系はサーバーエラー
     if (statusCode >= 200 && statusCode < 300) {
       Logger.log('✅ API接続成功！');
+    } else if (statusCode === 400 && responseText.includes('No reservations provided')) {
+      Logger.log('✅ API接続成功！（空データテスト - 期待通りの400レスポンス）');
+    } else if (statusCode === 401 || statusCode === 403) {
+      Logger.log('❌ API認証エラー - APIキーを確認してください');
     } else {
-      Logger.log('❌ API接続失敗');
+      Logger.log(`❌ API接続失敗 (HTTP ${statusCode})`);
     }
 
   } catch (error) {
-    Logger.log(`❌ エラー: ${error.message}`);
+    Logger.log(`❌ ネットワークエラー: ${error.message}`);
   }
 }
 
