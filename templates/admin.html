@@ -214,6 +214,126 @@
             -webkit-mask-size: contain;
         }
 
+        /* 予約管理カードヘッダー */
+        .card-header-calendar::before {
+            width: 20px;
+            height: 20px;
+            background: var(--text-light);
+            border-radius: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* パスワードカードヘッダー */
+        .card-header-key::before {
+            width: 20px;
+            height: 20px;
+            background: var(--text-light);
+            border-radius: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* アクティビティログカードヘッダー */
+        .card-header-chart::before {
+            width: 20px;
+            height: 20px;
+            background: var(--text-light);
+            border-radius: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* SVGアイコン付きボタン */
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-icon::before {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .btn-icon-trash::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .btn-icon-lock::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* 全店舗タブアイコン */
+        .nav-link-building {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link-building::before {
+            content: '';
+            width: 14px;
+            height: 14px;
+            background: currentColor;
+            flex-shrink: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* バッジ用アイコン */
+        .badge-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .badge-icon::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .badge-icon-lock::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .badge-icon-edit::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .badge-icon-mail::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
         .card-body {
             padding: 2rem 1.5rem;
         }
@@ -788,8 +908,8 @@
 
         <!-- 予約管理セクション -->
         <div class="card mb-4">
-            <div class="card-header">
-                📅 予約管理 <span id="total-reservations" class="badge bg-light text-dark ms-2">0件</span>
+            <div class="card-header card-header-calendar">
+                予約管理 <span id="total-reservations" class="badge bg-light text-dark ms-2">0件</span>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -803,8 +923,8 @@
                         <button id="next-day-btn" class="btn btn-outline-secondary">翌日 ▶</button>
                     </div>
                     <div>
-                        <button id="cleanup-btn" class="btn btn-danger">
-                            🗑️ 重複データを削除
+                        <button id="cleanup-btn" class="btn btn-danger btn-icon btn-icon-trash">
+                            重複データを削除
                         </button>
                     </div>
                 </div>
@@ -812,8 +932,8 @@
                 <!-- 店舗タブ -->
                 <ul class="nav nav-tabs store-tabs mb-4" id="storeTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="all-stores-tab" data-bs-toggle="tab" data-bs-target="#all-stores" type="button" role="tab" aria-controls="all-stores" aria-selected="true">
-                            🏢 全店舗
+                        <button class="nav-link active nav-link-building" id="all-stores-tab" data-bs-toggle="tab" data-bs-target="#all-stores" type="button" role="tab" aria-controls="all-stores" aria-selected="true">
+                            全店舗
                         </button>
                     </li>
                     {% for store in stores %}
@@ -843,8 +963,8 @@
             <!-- Left Column: Password Change -->
             <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">
-                        🔑 パスワード変更
+                    <div class="card-header card-header-key">
+                        パスワード変更
                     </div>
                     <div class="card-body">
                         <form method="POST" action="/admin/change_password">
@@ -865,8 +985,8 @@
                                     <strong>パスワード要件:</strong> 12文字以上、大文字・小文字・数字・記号（!@#$%^&*等）をそれぞれ1文字以上含む
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-warning w-100">
-                                🔒 パスワードを変更
+                            <button type="submit" class="btn btn-warning w-100 btn-icon btn-icon-lock">
+                                パスワードを変更
                             </button>
                         </form>
                     </div>
@@ -876,8 +996,8 @@
             <!-- Right Column: Activity Log -->
             <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">
-                        📊 アクティビティログ
+                    <div class="card-header card-header-chart">
+                        アクティビティログ
                     </div>
                     <div class="card-body">
                         <div class="log-container">
@@ -1036,11 +1156,11 @@
                     const storeName = res.store_name || res.store_id || 'N/A';
 
                     if (res.type === 'charter') {
-                        typeLabel = '<span class="badge bg-secondary">🔒 貸切</span>';
+                        typeLabel = '<span class="badge bg-secondary badge-icon badge-icon-lock">貸切</span>';
                     } else if (res.type === 'manual') {
-                        typeLabel = '<span class="badge bg-primary">📝 手動</span>';
+                        typeLabel = '<span class="badge bg-primary badge-icon badge-icon-edit">手動</span>';
                     } else {
-                        typeLabel = '<span class="badge bg-success">✉️ Gmail</span>';
+                        typeLabel = '<span class="badge bg-success badge-icon badge-icon-mail">Gmail</span>';
                     }
 
                     html += `
@@ -1056,13 +1176,13 @@
 
                     html += `
                             <td>
-                                <button class="btn btn-sm btn-outline-danger delete-btn"
+                                <button class="btn btn-sm btn-outline-danger delete-btn btn-icon btn-icon-trash"
                                         data-date="${selectedDate}"
                                         data-start="${res.start}"
                                         data-end="${res.end}"
                                         data-customer="${customerName}"
                                         data-store="${res.store_id || ''}">
-                                    🗑️ 削除
+                                    削除
                                 </button>
                             </td>
                         </tr>
@@ -1145,7 +1265,7 @@
                     alert(`エラーが発生しました: ${error.message}`);
                 } finally {
                     cleanupBtn.disabled = false;
-                    cleanupBtn.innerHTML = '🗑️ 重複データを削除';
+                    cleanupBtn.innerHTML = '重複データを削除';
                 }
             });
 
