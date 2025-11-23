@@ -1817,45 +1817,42 @@ def check_availability_detailed():
                             })
 
                     else:
-                        # 部屋がない店舗: 各時間帯の空き枠数を取得
-                        slot_data = []
-
-                        for slot in time_slots:
-                            cur.execute("""
-                                SELECT COUNT(*) FROM reservations
-                                WHERE date = %s
-                                AND store = %s
-                                AND start_time <= %s
-                                AND end_time > %s
-                            """, (date, store_id, slot, slot))
-                            occupied = cur.fetchone()[0]
-                            remaining = max_slots - occupied
-                            slot_data.append((slot, remaining))
-
-                        # 連続した同じ空き枠数の時間帯をまとめる
+                        # 部屋がない店舗: 1時間単位で空き枠数を取得
                         available_slots = []
-                        i = 0
-                        while i < len(slot_data):
-                            if slot_data[i][1] > 0:  # 空きがある
-                                range_start = slot_data[i][0]
-                                current_slots = slot_data[i][1]
-                                min_slots = current_slots
-                                j = i
-                                while j < len(slot_data) and slot_data[j][1] > 0:
-                                    min_slots = min(min_slots, slot_data[j][1])
-                                    j += 1
-                                range_end_mins = time_to_minutes(slot_data[j-1][0]) + 30
-                                if range_end_mins > end_minutes:
-                                    range_end_mins = end_minutes
-                                range_end = minutes_to_time(range_end_mins)
+
+                        # 1時間単位でループ
+                        hour_start = start_minutes
+                        while hour_start < end_minutes:
+                            hour_end = min(hour_start + 60, end_minutes)
+
+                            # この1時間内の30分スロットの空き枠数を取得
+                            slots_in_hour = []
+                            current = hour_start
+                            while current < hour_end:
+                                slot_time = minutes_to_time(current)
+                                cur.execute("""
+                                    SELECT COUNT(*) FROM reservations
+                                    WHERE date = %s
+                                    AND store = %s
+                                    AND start_time <= %s
+                                    AND end_time > %s
+                                """, (date, store_id, slot_time, slot_time))
+                                occupied = cur.fetchone()[0]
+                                remaining = max_slots - occupied
+                                slots_in_hour.append(remaining)
+                                current += 30
+
+                            # この時間帯の最小空き枠数（= 確実に取れる枠数）
+                            min_slots = min(slots_in_hour) if slots_in_hour else 0
+
+                            if min_slots > 0:
                                 available_slots.append({
-                                    'start': range_start,
-                                    'end': range_end,
+                                    'start': minutes_to_time(hour_start),
+                                    'end': minutes_to_time(hour_end),
                                     'slots': min_slots
                                 })
-                                i = j
-                            else:
-                                i += 1
+
+                            hour_start += 60
 
                         if available_slots:
                             results.append({

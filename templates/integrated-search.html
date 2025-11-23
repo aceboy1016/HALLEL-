@@ -41,10 +41,9 @@
         }
 
         .header {
-            background: var(--neutral-800);
+            background: linear-gradient(135deg, var(--neutral-900) 0%, var(--neutral-800) 100%);
             color: white;
-            padding: 2rem 0;
-            box-shadow: var(--shadow-medium);
+            padding: 1.5rem 0;
         }
 
         .header-content {
@@ -54,23 +53,24 @@
         }
 
         .header h1 {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.02em;
         }
 
         .header p {
-            font-size: 1rem;
-            opacity: 0.9;
+            font-size: 0.875rem;
+            opacity: 0.7;
         }
 
         .back-link {
             color: white;
             text-decoration: none;
-            opacity: 0.8;
-            font-size: 0.9rem;
+            opacity: 0.6;
+            font-size: 0.8rem;
             display: inline-block;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             transition: opacity 0.2s;
         }
 
@@ -81,76 +81,95 @@
 
         .container {
             max-width: 1200px;
-            margin: 2rem auto;
+            margin: 1.5rem auto;
             padding: 0 1rem;
         }
 
         .search-form {
             background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: var(--shadow-medium);
-            margin-bottom: 2rem;
+            padding: 1.25rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(9, 30, 66, 0.1);
+            margin-bottom: 1.5rem;
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 0;
         }
 
         .form-label {
             font-weight: 500;
-            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.35rem;
             display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .form-control {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.6rem 0.75rem;
             border: 1px solid var(--neutral-100);
-            border-radius: 4px;
-            font-size: 1rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
         }
 
         .btn-search {
             background: var(--primary-blue);
             color: white;
             border: none;
-            padding: 0.75rem 2rem;
-            border-radius: 4px;
-            font-size: 1rem;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
             font-weight: 500;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
 
         .btn-search:hover {
             background: var(--primary-blue-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-search:active {
+            transform: translateY(0);
         }
 
         .results {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
         }
 
         .store-result {
             background: var(--card-bg);
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow-medium);
-            transition: transform 0.2s;
+            border-radius: 10px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(9, 30, 66, 0.1);
+            transition: box-shadow 0.2s, transform 0.2s;
+            border: 1px solid rgba(9, 30, 66, 0.05);
         }
 
         .store-result:hover {
+            box-shadow: 0 4px 12px rgba(9, 30, 66, 0.15);
             transform: translateY(-2px);
         }
 
         .store-result h3 {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 600;
             margin-bottom: 0.75rem;
             padding-bottom: 0.5rem;
             border-bottom: 1px solid var(--neutral-100);
+            color: var(--neutral-900);
         }
 
         .availability-list {
@@ -162,71 +181,71 @@
         .availability-item {
             display: flex;
             align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--neutral-50);
-        }
-
-        .availability-item:last-child {
-            border-bottom: none;
+            padding: 0.4rem 0;
+            font-size: 0.9rem;
         }
 
         .availability-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: var(--success);
-            margin-right: 0.75rem;
+            margin-right: 0.6rem;
             flex-shrink: 0;
         }
 
         .availability-time {
             font-weight: 500;
-            min-width: 110px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
         }
 
         .availability-slots {
             color: var(--text-secondary);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             margin-left: auto;
+            background: var(--neutral-50);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
         }
 
         .room-name {
             font-weight: 500;
-            color: var(--text-primary);
-            margin-right: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-right: 0.4rem;
         }
 
         .btn-book {
-            background: var(--primary-blue);
-            color: white;
+            color: var(--primary-blue);
             text-decoration: none;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
+            padding: 0.5rem 0;
             display: inline-block;
-            margin-top: 0.75rem;
-            font-size: 0.85rem;
-            transition: background 0.2s;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: color 0.2s;
         }
 
         .btn-book:hover {
-            background: var(--primary-blue-hover);
-            color: white;
+            color: var(--primary-blue-hover);
         }
 
         .loading {
             text-align: center;
-            padding: 3rem;
+            padding: 2rem;
             color: var(--text-secondary);
+            font-size: 0.9rem;
         }
 
         .spinner {
-            border: 3px solid var(--neutral-100);
-            border-top: 3px solid var(--primary-blue);
+            border: 2px solid var(--neutral-100);
+            border-top: 2px solid var(--primary-blue);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            width: 28px;
+            height: 28px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 0.75rem;
         }
 
         @keyframes spin {
@@ -236,32 +255,47 @@
 
         .no-results {
             text-align: center;
-            padding: 3rem;
+            padding: 2rem;
             color: var(--text-secondary);
             background: var(--card-bg);
-            border-radius: 8px;
+            border-radius: 10px;
+            font-size: 0.9rem;
         }
 
         @media (max-width: 768px) {
-            .results {
-                grid-template-columns: 1fr;
+            .header {
+                padding: 1rem 0;
             }
 
             .header h1 {
-                font-size: 1.5rem;
+                font-size: 1.25rem;
+            }
+
+            .container {
+                margin: 1rem auto;
+            }
+
+            .search-form {
+                padding: 1rem;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .store-result {
+                padding: 1rem;
             }
         }
     </style>
 
-    <!-- Cookie同意バナー -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/cookie-consent.css') }}">
-    <script src="{{ url_for('static', filename='js/cookie-consent.js') }}" defer></script>
 </head>
 <body>
     <div class="header">
         <div class="header-content">
             <a href="/stores" class="back-link">← 店舗選択に戻る</a>
-            <h1>🔍 全店舗横断検索</h1>
+            <h1>全店舗横断検索</h1>
             <p>希望の日時を入力すると、全店舗の空き状況を一度に確認できます</p>
         </div>
     </div>
