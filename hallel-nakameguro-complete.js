@@ -6,8 +6,7 @@
  * 機能:
  * - 10分ごとの自動トリガー
  * - Gmailから予約メール取得
- * - フリーウエイトエリア（奥）のみ処理
- * - 格闘技エリア（手前側）は除外
+ * - 2エリア対応（フリーウエイトエリア・格闘技エリア）
  * - Vercel API送信
  * - Google Calendar同期
  * - キャンセル処理
@@ -17,8 +16,7 @@
  * 2. setupTrigger10min() を実行（トリガー設定）
  * 3. 以降は自動で10分ごとに実行されます
  *
- * ※ 中目黒店はフリーウエイトエリア（奥）のみが対象です
- * ※ 格闘技エリア（手前側）の予約は自動的にスキップされます
+ * ※ 中目黒店は2エリア（フリーウエイトエリア・格闘技エリア）に対応
  */
 
 // ============================================================
@@ -33,11 +31,6 @@ const CONFIG = {
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
   BATCH_SIZE: 5,
   WAIT_TIME_MS: 3000,
-  // フィルタ設定
-  AREA_FILTER: {
-    INCLUDE: 'フリーウエイトエリア（奥）', // これだけ処理
-    EXCLUDE: '格闘技エリア（手前側）'      // これはスキップ
-  }
 };
 
 // ============================================================
@@ -57,7 +50,7 @@ function setupTrigger10min() {
 
   Logger.log('✅ トリガー設定完了: 10分ごとに新規メールを処理');
   Logger.log('📋 実行される関数: processNewReservations()');
-  Logger.log('📋 対象エリア: フリーウエイトエリア（奥）のみ');
+  Logger.log('📋 対象エリア: フリーウエイトエリア・格闘技エリア');
 }
 
 /**
@@ -116,7 +109,6 @@ function processNewReservations() {
   Logger.log('='.repeat(60));
   Logger.log(`【${CONFIG.STORE_KEYWORD}店：新規メール処理開始】`);
   Logger.log(`実行時刻: ${new Date().toLocaleString('ja-JP')}`);
-  Logger.log(`対象エリア: ${CONFIG.AREA_FILTER.INCLUDE}`);
   Logger.log('='.repeat(60));
 
   try {
@@ -136,7 +128,6 @@ function processNewReservations() {
 
     const newReservations = [];
     const newCancellations = [];
-    let skippedMartialArts = 0;
 
     for (let thread of threads) {
       const messages = thread.getMessages();
@@ -157,27 +148,14 @@ function processNewReservations() {
         if (body.includes('恵比寿') || body.includes('半蔵門') ||
             body.includes('渋谷') || body.includes('代々木上原')) continue;
 
-        // 格闘技エリアはスキップ
-        if (body.includes(CONFIG.AREA_FILTER.EXCLUDE)) {
-          skippedMartialArts++;
-          Logger.log(`⏭️ スキップ（格闘技エリア）: ${subject}`);
-          continue;
-        }
-
-        // フリーウエイトエリアのみ処理
-        if (!body.includes(CONFIG.AREA_FILTER.INCLUDE)) {
-          Logger.log(`⏭️ スキップ（対象外エリア）: ${subject}`);
-          continue;
-        }
-
         const emailData = parseReservationEmail(subject, body, emailDate, messageId);
         if (emailData) {
           if (emailData.actionType === 'reservation') {
             newReservations.push(emailData);
-            Logger.log(`📧 予約: ${emailData.fullName} ${formatDateTime(emailData.startTime)}`);
+            Logger.log(`📧 予約: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
           } else if (emailData.actionType === 'cancellation') {
             newCancellations.push(emailData);
-            Logger.log(`🗑️ キャンセル: ${emailData.fullName} ${formatDateTime(emailData.startTime)}`);
+            Logger.log(`🗑️ キャンセル: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
           }
         }
       }
@@ -186,12 +164,11 @@ function processNewReservations() {
     // 予約とキャンセルを結合
     const allData = [...newReservations, ...newCancellations];
     Logger.log(`\n📤 送信対象: ${allData.length}件（予約: ${newReservations.length}件, キャンセル: ${newCancellations.length}件）`);
-    Logger.log(`⏭️ スキップ（格闘技エリア）: ${skippedMartialArts}件`);
 
     if (allData.length === 0) {
       Logger.log('⏭️ 送信対象のデータがありません');
       Logger.log('='.repeat(60));
-      return { success: true, processed: 0, skipped: skippedMartialArts };
+      return { success: true, processed: 0 };
     }
 
     // Vercel APIに送信
@@ -239,8 +216,7 @@ function processNewReservations() {
       success: true,
       processed: allData.length,
       reservations: newReservations.length,
-      cancellations: newCancellations.length,
-      skipped: skippedMartialArts
+      cancellations: newCancellations.length
     };
 
   } catch (error) {
@@ -261,6 +237,7 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
   try {
     const fullName = extractFullName(body);
     const eventTime = extractEventTime(body);
+    const studio = extractStudio(body);
 
     if (!eventTime.startTime || !eventTime.endTime) {
       return null;
@@ -278,7 +255,7 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       fullName: fullName,
       startTime: eventTime.startTime,
       endTime: eventTime.endTime,
-      studio: 'フリーウエイトエリア',  // 中目黒店はフリーウエイトエリアのみ
+      studio: studio,
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
@@ -289,6 +266,24 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
     Logger.log(`⚠️ メール解析エラー: ${error.message}`);
     return null;
   }
+}
+
+/**
+ * エリア名を抽出（中目黒店: フリーウエイトエリア・格闘技エリア）
+ */
+function extractStudio(body) {
+  // パターン1: 「ルーム： 【フリーウエイトエリア（奥）】」
+  if (body.includes('フリーウエイトエリア（奥）') || body.includes('フリーウエイトエリア')) {
+    return 'フリーウエイトエリア';
+  }
+
+  // パターン2: 「ルーム： 【格闘技エリア（手前側）】」
+  if (body.includes('格闘技エリア（手前側）') || body.includes('格闘技エリア')) {
+    return '格闘技エリア';
+  }
+
+  // デフォルト
+  return '中目黒店';
 }
 
 /**
@@ -329,7 +324,7 @@ function extractEventTime(body) {
  */
 function addReservationToCalendar(calendar, res) {
   try {
-    const eventTitle = `${res.fullName} - HALLEL中目黒`;
+    const eventTitle = `${res.fullName} - HALLEL-${res.studio}`;
 
     // 重複チェック
     const searchStart = new Date(res.startTime.getTime() - 60000);
@@ -499,7 +494,6 @@ function formatDateTime(date) {
 function syncAllToAPI() {
   Logger.log('='.repeat(60));
   Logger.log(`【${CONFIG.STORE_KEYWORD}店：全データ一括同期】`);
-  Logger.log(`対象エリア: ${CONFIG.AREA_FILTER.INCLUDE}`);
   Logger.log('='.repeat(60));
 
   try {
@@ -509,7 +503,6 @@ function syncAllToAPI() {
     Logger.log(`📬 スレッド数: ${threads.length}件`);
 
     const allEmails = [];
-    let skippedMartialArts = 0;
 
     for (let thread of threads) {
       const messages = thread.getMessages();
@@ -527,17 +520,6 @@ function syncAllToAPI() {
         if (body.includes('恵比寿') || body.includes('半蔵門') ||
             body.includes('渋谷') || body.includes('代々木上原')) continue;
 
-        // 格闘技エリアはスキップ
-        if (body.includes(CONFIG.AREA_FILTER.EXCLUDE)) {
-          skippedMartialArts++;
-          continue;
-        }
-
-        // フリーウエイトエリアのみ処理
-        if (!body.includes(CONFIG.AREA_FILTER.INCLUDE)) {
-          continue;
-        }
-
         const emailData = parseReservationEmail(subject, body, emailDate, messageId);
         if (emailData) {
           allEmails.push(emailData);
@@ -546,7 +528,6 @@ function syncAllToAPI() {
     }
 
     Logger.log(`✅ 取得完了: ${allEmails.length}件`);
-    Logger.log(`⏭️ スキップ（格闘技エリア）: ${skippedMartialArts}件`);
 
     // 日時・時間枠ごとに最新のメールのみを選択
     const groupedByKey = {};
@@ -604,10 +585,9 @@ function syncAllToAPI() {
     Logger.log(`送信対象: ${reservationsOnly.length}件`);
     Logger.log(`成功: ${totalSuccess}件`);
     Logger.log(`失敗: ${totalFailed}件`);
-    Logger.log(`スキップ（格闘技エリア）: ${skippedMartialArts}件`);
     Logger.log('='.repeat(60));
 
-    return { success: true, total: totalSuccess, failed: totalFailed, skipped: skippedMartialArts };
+    return { success: true, total: totalSuccess, failed: totalFailed };
 
   } catch (error) {
     Logger.log(`❌ エラー: ${error.message}`);
@@ -684,7 +664,6 @@ function testAPIConnection() {
 function testGmailSearch() {
   Logger.log('🧪 Gmail検索テスト開始...');
   Logger.log(`検索クエリ: ${CONFIG.SEARCH_QUERY}`);
-  Logger.log(`対象エリア: ${CONFIG.AREA_FILTER.INCLUDE}`);
 
   try {
     const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 10);
@@ -703,12 +682,13 @@ function testGmailSearch() {
       Logger.log(`件名: ${firstMessage.getSubject()}`);
       Logger.log(`日付: ${firstMessage.getDate()}`);
 
-      if (body.includes(CONFIG.AREA_FILTER.INCLUDE)) {
+      const studio = extractStudio(body);
+      Logger.log(`エリア: ${studio}`);
+
+      if (studio === 'フリーウエイトエリア') {
         freeWeightCount++;
-        Logger.log(`エリア: フリーウエイトエリア ✅`);
-      } else if (body.includes(CONFIG.AREA_FILTER.EXCLUDE)) {
+      } else if (studio === '格闘技エリア') {
         martialArtsCount++;
-        Logger.log(`エリア: 格闘技エリア ⏭️`);
       }
     }
 
@@ -738,16 +718,27 @@ function checkCalendarStatus() {
   Logger.log(`📅 今後30日間の予約: ${events.length}件`);
   Logger.log('='.repeat(60));
 
-  let hallelCount = 0;
+  const roomCounts = {
+    'フリーウエイトエリア': 0,
+    '格闘技エリア': 0,
+    'その他': 0
+  };
+
   for (let event of events) {
     const title = event.getTitle();
-    if (title.includes('HALLEL')) {
-      hallelCount++;
+    if (title.includes('HALLEL-フリーウエイトエリア')) {
+      roomCounts['フリーウエイトエリア']++;
+    } else if (title.includes('HALLEL-格闘技エリア')) {
+      roomCounts['格闘技エリア']++;
+    } else if (title.includes('HALLEL')) {
+      roomCounts['その他']++;
     }
   }
 
-  Logger.log(`HALLEL予約: ${hallelCount}件`);
-  Logger.log(`その他: ${events.length - hallelCount}件`);
+  Logger.log('エリア別集計:');
+  Logger.log(`  フリーウエイトエリア: ${roomCounts['フリーウエイトエリア']}件`);
+  Logger.log(`  格闘技エリア: ${roomCounts['格闘技エリア']}件`);
+  Logger.log(`  その他: ${roomCounts['その他']}件`);
 
-  return { total: events.length, hallelCount: hallelCount };
+  return { total: events.length, roomCounts: roomCounts };
 }
