@@ -1,11 +1,12 @@
 /**
- * HALLEL渋谷店 - 完全統合版GASスクリプト
+ * HALLEL中目黒店 - 完全統合版GASスクリプト
  *
- * hallel-shibuya@gmail.com のGASにコピペするだけで動作します！
+ * hallel-nakameguro@gmail.com のGASにコピペするだけで動作します！
  *
  * 機能:
  * - 10分ごとの自動トリガー
  * - Gmailから予約メール取得
+ * - 2エリア対応（フリーウエイトエリア・格闘技エリア）
  * - Vercel API送信
  * - Google Calendar同期
  * - キャンセル処理
@@ -15,7 +16,7 @@
  * 2. setupTrigger10min() を実行（トリガー設定）
  * 3. 以降は自動で10分ごとに実行されます
  *
- * ※ 渋谷店は部屋分けがないため、room_nameは「渋谷店」固定です
+ * ※ 中目黒店は2エリア（フリーウエイトエリア・格闘技エリア）に対応
  */
 
 // ============================================================
@@ -23,9 +24,9 @@
 // ============================================================
 const CONFIG = {
   CALENDAR_ID: 'primary',  // Gmailアカウントのデフォルトカレンダー
-  STORE_NAME: 'shibuya',
-  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 渋谷',
-  STORE_KEYWORD: '渋谷',
+  STORE_NAME: 'nakameguro',
+  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 中目黒',
+  STORE_KEYWORD: '中目黒',
   API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
   BATCH_SIZE: 5,
@@ -49,6 +50,7 @@ function setupTrigger10min() {
 
   Logger.log('✅ トリガー設定完了: 10分ごとに新規メールを処理');
   Logger.log('📋 実行される関数: processNewReservations()');
+  Logger.log('📋 対象エリア: フリーウエイトエリア・格闘技エリア');
 }
 
 /**
@@ -139,12 +141,12 @@ function processNewReservations() {
         // 過去1時間以内のメールのみ処理
         if (emailDate < oneHourAgo) continue;
 
-        // 渋谷店のメールかチェック
+        // 中目黒店のメールかチェック
         if (!body.includes(CONFIG.STORE_KEYWORD)) continue;
 
         // 他店舗のメールは除外
         if (body.includes('恵比寿') || body.includes('半蔵門') ||
-            body.includes('代々木上原') || body.includes('中目黒')) continue;
+            body.includes('渋谷') || body.includes('代々木上原')) continue;
 
         const emailData = parseReservationEmail(subject, body, emailDate, messageId);
         if (emailData) {
@@ -257,7 +259,7 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
-      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}|${studio}`
+      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}`
     };
 
   } catch (error) {
@@ -267,26 +269,21 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
 }
 
 /**
- * 部屋名を抽出（渋谷店: STUDIO ①~⑦）
- * メール形式: 「設備： 渋谷店 STUDIO ⑦ (1)」
+ * エリア名を抽出（中目黒店: フリーウエイトエリア・格闘技エリア）
  */
 function extractStudio(body) {
-  // パターン1: 「設備： 渋谷店 STUDIO ⑦ (1)」形式
-  const studioMatch = body.match(/設備[：:]\s*渋谷店\s*STUDIO\s*([①②③④⑤⑥⑦])/);
-  if (studioMatch) {
-    return `STUDIO ${studioMatch[1]}`;
+  // パターン1: 「ルーム： 【フリーウエイトエリア（奥）】」
+  if (body.includes('フリーウエイトエリア（奥）') || body.includes('フリーウエイトエリア')) {
+    return 'フリーウエイトエリア';
   }
 
-  // パターン2: 本文中に「STUDIO ①」などが含まれている
-  const studioNumbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
-  for (const num of studioNumbers) {
-    if (body.includes(`STUDIO ${num}`) || body.includes(`STUDIO${num}`)) {
-      return `STUDIO ${num}`;
-    }
+  // パターン2: 「ルーム： 【格闘技エリア（手前側）】」
+  if (body.includes('格闘技エリア（手前側）') || body.includes('格闘技エリア')) {
+    return '格闘技エリア';
   }
 
   // デフォルト
-  return '渋谷店';
+  return '中目黒店';
 }
 
 /**
@@ -424,7 +421,7 @@ function sendBatchToVercelAPI(reservations) {
         start: formatTimeOnly(r.startTime),
         end: formatTimeOnly(r.endTime),
         customer_name: r.fullName || 'N/A',
-        room_name: r.studio || '渋谷店',
+        room_name: r.studio || 'フリーウエイトエリア',
         store: CONFIG.STORE_NAME,
         type: 'gmail',
         is_cancellation: r.actionType === 'cancellation',
@@ -516,12 +513,12 @@ function syncAllToAPI() {
         const emailDate = message.getDate();
         const messageId = message.getId();
 
-        // 渋谷店のメールのみ
+        // 中目黒店のメールのみ
         if (!body.includes(CONFIG.STORE_KEYWORD)) continue;
 
         // 他店舗のメールは除外
         if (body.includes('恵比寿') || body.includes('半蔵門') ||
-            body.includes('代々木上原') || body.includes('中目黒')) continue;
+            body.includes('渋谷') || body.includes('代々木上原')) continue;
 
         const emailData = parseReservationEmail(subject, body, emailDate, messageId);
         if (emailData) {
@@ -672,14 +669,30 @@ function testGmailSearch() {
     const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, 10);
     Logger.log(`見つかったスレッド: ${threads.length}件`);
 
+    let freeWeightCount = 0;
+    let martialArtsCount = 0;
+
     for (let i = 0; i < Math.min(threads.length, 5); i++) {
       const thread = threads[i];
       const messages = thread.getMessages();
       const firstMessage = messages[0];
+      const body = firstMessage.getPlainBody();
+
       Logger.log(`\n--- メール ${i + 1} ---`);
       Logger.log(`件名: ${firstMessage.getSubject()}`);
       Logger.log(`日付: ${firstMessage.getDate()}`);
+
+      const studio = extractStudio(body);
+      Logger.log(`エリア: ${studio}`);
+
+      if (studio === 'フリーウエイトエリア') {
+        freeWeightCount++;
+      } else if (studio === '格闘技エリア') {
+        martialArtsCount++;
+      }
     }
+
+    Logger.log(`\n📊 集計: フリーウエイト ${freeWeightCount}件, 格闘技 ${martialArtsCount}件`);
 
   } catch (error) {
     Logger.log(`❌ エラー: ${error.message}`);
@@ -706,65 +719,26 @@ function checkCalendarStatus() {
   Logger.log('='.repeat(60));
 
   const roomCounts = {
-    'STUDIO ①': 0, 'STUDIO ②': 0, 'STUDIO ③': 0,
-    'STUDIO ④': 0, 'STUDIO ⑤': 0, 'STUDIO ⑥': 0, 'STUDIO ⑦': 0,
-    '渋谷店': 0, 'その他': 0
+    'フリーウエイトエリア': 0,
+    '格闘技エリア': 0,
+    'その他': 0
   };
 
   for (let event of events) {
     const title = event.getTitle();
-    if (!title.includes('HALLEL')) continue;
-
-    let matched = false;
-    for (let i = 1; i <= 7; i++) {
-      const num = ['①', '②', '③', '④', '⑤', '⑥', '⑦'][i - 1];
-      if (title.includes(`STUDIO ${num}`)) {
-        roomCounts[`STUDIO ${num}`]++;
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      if (title.includes('渋谷店') || title.includes('HALLEL渋谷')) {
-        roomCounts['渋谷店']++;
-      } else {
-        roomCounts['その他']++;
-      }
+    if (title.includes('HALLEL-フリーウエイトエリア')) {
+      roomCounts['フリーウエイトエリア']++;
+    } else if (title.includes('HALLEL-格闘技エリア')) {
+      roomCounts['格闘技エリア']++;
+    } else if (title.includes('HALLEL')) {
+      roomCounts['その他']++;
     }
   }
 
-  Logger.log('STUDIO別集計:');
-  for (let i = 1; i <= 7; i++) {
-    const num = ['①', '②', '③', '④', '⑤', '⑥', '⑦'][i - 1];
-    Logger.log(`  STUDIO ${num}: ${roomCounts[`STUDIO ${num}`]}件`);
-  }
-  Logger.log(`  渋谷店(旧形式): ${roomCounts['渋谷店']}件`);
+  Logger.log('エリア別集計:');
+  Logger.log(`  フリーウエイトエリア: ${roomCounts['フリーウエイトエリア']}件`);
+  Logger.log(`  格闘技エリア: ${roomCounts['格闘技エリア']}件`);
   Logger.log(`  その他: ${roomCounts['その他']}件`);
 
   return { total: events.length, roomCounts: roomCounts };
-}
-
-/**
- * 部屋名抽出のテスト
- */
-function testExtractStudio() {
-  const testCases = [
-    '設備： 渋谷店 STUDIO ① (1)',
-    '設備： 渋谷店 STUDIO ② (1)',
-    '設備： 渋谷店 STUDIO ③ (1)',
-    '設備： 渋谷店 STUDIO ④ (1)',
-    '設備： 渋谷店 STUDIO ⑤ (1)',
-    '設備： 渋谷店 STUDIO ⑥ (1)',
-    '設備： 渋谷店 STUDIO ⑦ (1)',
-    'STUDIO ③ での予約',
-    '不明なルーム'
-  ];
-
-  Logger.log('🧪 部屋名抽出テスト:');
-  Logger.log('='.repeat(60));
-
-  testCases.forEach(body => {
-    const room = extractStudio(body);
-    Logger.log(`"${body}" → "${room}"`);
-  });
 }

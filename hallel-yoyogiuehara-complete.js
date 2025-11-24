@@ -1,7 +1,7 @@
 /**
- * HALLEL渋谷店 - 完全統合版GASスクリプト
+ * HALLEL代々木上原店 - 完全統合版GASスクリプト
  *
- * hallel-shibuya@gmail.com のGASにコピペするだけで動作します！
+ * hallel-yoyogiuehara@gmail.com のGASにコピペするだけで動作します！
  *
  * 機能:
  * - 10分ごとの自動トリガー
@@ -15,7 +15,7 @@
  * 2. setupTrigger10min() を実行（トリガー設定）
  * 3. 以降は自動で10分ごとに実行されます
  *
- * ※ 渋谷店は部屋分けがないため、room_nameは「渋谷店」固定です
+ * ※ 代々木上原店は2枠（区別なし）です
  */
 
 // ============================================================
@@ -23,9 +23,9 @@
 // ============================================================
 const CONFIG = {
   CALENDAR_ID: 'primary',  // Gmailアカウントのデフォルトカレンダー
-  STORE_NAME: 'shibuya',
-  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 渋谷',
-  STORE_KEYWORD: '渋谷',
+  STORE_NAME: 'yoyogi-uehara',
+  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 代々木上原',
+  STORE_KEYWORD: '代々木上原',
   API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
   BATCH_SIZE: 5,
@@ -139,21 +139,21 @@ function processNewReservations() {
         // 過去1時間以内のメールのみ処理
         if (emailDate < oneHourAgo) continue;
 
-        // 渋谷店のメールかチェック
+        // 代々木上原店のメールかチェック
         if (!body.includes(CONFIG.STORE_KEYWORD)) continue;
 
         // 他店舗のメールは除外
         if (body.includes('恵比寿') || body.includes('半蔵門') ||
-            body.includes('代々木上原') || body.includes('中目黒')) continue;
+            body.includes('渋谷') || body.includes('中目黒')) continue;
 
         const emailData = parseReservationEmail(subject, body, emailDate, messageId);
         if (emailData) {
           if (emailData.actionType === 'reservation') {
             newReservations.push(emailData);
-            Logger.log(`📧 予約: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
+            Logger.log(`📧 予約: ${emailData.fullName} ${formatDateTime(emailData.startTime)}`);
           } else if (emailData.actionType === 'cancellation') {
             newCancellations.push(emailData);
-            Logger.log(`🗑️ キャンセル: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
+            Logger.log(`🗑️ キャンセル: ${emailData.fullName} ${formatDateTime(emailData.startTime)}`);
           }
         }
       }
@@ -235,7 +235,6 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
   try {
     const fullName = extractFullName(body);
     const eventTime = extractEventTime(body);
-    const studio = extractStudio(body);
 
     if (!eventTime.startTime || !eventTime.endTime) {
       return null;
@@ -253,40 +252,17 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       fullName: fullName,
       startTime: eventTime.startTime,
       endTime: eventTime.endTime,
-      studio: studio,
+      studio: '代々木上原店',  // 代々木上原店は部屋分けなし
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
-      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}|${studio}`
+      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}`
     };
 
   } catch (error) {
     Logger.log(`⚠️ メール解析エラー: ${error.message}`);
     return null;
   }
-}
-
-/**
- * 部屋名を抽出（渋谷店: STUDIO ①~⑦）
- * メール形式: 「設備： 渋谷店 STUDIO ⑦ (1)」
- */
-function extractStudio(body) {
-  // パターン1: 「設備： 渋谷店 STUDIO ⑦ (1)」形式
-  const studioMatch = body.match(/設備[：:]\s*渋谷店\s*STUDIO\s*([①②③④⑤⑥⑦])/);
-  if (studioMatch) {
-    return `STUDIO ${studioMatch[1]}`;
-  }
-
-  // パターン2: 本文中に「STUDIO ①」などが含まれている
-  const studioNumbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
-  for (const num of studioNumbers) {
-    if (body.includes(`STUDIO ${num}`) || body.includes(`STUDIO${num}`)) {
-      return `STUDIO ${num}`;
-    }
-  }
-
-  // デフォルト
-  return '渋谷店';
 }
 
 /**
@@ -327,7 +303,7 @@ function extractEventTime(body) {
  */
 function addReservationToCalendar(calendar, res) {
   try {
-    const eventTitle = `${res.fullName} - HALLEL-${res.studio}`;
+    const eventTitle = `${res.fullName} - HALLEL代々木上原`;
 
     // 重複チェック
     const searchStart = new Date(res.startTime.getTime() - 60000);
@@ -424,7 +400,7 @@ function sendBatchToVercelAPI(reservations) {
         start: formatTimeOnly(r.startTime),
         end: formatTimeOnly(r.endTime),
         customer_name: r.fullName || 'N/A',
-        room_name: r.studio || '渋谷店',
+        room_name: r.studio || '代々木上原店',
         store: CONFIG.STORE_NAME,
         type: 'gmail',
         is_cancellation: r.actionType === 'cancellation',
@@ -516,12 +492,12 @@ function syncAllToAPI() {
         const emailDate = message.getDate();
         const messageId = message.getId();
 
-        // 渋谷店のメールのみ
+        // 代々木上原店のメールのみ
         if (!body.includes(CONFIG.STORE_KEYWORD)) continue;
 
         // 他店舗のメールは除外
         if (body.includes('恵比寿') || body.includes('半蔵門') ||
-            body.includes('代々木上原') || body.includes('中目黒')) continue;
+            body.includes('渋谷') || body.includes('中目黒')) continue;
 
         const emailData = parseReservationEmail(subject, body, emailDate, messageId);
         if (emailData) {
@@ -705,66 +681,16 @@ function checkCalendarStatus() {
   Logger.log(`📅 今後30日間の予約: ${events.length}件`);
   Logger.log('='.repeat(60));
 
-  const roomCounts = {
-    'STUDIO ①': 0, 'STUDIO ②': 0, 'STUDIO ③': 0,
-    'STUDIO ④': 0, 'STUDIO ⑤': 0, 'STUDIO ⑥': 0, 'STUDIO ⑦': 0,
-    '渋谷店': 0, 'その他': 0
-  };
-
+  let hallelCount = 0;
   for (let event of events) {
     const title = event.getTitle();
-    if (!title.includes('HALLEL')) continue;
-
-    let matched = false;
-    for (let i = 1; i <= 7; i++) {
-      const num = ['①', '②', '③', '④', '⑤', '⑥', '⑦'][i - 1];
-      if (title.includes(`STUDIO ${num}`)) {
-        roomCounts[`STUDIO ${num}`]++;
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      if (title.includes('渋谷店') || title.includes('HALLEL渋谷')) {
-        roomCounts['渋谷店']++;
-      } else {
-        roomCounts['その他']++;
-      }
+    if (title.includes('HALLEL')) {
+      hallelCount++;
     }
   }
 
-  Logger.log('STUDIO別集計:');
-  for (let i = 1; i <= 7; i++) {
-    const num = ['①', '②', '③', '④', '⑤', '⑥', '⑦'][i - 1];
-    Logger.log(`  STUDIO ${num}: ${roomCounts[`STUDIO ${num}`]}件`);
-  }
-  Logger.log(`  渋谷店(旧形式): ${roomCounts['渋谷店']}件`);
-  Logger.log(`  その他: ${roomCounts['その他']}件`);
+  Logger.log(`HALLEL予約: ${hallelCount}件`);
+  Logger.log(`その他: ${events.length - hallelCount}件`);
 
-  return { total: events.length, roomCounts: roomCounts };
-}
-
-/**
- * 部屋名抽出のテスト
- */
-function testExtractStudio() {
-  const testCases = [
-    '設備： 渋谷店 STUDIO ① (1)',
-    '設備： 渋谷店 STUDIO ② (1)',
-    '設備： 渋谷店 STUDIO ③ (1)',
-    '設備： 渋谷店 STUDIO ④ (1)',
-    '設備： 渋谷店 STUDIO ⑤ (1)',
-    '設備： 渋谷店 STUDIO ⑥ (1)',
-    '設備： 渋谷店 STUDIO ⑦ (1)',
-    'STUDIO ③ での予約',
-    '不明なルーム'
-  ];
-
-  Logger.log('🧪 部屋名抽出テスト:');
-  Logger.log('='.repeat(60));
-
-  testCases.forEach(body => {
-    const room = extractStudio(body);
-    Logger.log(`"${body}" → "${room}"`);
-  });
+  return { total: events.length, hallelCount: hallelCount };
 }
