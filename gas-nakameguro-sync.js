@@ -16,7 +16,7 @@
 // 設定
 // ============================================================
 const CONFIG = {
-  WEBHOOK_URL: 'https://hallel.vercel.app/api/gas/webhook',
+  WEBHOOK_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
   STORE_NAME: 'nakameguro',
   STORE_NAME_JP: '中目黒店',
   SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 中目黒',
@@ -394,22 +394,13 @@ function applyLabels(message, isCancellation) {
       labelsToApply.push(CONFIG.LABELS.BOOKING);
     }
 
-    const messageId = message.getId();
-    const labelIds = [];
+    const thread = message.getThread();
 
     for (const labelName of labelsToApply) {
       const label = GmailApp.getUserLabelByName(labelName);
       if (label) {
-        labelIds.push(label.getId());
+        label.addToThread(thread);
       }
-    }
-
-    if (labelIds.length > 0) {
-      Gmail.Users.Messages.modify(
-        { addLabelIds: labelIds },
-        'me',
-        messageId
-      );
     }
 
     console.log(`🏷️ ラベル適用: ${labelsToApply.join(', ')}`);
@@ -424,15 +415,11 @@ function applyLabels(message, isCancellation) {
  */
 function applySkipLabel(message) {
   try {
-    const messageId = message.getId();
+    const thread = message.getThread();
     const label = GmailApp.getUserLabelByName(CONFIG.LABELS.MARTIAL_ARTS_SKIP);
 
     if (label) {
-      Gmail.Users.Messages.modify(
-        { addLabelIds: [label.getId()] },
-        'me',
-        messageId
-      );
+      label.addToThread(thread);
       console.log(`🏷️ スキップラベル適用: ${CONFIG.LABELS.MARTIAL_ARTS_SKIP}`);
     }
 
@@ -457,24 +444,28 @@ function sendToVercel(reservations) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-GAS-Secret': 'hallel_gas_2024'
+        'X-API-Key': 'Wh00k@2025!Secure$Token#ABC123XYZ'
       },
-      payload: JSON.stringify(payload)
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
     };
 
     const response = UrlFetchApp.fetch(CONFIG.WEBHOOK_URL, options);
     const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
 
-    if (responseCode === 200) {
+    if (responseCode === 200 || responseCode === 201) {
       console.log(`✅ Vercel送信成功: ${reservations.length}件（${CONFIG.STORE_NAME_JP}・フリーウエイトエリア）`);
       return { success: true };
     } else {
       console.error(`❌ Vercel送信失敗: ${responseCode}`);
-      return { success: false, code: responseCode };
+      console.error(`📝 レスポンス内容: ${responseText.substring(0, 500)}`);
+      return { success: false, code: responseCode, response: responseText };
     }
 
   } catch (error) {
     console.error(`❌ Vercel送信エラー: ${error.message}`);
+    console.error(`📝 エラー詳細: ${error.stack || error}`);
     return { success: false, error: error.message };
   }
 }

@@ -219,21 +219,44 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       return null;
     }
 
+    const studio = extractStudio(body);
+
     return {
       fullName: fullName,
       startTime: eventTime.startTime,
       endTime: eventTime.endTime,
-      studio: '代々木上原店',  // 代々木上原店は部屋分けなし
+      studio: studio,
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
-      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}`
+      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}|${studio}`
     };
 
   } catch (error) {
     Logger.log(`メール解析エラー: ${error.message}`);
     return null;
   }
+}
+
+/**
+ * 部屋名を抽出（代々木上原店: 2枠あるが区別なし）
+ * メール形式: 「設備： 代々木上原店 パーソナルジム (1)」
+ */
+function extractStudio(body) {
+  // パターン1: 「設備： 代々木上原店 パーソナルジム (1)」形式
+  const equipmentMatch = body.match(/設備[：:]\s*代々木上原店\s*([^\s(]+)/);
+  if (equipmentMatch) {
+    return equipmentMatch[1];
+  }
+
+  // パターン2: 「ルーム： 【パーソナルジム】」形式
+  const roomMatch = body.match(/ルーム[：:]\s*【([^】]+)】/);
+  if (roomMatch) {
+    return roomMatch[1];
+  }
+
+  // デフォルト
+  return '代々木上原店';
 }
 
 /**
@@ -540,4 +563,25 @@ function testGmailSearch() {
   } catch (error) {
     Logger.log(`エラー: ${error.message}`);
   }
+}
+
+/**
+ * 部屋名抽出のテスト
+ */
+function testExtractStudio() {
+  const testCases = [
+    '設備： 代々木上原店 パーソナルジム (1)',
+    '設備： 代々木上原店 パーソナルジム (2)',
+    'ルーム： 【パーソナルジム】',
+    '代々木上原店での予約',
+    '不明なルーム'
+  ];
+
+  Logger.log('部屋名抽出テスト:');
+  Logger.log('='.repeat(60));
+
+  testCases.forEach(body => {
+    const room = extractStudio(body);
+    Logger.log(`"${body}" → "${room}"`);
+  });
 }
