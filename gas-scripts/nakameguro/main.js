@@ -229,7 +229,7 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
-      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}`
+      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}|${studio}`
     };
 
   } catch (error) {
@@ -240,14 +240,26 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
 
 /**
  * エリア名を抽出（中目黒店: フリーウエイトエリア・格闘技エリア）
+ * メール形式: 「設備： 中目黒店 フリーウエイトエリア（奥） (1)」
  */
 function extractStudio(body) {
-  // パターン1: 「ルーム： 【フリーウエイトエリア（奥）】」
+  // パターン1: 「設備： 中目黒店 フリーウエイトエリア（奥） (1)」形式
+  const equipmentMatch = body.match(/設備[：:]\s*中目黒店\s*(フリーウエイトエリア|格闘技エリア)/);
+  if (equipmentMatch) {
+    if (equipmentMatch[1].includes('フリーウエイト')) {
+      return 'フリーウエイトエリア';
+    }
+    if (equipmentMatch[1].includes('格闘技')) {
+      return '格闘技エリア';
+    }
+  }
+
+  // パターン2: 「ルーム： 【フリーウエイトエリア（奥）】」
   if (body.includes('フリーウエイトエリア（奥）') || body.includes('フリーウエイトエリア')) {
     return 'フリーウエイトエリア';
   }
 
-  // パターン2: 「ルーム： 【格闘技エリア（手前側）】」
+  // パターン3: 「ルーム： 【格闘技エリア（手前側）】」
   if (body.includes('格闘技エリア（手前側）') || body.includes('格闘技エリア')) {
     return '格闘技エリア';
   }
@@ -576,4 +588,27 @@ function testGmailSearch() {
   } catch (error) {
     Logger.log(`エラー: ${error.message}`);
   }
+}
+
+/**
+ * エリア名抽出のテスト
+ */
+function testExtractStudio() {
+  const testCases = [
+    '設備： 中目黒店 フリーウエイトエリア（奥） (1)',
+    '設備： 中目黒店 格闘技エリア（手前側） (1)',
+    'ルーム： 【フリーウエイトエリア（奥）】',
+    'ルーム： 【格闘技エリア（手前側）】',
+    'フリーウエイトエリア での予約',
+    '格闘技エリア での予約',
+    '不明なルーム'
+  ];
+
+  Logger.log('エリア名抽出テスト:');
+  Logger.log('='.repeat(60));
+
+  testCases.forEach(body => {
+    const room = extractStudio(body);
+    Logger.log(`"${body}" → "${room}"`);
+  });
 }

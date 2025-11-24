@@ -259,7 +259,7 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
-      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}`
+      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}|${studio}`
     };
 
   } catch (error) {
@@ -299,36 +299,43 @@ function extractEventTime(body) {
 
 /**
  * 部屋名を抽出（半蔵門店: STUDIO B ①②③、個室A/B）
+ * メール形式: 「設備： 半蔵門店 STUDIO B ③ (1)」
  */
 function extractStudio(body) {
-  // パターン1: 「ルーム： 【STUDIO B ①】」「【STUDIO B ②】」「【STUDIO B ③】」
+  // パターン1: 「設備： 半蔵門店 STUDIO B ③ (1)」形式
+  const equipmentMatch = body.match(/設備[：:]\s*半蔵門店\s*(STUDIO B [①②③]|個室[AB])/);
+  if (equipmentMatch) {
+    return equipmentMatch[1];
+  }
+
+  // パターン2: 「ルーム： 【STUDIO B ①】」「【STUDIO B ②】」「【STUDIO B ③】」
   const studioB123Match = body.match(/ルーム[：:]\s*【(STUDIO B [①②③])】/);
   if (studioB123Match) {
     return studioB123Match[1];
   }
 
-  // パターン2: 本文中に「STUDIO B ①」などが含まれている（スペースあり・なし両対応）
+  // パターン3: 本文中に「STUDIO B ①」などが含まれている（スペースあり・なし両対応）
   if (body.includes('STUDIO B ①') || body.includes('STUDIO B①')) return 'STUDIO B ①';
   if (body.includes('STUDIO B ②') || body.includes('STUDIO B②')) return 'STUDIO B ②';
   if (body.includes('STUDIO B ③') || body.includes('STUDIO B③')) return 'STUDIO B ③';
 
-  // パターン3: 「ルーム： 【個室A】」「【個室B】」形式
+  // パターン4: 「ルーム： 【個室A】」「【個室B】」形式
   const roomMatch1 = body.match(/ルーム[：:]\s*【(個室[AB])】/);
   if (roomMatch1) {
     return roomMatch1[1];
   }
 
-  // パターン4: 「ルーム： 【STUDIO A】」形式（恵比寿店形式互換）
+  // パターン5: 「ルーム： 【STUDIO A】」形式（恵比寿店形式互換）
   const roomMatch2 = body.match(/ルーム[：:]\s*【(STUDIO [AB])】/);
   if (roomMatch2) {
     return roomMatch2[1] === 'STUDIO A' ? '個室A' : '個室B';
   }
 
-  // パターン5: 本文中に「個室A」「個室B」が含まれている
+  // パターン6: 本文中に「個室A」「個室B」が含まれている
   if (body.includes('個室A')) return '個室A';
   if (body.includes('個室B')) return '個室B';
 
-  // パターン6: STUDIO A/B
+  // パターン7: STUDIO A/B
   if (body.includes('STUDIO A')) return '個室A';
   if (body.includes('STUDIO B')) return '個室B';
 
@@ -636,6 +643,11 @@ function testProcessNewReservations() {
  */
 function testExtractStudio() {
   const testCases = [
+    '設備： 半蔵門店 STUDIO B ① (1)',
+    '設備： 半蔵門店 STUDIO B ② (1)',
+    '設備： 半蔵門店 STUDIO B ③ (1)',
+    '設備： 半蔵門店 個室A (1)',
+    '設備： 半蔵門店 個室B (1)',
     'ルーム： 【STUDIO B ①】',
     'ルーム： 【STUDIO B ②】',
     'ルーム： 【STUDIO B ③】',
@@ -648,7 +660,7 @@ function testExtractStudio() {
     '不明なルーム'
   ];
 
-  Logger.log('🧪 部屋名抽出テスト:');
+  Logger.log('部屋名抽出テスト:');
   Logger.log('='.repeat(60));
 
   testCases.forEach(body => {

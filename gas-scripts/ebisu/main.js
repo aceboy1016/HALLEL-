@@ -252,7 +252,7 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
-      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}`
+      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}|${studio}`
     };
 
   } catch (error) {
@@ -292,9 +292,25 @@ function extractEventTime(body) {
 
 /**
  * 部屋名を抽出（恵比寿店: STUDIO A/B → 個室A/B）
+ * メール形式: 「設備： 恵比寿店 STUDIO A (1)」
  */
 function extractStudio(body) {
-  // パターン1: 「ルーム： 【STUDIO A】」または「ルーム： 【STUDIO B】」
+  // パターン1: 「設備： 恵比寿店 STUDIO A (1)」形式
+  const equipmentMatch = body.match(/設備[：:]\s*恵比寿店\s*(STUDIO [AB]|個室[AB])/);
+  if (equipmentMatch) {
+    switch (equipmentMatch[1]) {
+      case 'STUDIO A':
+        return '個室A';
+      case 'STUDIO B':
+        return '個室B';
+      case '個室A':
+        return '個室A';
+      case '個室B':
+        return '個室B';
+    }
+  }
+
+  // パターン2: 「ルーム： 【STUDIO A】」または「ルーム： 【STUDIO B】」
   const studioMatch = body.match(/ルーム[：:]\s*【(STUDIO [AB])】/);
   if (studioMatch) {
     switch (studioMatch[1]) {
@@ -305,17 +321,17 @@ function extractStudio(body) {
     }
   }
 
-  // パターン2: 本文中に「STUDIO A」「STUDIO B」が含まれている
+  // パターン3: 本文中に「STUDIO A」「STUDIO B」が含まれている
   if (body.includes('STUDIO A')) return '個室A';
   if (body.includes('STUDIO B')) return '個室B';
 
-  // パターン3: 「ルーム： 【個室A】」形式（旧形式互換）
+  // パターン4: 「ルーム： 【個室A】」形式（旧形式互換）
   const roomMatch = body.match(/ルーム[：:]\s*【(個室[AB])】/);
   if (roomMatch) {
     return roomMatch[1];
   }
 
-  // パターン4: 本文中に「個室A」「個室B」が含まれている
+  // パターン5: 本文中に「個室A」「個室B」が含まれている
   if (body.includes('個室A')) return '個室A';
   if (body.includes('個室B')) return '個室B';
 
@@ -613,6 +629,10 @@ function testProcessNewReservations() {
  */
 function testExtractStudio() {
   const testCases = [
+    '設備： 恵比寿店 STUDIO A (1)',
+    '設備： 恵比寿店 STUDIO B (1)',
+    '設備： 恵比寿店 個室A (1)',
+    '設備： 恵比寿店 個室B (1)',
     'ルーム： 【STUDIO A】',
     'ルーム： 【STUDIO B】',
     'ルーム：【STUDIO A】',
@@ -622,7 +642,7 @@ function testExtractStudio() {
     '不明なルーム'
   ];
 
-  Logger.log('🧪 部屋名抽出テスト:');
+  Logger.log('部屋名抽出テスト:');
   Logger.log('='.repeat(60));
 
   testCases.forEach(body => {
