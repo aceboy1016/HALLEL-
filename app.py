@@ -1039,12 +1039,20 @@ def gas_webhook():
                     # そのため、日付・時間・顧客名で削除する
                     if res.get('is_cancellation'):
                         customer_name = res.get('customer_name', 'N/A')
-                        cur.execute("""
-                            DELETE FROM reservations
-                            WHERE date = %s AND start_time = %s AND customer_name = %s AND store = %s AND type = 'gmail'
-                        """, (res['date'], res['start'], customer_name, res.get('store', 'shibuya')))
+                        room_name = res.get('room_name', '')
+                        # room_nameがある場合は条件に含める（同じ顧客が同時刻に複数部屋を予約している場合に対応）
+                        if room_name:
+                            cur.execute("""
+                                DELETE FROM reservations
+                                WHERE date = %s AND start_time = %s AND customer_name = %s AND store = %s AND room_name = %s AND type = 'gmail'
+                            """, (res['date'], res['start'], customer_name, res.get('store', 'shibuya'), room_name))
+                        else:
+                            cur.execute("""
+                                DELETE FROM reservations
+                                WHERE date = %s AND start_time = %s AND customer_name = %s AND store = %s AND type = 'gmail'
+                            """, (res['date'], res['start'], customer_name, res.get('store', 'shibuya')))
                         deleted_count += cur.rowcount
-                        print(f'[DEBUG] Deleted cancellation: {res["date"]} {res["start"]}')
+                        print(f'[DEBUG] Deleted cancellation: {res["date"]} {res["start"]} room={room_name}')
 
                         # Google Calendar同期が必要な場合はリストに追加
                         if res.get('store', 'shibuya') in ['ebisu', 'hanzomon']:

@@ -150,10 +150,10 @@ function processNewReservations() {
         if (emailData) {
           if (emailData.actionType === 'reservation') {
             newReservations.push(emailData);
-            Logger.log(`📧 予約: ${emailData.fullName} ${formatDateTime(emailData.startTime)}`);
+            Logger.log(`📧 予約: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
           } else if (emailData.actionType === 'cancellation') {
             newCancellations.push(emailData);
-            Logger.log(`🗑️ キャンセル: ${emailData.fullName} ${formatDateTime(emailData.startTime)}`);
+            Logger.log(`🗑️ キャンセル: ${emailData.fullName} (${emailData.studio}) ${formatDateTime(emailData.startTime)}`);
           }
         }
       }
@@ -235,6 +235,7 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
   try {
     const fullName = extractFullName(body);
     const eventTime = extractEventTime(body);
+    const studio = extractStudio(body);
 
     if (!eventTime.startTime || !eventTime.endTime) {
       return null;
@@ -252,17 +253,40 @@ function parseReservationEmail(subject, body, emailDate, messageId) {
       fullName: fullName,
       startTime: eventTime.startTime,
       endTime: eventTime.endTime,
-      studio: '渋谷店',  // 渋谷店は部屋分けなし
+      studio: studio,
       actionType: isReservation ? 'reservation' : 'cancellation',
       emailDate: emailDate,
       messageId: messageId || '',
-      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}`
+      key: `${fullName}|${eventTime.startTime.getTime()}|${eventTime.endTime.getTime()}|${studio}`
     };
 
   } catch (error) {
     Logger.log(`⚠️ メール解析エラー: ${error.message}`);
     return null;
   }
+}
+
+/**
+ * 部屋名を抽出（渋谷店: STUDIO ①~⑦）
+ * メール形式: 「設備： 渋谷店 STUDIO ⑦ (1)」
+ */
+function extractStudio(body) {
+  // パターン1: 「設備： 渋谷店 STUDIO ⑦ (1)」形式
+  const studioMatch = body.match(/設備[：:]\s*渋谷店\s*STUDIO\s*([①②③④⑤⑥⑦])/);
+  if (studioMatch) {
+    return `STUDIO ${studioMatch[1]}`;
+  }
+
+  // パターン2: 本文中に「STUDIO ①」などが含まれている
+  const studioNumbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
+  for (const num of studioNumbers) {
+    if (body.includes(`STUDIO ${num}`) || body.includes(`STUDIO${num}`)) {
+      return `STUDIO ${num}`;
+    }
+  }
+
+  // デフォルト
+  return '渋谷店';
 }
 
 /**
@@ -303,7 +327,7 @@ function extractEventTime(body) {
  */
 function addReservationToCalendar(calendar, res) {
   try {
-    const eventTitle = `${res.fullName} - HALLEL渋谷`;
+    const eventTitle = `${res.fullName} - HALLEL-${res.studio}`;
 
     // 重複チェック
     const searchStart = new Date(res.startTime.getTime() - 60000);
@@ -681,16 +705,66 @@ function checkCalendarStatus() {
   Logger.log(`📅 今後30日間の予約: ${events.length}件`);
   Logger.log('='.repeat(60));
 
-  let hallelCount = 0;
+  const roomCounts = {
+    'STUDIO ①': 0, 'STUDIO ②': 0, 'STUDIO ③': 0,
+    'STUDIO ④': 0, 'STUDIO ⑤': 0, 'STUDIO ⑥': 0, 'STUDIO ⑦': 0,
+    '渋谷店': 0, 'その他': 0
+  };
+
   for (let event of events) {
     const title = event.getTitle();
-    if (title.includes('HALLEL')) {
-      hallelCount++;
+    if (!title.includes('HALLEL')) continue;
+
+    let matched = false;
+    for (let i = 1; i <= 7; i++) {
+      const num = ['①', '②', '③', '④', '⑤', '⑥', '⑦'][i - 1];
+      if (title.includes(`STUDIO ${num}`)) {
+        roomCounts[`STUDIO ${num}`]++;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      if (title.includes('渋谷店') || title.includes('HALLEL渋谷')) {
+        roomCounts['渋谷店']++;
+      } else {
+        roomCounts['その他']++;
+      }
     }
   }
 
-  Logger.log(`HALLEL予約: ${hallelCount}件`);
-  Logger.log(`その他: ${events.length - hallelCount}件`);
+  Logger.log('STUDIO別集計:');
+  for (let i = 1; i <= 7; i++) {
+    const num = ['①', '②', '③', '④', '⑤', '⑥', '⑦'][i - 1];
+    Logger.log(`  STUDIO ${num}: ${roomCounts[`STUDIO ${num}`]}件`);
+  }
+  Logger.log(`  渋谷店(旧形式): ${roomCounts['渋谷店']}件`);
+  Logger.log(`  その他: ${roomCounts['その他']}件`);
 
-  return { total: events.length, hallelCount: hallelCount };
+  return { total: events.length, roomCounts: roomCounts };
+}
+
+/**
+ * 部屋名抽出のテスト
+ */
+function testExtractStudio() {
+  const testCases = [
+    '設備： 渋谷店 STUDIO ① (1)',
+    '設備： 渋谷店 STUDIO ② (1)',
+    '設備： 渋谷店 STUDIO ③ (1)',
+    '設備： 渋谷店 STUDIO ④ (1)',
+    '設備： 渋谷店 STUDIO ⑤ (1)',
+    '設備： 渋谷店 STUDIO ⑥ (1)',
+    '設備： 渋谷店 STUDIO ⑦ (1)',
+    'STUDIO ③ での予約',
+    '不明なルーム'
+  ];
+
+  Logger.log('🧪 部屋名抽出テスト:');
+  Logger.log('='.repeat(60));
+
+  testCases.forEach(body => {
+    const room = extractStudio(body);
+    Logger.log(`"${body}" → "${room}"`);
+  });
 }
