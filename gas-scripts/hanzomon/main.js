@@ -22,6 +22,8 @@ const CONFIG = {
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
   // カレンダー同期あり
   CALENDAR_ID: 'light@topform.jp',
+  // 処理済みラベル
+  LABEL_NAME: 'HALLEL_処理済み_半蔵門',
 };
 
 /**
@@ -90,17 +92,24 @@ function processNewReservations() {
   Logger.log(`【${CONFIG.STORE_KEYWORD}店：処理開始】${new Date().toLocaleString('ja-JP')}`);
 
   try {
+    // ラベル取得/作成
+    const label = GmailApp.getUserLabelByName(CONFIG.LABEL_NAME) ||
+                  GmailApp.createLabel(CONFIG.LABEL_NAME);
+
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const query = `${CONFIG.SEARCH_QUERY} after:${Math.floor(oneHourAgo.getTime() / 1000)}`;
+    const query = `${CONFIG.SEARCH_QUERY} -label:${CONFIG.LABEL_NAME} after:${Math.floor(oneHourAgo.getTime() / 1000)}`;
     const threads = GmailApp.search(query);
 
-    Logger.log(`スレッド: ${threads.length}件`);
+    Logger.log(`未処理スレッド: ${threads.length}件`);
     if (threads.length === 0) return { success: true, processed: 0 };
 
     const reservations = [];
     const cancellations = [];
+    const processedThreads = [];
 
     for (const thread of threads) {
+      let hasValidData = false;
+
       for (const msg of thread.getMessages()) {
         if (msg.getDate() < oneHourAgo) continue;
 
@@ -110,9 +119,14 @@ function processNewReservations() {
         const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
         if (data) {
           (data.actionType === 'reservation' ? reservations : cancellations).push(data);
-          const label = data.isCharter ? '【貸切】' : '';
-          Logger.log(`${data.actionType === 'reservation' ? '予約' : 'キャンセル'}: ${data.fullName} (${data.studio}) ${label}`);
+          const labelText = data.isCharter ? '【貸切】' : '';
+          Logger.log(`${data.actionType === 'reservation' ? '予約' : 'キャンセル'}: ${data.fullName} (${data.studio}) ${labelText}`);
+          hasValidData = true;
         }
+      }
+
+      if (hasValidData) {
+        processedThreads.push(thread);
       }
     }
 
@@ -123,6 +137,12 @@ function processNewReservations() {
 
     const result = sendToAPI(allData);
     Logger.log(result.success ? `API送信成功: ${result.count}件` : `API送信失敗: ${result.error}`);
+
+    // API送信成功時のみラベル追加
+    if (result.success) {
+      processedThreads.forEach(t => t.addLabel(label));
+      Logger.log(`ラベル追加: ${processedThreads.length}スレッド`);
+    }
 
     if (CONFIG.CALENDAR_ID) {
       syncToCalendar(reservations, cancellations);
