@@ -15,8 +15,9 @@
 const CONFIG = {
   STORE_NAME: 'hanzomon',
   STORE_KEYWORD: '半蔵門',
-  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 半蔵門',
-  EXCLUDE_KEYWORDS: ['渋谷', '恵比寿', '中目黒', '代々木上原'],  // 2段階防御：他店舗を確実に除外
+  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',
+  INCLUDE_KEYWORD: '半蔵門店',  // この店舗のメールのみ処理
+  EXCLUDE_KEYWORDS: ['渋谷店', '恵比寿店', '中目黒店', '代々木上原店'],  // 他店舗を確実に除外
   DEFAULT_ROOM: '個室B',
   API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
@@ -114,6 +115,11 @@ function processNewReservations() {
         if (msg.getDate() < oneHourAgo) continue;
 
         const body = msg.getPlainBody();
+
+        // この店舗のメールかチェック
+        if (!body.includes(CONFIG.INCLUDE_KEYWORD)) continue;
+
+        // 他店舗除外
         if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
 
         const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
@@ -289,6 +295,11 @@ function syncAllToAPI() {
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
       const body = msg.getPlainBody();
+
+      // この店舗のメールかチェック
+      if (!body.includes(CONFIG.INCLUDE_KEYWORD)) continue;
+
+      // 他店舗除外
       if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
 
       const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
