@@ -116,8 +116,12 @@ function processNewReservations() {
 
         const body = msg.getPlainBody();
 
-        // この店舗のメールかチェック
-        if (!body.includes(CONFIG.INCLUDE_KEYWORD)) continue;
+        // この店舗のメールかチェック（厳密に）
+        const isThisStore = body.includes('店舗： HALLEL 半蔵門店') ||
+                           body.includes('店舗：HALLEL 半蔵門店') ||
+                           body.includes('設備： 半蔵門店') ||
+                           body.includes('設備：半蔵門店');
+        if (!isThisStore) continue;
 
         // 他店舗除外
         if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
@@ -296,8 +300,12 @@ function syncAllToAPI() {
     for (const msg of thread.getMessages()) {
       const body = msg.getPlainBody();
 
-      // この店舗のメールかチェック
-      if (!body.includes(CONFIG.INCLUDE_KEYWORD)) continue;
+      // この店舗のメールかチェック（厳密に）
+      const isThisStore = body.includes('店舗： HALLEL 半蔵門店') ||
+                         body.includes('店舗：HALLEL 半蔵門店') ||
+                         body.includes('設備： 半蔵門店') ||
+                         body.includes('設備：半蔵門店');
+      if (!isThisStore) continue;
 
       // 他店舗除外
       if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
