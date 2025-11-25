@@ -15,8 +15,8 @@
 const CONFIG = {
   STORE_NAME: 'hanzomon',
   STORE_KEYWORD: '半蔵門',
-  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',
-  EXCLUDE_KEYWORDS: ['恵比寿'],  // 半蔵門は他店舗除外を緩めに
+  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 半蔵門',
+  EXCLUDE_KEYWORDS: [],  // 検索クエリで半蔵門のみに絞るため除外不要
   DEFAULT_ROOM: '個室B',
   API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
