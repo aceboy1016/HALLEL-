@@ -377,3 +377,41 @@ function checkCalendarStatus() {
 
   Logger.log('部屋別: ' + JSON.stringify(counts));
 }
+
+/**
+ * 全ての処理済みラベルを削除（全店舗分）
+ * 古い誤ったラベルをリセットする時に使用
+ */
+function removeAllProcessedLabels() {
+  const allLabels = [
+    'HALLEL_処理済み_半蔵門',
+    'HALLEL_処理済み_渋谷',
+    'HALLEL_処理済み_恵比寿',
+    'HALLEL_処理済み_中目黒',
+    'HALLEL_処理済み_代々木上原'
+  ];
+
+  Logger.log('='.repeat(60));
+  Logger.log('【ラベル削除開始】全店舗の処理済みラベルを削除します');
+
+  let totalRemoved = 0;
+  for (const labelName of allLabels) {
+    const label = GmailApp.getUserLabelByName(labelName);
+    if (label) {
+      const threads = label.getThreads();
+      Logger.log(`${labelName}: ${threads.length}スレッド`);
+
+      // 全スレッドからラベルを削除
+      for (const thread of threads) {
+        thread.removeLabel(label);
+      }
+
+      totalRemoved += threads.length;
+    } else {
+      Logger.log(`${labelName}: ラベルなし`);
+    }
+  }
+
+  Logger.log(`合計 ${totalRemoved}スレッドからラベルを削除しました`);
+  Logger.log('【削除完了】最新のコードで processNewReservations を実行してください');
+}
