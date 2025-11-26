@@ -15,13 +15,16 @@
 const CONFIG = {
   STORE_NAME: 'shibuya',
   STORE_KEYWORD: '渋谷',
-  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 渋谷',
-  EXCLUDE_KEYWORDS: ['恵比寿', '半蔵門', '代々木上原', '中目黒'],
+  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',
+  INCLUDE_KEYWORD: '渋谷店',  // この店舗のメールのみ処理
+  EXCLUDE_KEYWORDS: ['恵比寿店', '半蔵門店', '代々木上原店', '中目黒店'],  // 他店舗を確実に除外
   DEFAULT_ROOM: '渋谷店',
   API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
   // カレンダー同期（null = 同期しない）
   CALENDAR_ID: null,
+  // 処理済みラベル
+  LABEL_NAME: 'HALLEL_処理済み_渋谷',
 };
 
 /**
@@ -76,29 +79,50 @@ function processNewReservations() {
   Logger.log(`【${CONFIG.STORE_KEYWORD}店：処理開始】${new Date().toLocaleString('ja-JP')}`);
 
   try {
+    // ラベル取得/作成
+    const label = GmailApp.getUserLabelByName(CONFIG.LABEL_NAME) ||
+                  GmailApp.createLabel(CONFIG.LABEL_NAME);
+
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const query = `${CONFIG.SEARCH_QUERY} after:${Math.floor(oneHourAgo.getTime() / 1000)}`;
+    const query = `${CONFIG.SEARCH_QUERY} -label:${CONFIG.LABEL_NAME} after:${Math.floor(oneHourAgo.getTime() / 1000)}`;
     const threads = GmailApp.search(query);
 
-    Logger.log(`スレッド: ${threads.length}件`);
+    Logger.log(`未処理スレッド: ${threads.length}件`);
     if (threads.length === 0) return { success: true, processed: 0 };
 
     const reservations = [];
     const cancellations = [];
+    const processedThreads = [];
 
     for (const thread of threads) {
+      let hasValidData = false;
+
       for (const msg of thread.getMessages()) {
         if (msg.getDate() < oneHourAgo) continue;
 
         const body = msg.getPlainBody();
-        if (!body.includes(CONFIG.STORE_KEYWORD)) continue;
+
+        // この店舗のメールかチェック（厳密に）
+        const isThisStore = body.includes('店舗： HALLEL 渋谷店') ||
+                           body.includes('店舗：HALLEL 渋谷店') ||
+                           body.includes('設備： 渋谷店') ||
+                           body.includes('設備：渋谷店');
+        if (!isThisStore) continue;
+
+        // 他店舗除外
         if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
 
         const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
         if (data) {
           (data.actionType === 'reservation' ? reservations : cancellations).push(data);
-          Logger.log(`${data.actionType === 'reservation' ? '予約' : 'キャンセル'}: ${data.fullName} (${data.studio})`);
+          const labelText = data.isCharter ? '【貸切】' : '';
+          Logger.log(`${data.actionType === 'reservation' ? '予約' : 'キャンセル'}: ${data.fullName} (${data.studio}) ${labelText}`);
+          hasValidData = true;
         }
+      }
+
+      if (hasValidData) {
+        processedThreads.push(thread);
       }
     }
 
@@ -109,6 +133,12 @@ function processNewReservations() {
 
     const result = sendToAPI(allData);
     Logger.log(result.success ? `API送信成功: ${result.count}件` : `API送信失敗: ${result.error}`);
+
+    // API送信成功時のみラベル追加
+    if (result.success) {
+      processedThreads.forEach(t => t.addLabel(label));
+      Logger.log(`ラベル追加: ${processedThreads.length}スレッド`);
+    }
 
     // カレンダー同期（設定されている場合のみ）
     if (CONFIG.CALENDAR_ID) {
@@ -247,7 +277,15 @@ function syncAllToAPI() {
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
       const body = msg.getPlainBody();
-      if (!body.includes(CONFIG.STORE_KEYWORD)) continue;
+
+      // この店舗のメールかチェック（厳密に）
+      const isThisStore = body.includes('店舗： HALLEL 渋谷店') ||
+                         body.includes('店舗：HALLEL 渋谷店') ||
+                         body.includes('設備： 渋谷店') ||
+                         body.includes('設備：渋谷店');
+      if (!isThisStore) continue;
+
+      // 他店舗除外
       if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
 
       const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
