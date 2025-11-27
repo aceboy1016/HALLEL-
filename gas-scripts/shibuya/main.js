@@ -102,13 +102,9 @@ function processNewReservations() {
 
         const body = msg.getPlainBody();
 
-        // この店舗のメールかチェック（超厳密：店舗名の抽出・完全一致）
-        // 「店舗： HALLEL 渋谷店」の行を特定して判定する
-        const storeMatch = body.match(/店舗：\s*(.+)/);
-        const actualStoreName = storeMatch ? storeMatch[1].trim() : '';
-
-        // 渋谷店でなければスキップ
-        if (actualStoreName !== 'HALLEL 渋谷店') continue;
+        // この店舗のメールかチェック（超シンプル・確実）
+        // 「店舗： HALLEL 渋谷店」という文字列が含まれていなければスキップ
+        if (body.indexOf('店舗： HALLEL 渋谷店') === -1) continue;
 
         // 他店舗除外
         if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
@@ -279,12 +275,8 @@ function syncAllToAPI() {
     for (const msg of thread.getMessages()) {
       const body = msg.getPlainBody();
 
-      // この店舗のメールかチェック（厳密に）
-      const isThisStore = body.includes('店舗： HALLEL 渋谷店') ||
-        body.includes('店舗：HALLEL 渋谷店') ||
-        body.includes('設備： 渋谷店') ||
-        body.includes('設備：渋谷店');
-      if (!isThisStore) continue;
+      // この店舗のメールかチェック（超シンプル・確実）
+      if (body.indexOf('店舗： HALLEL 渋谷店') === -1) continue;
 
       // 他店舗除外
       if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
