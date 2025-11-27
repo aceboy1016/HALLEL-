@@ -98,17 +98,13 @@ function processNewReservations() {
 
         const body = msg.getPlainBody();
 
-        // この店舗のメールかチェック（厳密に）
-        // メール形式:
-        // 店舗： HALLEL 代々木上原店
-        // 設備： 代々木上原店 STUDIO ① (1)
-        const isThisStore = (body.includes('店舗： HALLEL 代々木上原店') || body.includes('店舗：HALLEL 代々木上原店')) &&
-          (body.includes('設備： 代々木上原店') || body.includes('設備：代々木上原店'));
+        // この店舗のメールかチェック（超厳密：店舗名の抽出・完全一致）
+        // 「店舗： HALLEL 代々木上原店」の行を特定して判定する
+        const storeMatch = body.match(/店舗：\s*(.+)/);
+        const actualStoreName = storeMatch ? storeMatch[1].trim() : '';
 
-        if (!isThisStore) continue;
-
-        // 他店舗除外（念のため）
-        if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(`店舗： HALLEL ${k}`) || body.includes(`店舗：HALLEL ${k}`))) continue;
+        // 代々木上原店でなければスキップ
+        if (actualStoreName !== 'HALLEL 代々木上原店') continue;
 
         // 他店舗除外
         if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
