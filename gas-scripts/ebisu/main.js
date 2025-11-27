@@ -97,7 +97,7 @@ function processNewReservations() {
   try {
     // ラベル取得/作成
     const label = GmailApp.getUserLabelByName(CONFIG.LABEL_NAME) ||
-                  GmailApp.createLabel(CONFIG.LABEL_NAME);
+      GmailApp.createLabel(CONFIG.LABEL_NAME);
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const query = `${CONFIG.SEARCH_QUERY} -label:${CONFIG.LABEL_NAME} after:${Math.floor(oneHourAgo.getTime() / 1000)}`;
@@ -119,11 +119,16 @@ function processNewReservations() {
         const body = msg.getPlainBody();
 
         // この店舗のメールかチェック（厳密に）
-        const isThisStore = body.includes('店舗： HALLEL 恵比寿店') ||
-                           body.includes('店舗：HALLEL 恵比寿店') ||
-                           body.includes('設備： 恵比寿店') ||
-                           body.includes('設備：恵比寿店');
+        // メール形式:
+        // 店舗： HALLEL 恵比寿店
+        // 設備： 恵比寿店 STUDIO A (1)
+        const isThisStore = (body.includes('店舗： HALLEL 恵比寿店') || body.includes('店舗：HALLEL 恵比寿店')) &&
+          (body.includes('設備： 恵比寿店') || body.includes('設備：恵比寿店'));
+
         if (!isThisStore) continue;
+
+        // 他店舗除外（念のため）
+        if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(`店舗： HALLEL ${k}`) || body.includes(`店舗：HALLEL ${k}`))) continue;
 
         // 他店舗除外
         if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
@@ -260,7 +265,7 @@ function syncToCalendar(reservations, cancellations) {
     for (const e of events) {
       const eTitle = e.getTitle();
       if (eTitle.includes(r.fullName) && eTitle.includes('HALLEL') &&
-          Math.abs(e.getStartTime().getTime() - r.startTime.getTime()) < 60000) {
+        Math.abs(e.getStartTime().getTime() - r.startTime.getTime()) < 60000) {
         if (eTitle === title) {
           exists = true;
         } else {
@@ -304,9 +309,9 @@ function syncAllToAPI() {
 
       // この店舗のメールかチェック（厳密に）
       const isThisStore = body.includes('店舗： HALLEL 恵比寿店') ||
-                         body.includes('店舗：HALLEL 恵比寿店') ||
-                         body.includes('設備： 恵比寿店') ||
-                         body.includes('設備：恵比寿店');
+        body.includes('店舗：HALLEL 恵比寿店') ||
+        body.includes('設備： 恵比寿店') ||
+        body.includes('設備：恵比寿店');
       if (!isThisStore) continue;
 
       // 他店舗除外

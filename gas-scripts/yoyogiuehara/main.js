@@ -77,7 +77,7 @@ function processNewReservations() {
   try {
     // ラベル取得/作成
     const label = GmailApp.getUserLabelByName(CONFIG.LABEL_NAME) ||
-                  GmailApp.createLabel(CONFIG.LABEL_NAME);
+      GmailApp.createLabel(CONFIG.LABEL_NAME);
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const query = `${CONFIG.SEARCH_QUERY} -label:${CONFIG.LABEL_NAME} after:${Math.floor(oneHourAgo.getTime() / 1000)}`;
@@ -99,11 +99,16 @@ function processNewReservations() {
         const body = msg.getPlainBody();
 
         // この店舗のメールかチェック（厳密に）
-        const isThisStore = body.includes('店舗： HALLEL 代々木上原店') ||
-                           body.includes('店舗：HALLEL 代々木上原店') ||
-                           body.includes('設備： 代々木上原店') ||
-                           body.includes('設備：代々木上原店');
+        // メール形式:
+        // 店舗： HALLEL 代々木上原店
+        // 設備： 代々木上原店 パーソナルジム
+        const isThisStore = (body.includes('店舗： HALLEL 代々木上原店') || body.includes('店舗：HALLEL 代々木上原店')) &&
+          (body.includes('設備： 代々木上原店') || body.includes('設備：代々木上原店'));
+
         if (!isThisStore) continue;
+
+        // 他店舗除外（念のため）
+        if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(`店舗： HALLEL ${k}`) || body.includes(`店舗：HALLEL ${k}`))) continue;
 
         // 他店舗除外
         if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
@@ -272,9 +277,9 @@ function syncAllToAPI() {
 
       // この店舗のメールかチェック（厳密に）
       const isThisStore = body.includes('店舗： HALLEL 代々木上原店') ||
-                         body.includes('店舗：HALLEL 代々木上原店') ||
-                         body.includes('設備： 代々木上原店') ||
-                         body.includes('設備：代々木上原店');
+        body.includes('店舗：HALLEL 代々木上原店') ||
+        body.includes('設備： 代々木上原店') ||
+        body.includes('設備：代々木上原店');
       if (!isThisStore) continue;
 
       // 他店舗除外
