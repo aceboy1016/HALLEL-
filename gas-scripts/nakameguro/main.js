@@ -102,9 +102,9 @@ function processNewReservations() {
 
         // この店舗のメールかチェック（厳密に）
         // メール形式:
-        // 店舗： HALLEL 中目黒店
-        // 設備： 中目黒店 フリーウエイトエリア
-        const isThisStore = (body.includes('店舗： HALLEL 中目黒店') || body.includes('店舗：HALLEL 中目黒店')) &&
+        // 店舗： HALLEL / OLBET 中目黒店
+        // 設備： 中目黒店 フリーウエイトエリア（奥） (1)
+        const isThisStore = (body.includes('店舗： HALLEL / OLBET 中目黒店') || body.includes('店舗：HALLEL / OLBET 中目黒店')) &&
           (body.includes('設備： 中目黒店') || body.includes('設備：中目黒店'));
 
         if (!isThisStore) continue;

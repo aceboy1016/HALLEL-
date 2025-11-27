@@ -101,7 +101,7 @@ function processNewReservations() {
         // この店舗のメールかチェック（厳密に）
         // メール形式:
         // 店舗： HALLEL 代々木上原店
-        // 設備： 代々木上原店 パーソナルジム
+        // 設備： 代々木上原店 STUDIO ① (1)
         const isThisStore = (body.includes('店舗： HALLEL 代々木上原店') || body.includes('店舗：HALLEL 代々木上原店')) &&
           (body.includes('設備： 代々木上原店') || body.includes('設備：代々木上原店'));
 

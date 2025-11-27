@@ -105,7 +105,7 @@ function processNewReservations() {
         // この店舗のメールかチェック（厳密に）
         // メール形式:
         // 店舗： HALLEL 渋谷店
-        // 設備： 渋谷店 STUDIO 1
+        // 設備： 渋谷店 STUDIO ① (1)
         const isThisStore = (body.includes('店舗： HALLEL 渋谷店') || body.includes('店舗：HALLEL 渋谷店')) &&
           (body.includes('設備： 渋谷店') || body.includes('設備：渋谷店'));
 
