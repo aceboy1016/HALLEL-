@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プライバシーポリシー | HALLEL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Atlassian-inspired Color Palette */
+            --primary-blue: #0052CC;
+            --primary-blue-hover: #0065FF;
+            --primary-blue-light: rgba(0, 82, 204, 0.1);
+            --neutral-900: #091E42;
+            --neutral-800: #172B4D;
+            --neutral-700: #253858;
+            --neutral-600: #344563;
+            --neutral-500: #42526E;
+            --neutral-400: #5E6C84;
+            --neutral-300: #7A869A;
+            --neutral-200: #97A0AF;
+            --neutral-100: #DFE1E6;
+            --neutral-50: #F4F5F7;
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --text-light: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --surface-bg: #F4F5F7;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --shadow-low: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-medium: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-high: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --radius-sm: 3px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --success: #00875A;
+            --success-light: #36B37E;
+            --warning: #FF8B00;
+            --danger: #DE350B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--surface-bg) 0%, #E6E9EF 100%);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--neutral-700) 0%, var(--neutral-800) 100%);
+            color: var(--text-light);
+            padding: 2rem 0;
+            box-shadow: var(--shadow-medium);
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+
+        /* Card */
+        .content-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+            padding: 3rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Typography */
+        h2 {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 2.5rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--primary-blue);
+            position: relative;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -3px;
+            width: 60px;
+            height: 3px;
+            background: var(--primary-blue-hover);
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        h3 {
+            color: var(--text-primary);
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        h4 {
+            color: var(--text-primary);
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p {
+            color: var(--text-primary);
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        li::marker {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        ul ul, ol ol {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Links */
+        a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid transparent;
+        }
+
+        a:hover {
+            color: var(--primary-blue-hover);
+            border-bottom-color: var(--primary-blue-hover);
+        }
+
+        /* Info Box */
+        .info-box {
+            background: linear-gradient(135deg, var(--primary-blue-light) 0%, rgba(102, 126, 234, 0.05) 100%);
+            border-left: 4px solid var(--primary-blue);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-md);
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Alert Box */
+        .alert-box {
+            background: linear-gradient(135deg, #FFEBE6 0%, #FFF4E6 100%);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-md);
+        }
+
+        .alert-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Success Box */
+        .success-box {
+            background: linear-gradient(135deg, #E3FCEF 0%, #F0FFF4 100%);
+            border-left: 4px solid var(--success);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-md);
+        }
+
+        .success-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: var(--card-bg);
+            box-shadow: var(--shadow-low);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        thead {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+        }
+
+        th {
+            padding: 1.25rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--neutral-100);
+            color: var(--text-primary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: var(--neutral-50);
+        }
+
+        /* Contact Section */
+        .contact-section {
+            background: linear-gradient(135deg, var(--neutral-50) 0%, #E6E9EF 100%);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            margin: 2rem 0;
+            border: 2px solid var(--neutral-100);
+        }
+
+        .contact-section h3 {
+            margin-top: 0;
+            border-left: none;
+            padding-left: 0;
+        }
+
+        .contact-info {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .contact-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .contact-value {
+            color: var(--text-primary);
+        }
+
+        /* Metadata */
+        .metadata {
+            background: var(--neutral-50);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-left: 4px solid var(--neutral-300);
+        }
+
+        /* Footer Navigation */
+        .footer-nav {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--neutral-100);
+        }
+
+        .footer-nav a {
+            display: inline-block;
+            margin: 0 1rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-low);
+            border-bottom: none;
+        }
+
+        .footer-nav a:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            color: var(--text-light);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            color: var(--primary-blue);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content-card {
+                padding: 2rem 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.25rem;
+            }
+
+            .contact-info {
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+            }
+
+            .contact-label {
+                font-weight: 700;
+            }
+
+            .footer-nav a {
+                display: block;
+                margin: 0.5rem 0;
+            }
+        }
+
+        /* Code */
+        code {
+            background: var(--neutral-50);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 0.9em;
+            color: var(--danger);
+        }
+
+        /* Strong */
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 50px;
+            margin-left: 0.5rem;
+        }
+
+        .badge-required {
+            background: var(--danger);
+            color: var(--text-light);
+        }
+
+        .badge-optional {
+            background: var(--neutral-200);
+            color: var(--text-primary);
+        }
+
+        .badge-new {
+            background: var(--success);
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>プライバシーポリシー</h1>
+            <p class="subtitle">個人情報保護方針 | HALLEL フィットネススタジオ予約システム</p>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M10 2L4 8l6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            ホームに戻る
+        </a>
+
+        <div class="content-card">
+            <div class="info-box">
+                <p><strong>最終更新日：</strong> 2025年11月17日</p>
+                <p>HALLEL株式会社（以下「当社」といいます）は、当社が提供するフィットネススタジオ予約システム（以下「本サービス」といいます）における、ご利用者様の個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。</p>
+            </div>
+
+            <h2>第1条（事業者情報）</h2>
+            <div class="contact-section">
+                <h3>運営事業者</h3>
+                <div class="contact-info">
+                    <div class="contact-label">事業者名</div>
+                    <div class="contact-value">HALLEL株式会社</div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">代表者名</div>
+                    <div class="contact-value">[代表者名]</div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">所在地</div>
+                    <div class="contact-value">[郵便番号] [住所]</div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">連絡先</div>
+                    <div class="contact-value">
+                        メール: <a href="mailto:privacy@hallel.example.com">privacy@hallel.example.com</a><br>
+                        電話: [電話番号]
+                    </div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">個人情報保護管理者</div>
+                    <div class="contact-value">[管理者名・部署名]</div>
+                </div>
+            </div>
+
+            <h2>第2条（個人情報の定義）</h2>
+            <p>本ポリシーにおいて「個人情報」とは、個人情報保護法第2条第1項に定義される、生存する個人に関する情報であって、当該情報に含まれる氏名、生年月日その他の記述等により特定の個人を識別することができるもの（他の情報と容易に照合することができ、それにより特定の個人を識別することができることとなるものを含む）を指します。</p>
+
+            <h2>第3条（収集する個人情報の項目）</h2>
+            <p>当社は、本サービスの提供にあたり、以下の個人情報を収集します。</p>
+
+            <h3>3.1 利用者様から直接ご提供いただく情報</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>内容</th>
+                        <th>必須/任意</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>氏名（フルネーム）</td>
+                        <td>予約者のお名前</td>
+                        <td><span class="badge badge-required">必須</span></td>
+                    </tr>
+                    <tr>
+                        <td>メールアドレス</td>
+                        <td>予約確認・連絡用メールアドレス</td>
+                        <td><span class="badge badge-required">必須</span></td>
+                    </tr>
+                    <tr>
+                        <td>電話番号</td>
+                        <td>緊急連絡用電話番号</td>
+                        <td><span class="badge badge-optional">任意</span></td>
+                    </tr>
+                    <tr>
+                        <td>予約情報</td>
+                        <td>予約日時、利用店舗、予約内容</td>
+                        <td><span class="badge badge-required">必須</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>3.2 サービス利用時に自動的に収集される情報</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>内容</th>
+                        <th>収集方法</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>IPアドレス</td>
+                        <td>インターネット接続時のIPアドレス</td>
+                        <td>自動取得</td>
+                    </tr>
+                    <tr>
+                        <td>ブラウザ情報（User-Agent）</td>
+                        <td>使用ブラウザの種類、バージョン、OS情報</td>
+                        <td>自動取得</td>
+                    </tr>
+                    <tr>
+                        <td>アクセス日時</td>
+                        <td>サービスへのアクセス日時</td>
+                        <td>自動取得</td>
+                    </tr>
+                    <tr>
+                        <td>Cookie情報</td>
+                        <td>セッション管理用Cookie</td>
+                        <td>Cookie技術</td>
+                    </tr>
+                    <tr>
+                        <td>リファラー情報</td>
+                        <td>アクセス元のURL情報</td>
+                        <td>自動取得</td>
+                    </tr>
+                    <tr>
+                        <td>閲覧履歴</td>
+                        <td>アクセスページ、クリック情報</td>
+                        <td>アクセスログ</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>3.3 外部サービスから取得する情報</h3>
+            <ul>
+                <li><strong>Gmail API経由の情報：</strong> 予約確認メールの件名、送信者、受信日時、本文（予約情報のみ）</li>
+                <li><strong>Google OAuth情報：</strong> 管理者認証用のGoogleアカウント情報（メールアドレス、プロフィール情報）</li>
+            </ul>
+
+            <div class="alert-box">
+                <p><strong>重要：</strong> 当社は、法令により収集が禁止されている以下の情報は収集いたしません。</p>
+                <ul>
+                    <li>人種、信条、社会的身分</li>
+                    <li>病歴、犯罪の経歴、犯罪により害を被った事実</li>
+                    <li>不当な差別、偏見その他の不利益が生じないように特に配慮を要するその他の記述等（要配慮個人情報）</li>
+                </ul>
+            </div>
+
+            <h2>第4条（個人情報の利用目的）</h2>
+            <p>当社は、収集した個人情報を以下の目的で利用します。</p>
+
+            <h3>4.1 本サービス提供のための利用</h3>
+            <ol>
+                <li><strong>予約管理：</strong> フィットネススタジオの予約受付、変更、キャンセル処理</li>
+                <li><strong>予約確認：</strong> 予約完了の通知、予約内容の確認メール送信</li>
+                <li><strong>リマインダー送信：</strong> 予約日時のリマインダー通知（希望者のみ）</li>
+                <li><strong>カレンダー表示：</strong> 予約状況の可視化、空き状況の確認</li>
+                <li><strong>利用履歴管理：</strong> 過去の予約履歴の保存・表示</li>
+            </ol>
+
+            <h3>4.2 サービス向上のための利用</h3>
+            <ol>
+                <li><strong>サービス改善：</strong> 利用状況の分析、サービス品質の向上</li>
+                <li><strong>統計データ作成：</strong> 個人を特定できない統計情報の作成・分析</li>
+                <li><strong>新機能開発：</strong> ユーザーニーズに基づく新機能の企画・開発</li>
+                <li><strong>A/Bテスト実施：</strong> UI/UX改善のためのテスト実施</li>
+            </ol>
+
+            <h3>4.3 カスタマーサポートのための利用</h3>
+            <ol>
+                <li><strong>お問い合わせ対応：</strong> ユーザーからの問い合わせへの回答</li>
+                <li><strong>トラブルシューティング：</strong> システム障害、予約エラー等の調査・対応</li>
+                <li><strong>アカウント管理：</strong> ログイン問題、パスワードリセット等の対応</li>
+                <li><strong>苦情処理：</strong> 利用者からの苦情・クレームへの対応</li>
+            </ol>
+
+            <h3>4.4 セキュリティ維持のための利用</h3>
+            <ol>
+                <li><strong>不正アクセス防止：</strong> IPアドレス、アクセスログを用いた不正アクセスの検知・防止</li>
+                <li><strong>なりすまし防止：</strong> 本人確認、認証処理</li>
+                <li><strong>スパム対策：</strong> 悪意ある予約、自動ツールによる大量予約の防止</li>
+                <li><strong>セキュリティ監査：</strong> システムログの監査、セキュリティインシデント調査</li>
+            </ol>
+
+            <h3>4.5 マーケティング活動のための利用（オプトイン方式）</h3>
+            <div class="success-box">
+                <p><strong>同意取得：</strong> 以下の目的での利用は、事前に利用者様の明示的な同意を得た場合にのみ実施します。</p>
+            </div>
+            <ol>
+                <li><strong>キャンペーン情報配信：</strong> 新規会員特典、期間限定キャンペーン情報の配信</li>
+                <li><strong>ニュースレター配信：</strong> サービス更新情報、フィットネスに関する情報提供</li>
+                <li><strong>アンケート依頼：</strong> サービス満足度調査、改善提案の依頼</li>
+            </ol>
+            <p><strong>※ 配信停止：</strong> メール内の「配信停止リンク」からいつでも配信を停止できます。</p>
+
+            <h3>4.6 法令遵守のための利用</h3>
+            <ol>
+                <li><strong>法令上の義務履行：</strong> 法令に基づく開示請求、照会への対応</li>
+                <li><strong>訴訟対応：</strong> 訴訟、紛争解決のための証拠保全</li>
+                <li><strong>税務・会計処理：</strong> 税務申告、会計監査のための記録保持</li>
+            </ol>
+
+            <h2>第5条（個人情報の第三者提供）</h2>
+            <p>当社は、以下の場合を除き、ご本人の同意なく個人情報を第三者に提供することはありません。</p>
+
+            <h3>5.1 ご本人の同意がある場合</h3>
+            <p>事前に利用者様から明示的な同意を得た場合に限り、第三者に個人情報を提供します。</p>
+
+            <h3>5.2 法令に基づく場合</h3>
+            <ul>
+                <li>法令により開示が認められている場合</li>
+                <li>裁判所、警察、税務署等の公的機関から法令に基づく開示請求があった場合</li>
+                <li>人の生命、身体又は財産の保護のために必要がある場合であって、本人の同意を得ることが困難である場合</li>
+            </ul>
+
+            <h3>5.3 業務委託先への提供</h3>
+            <p>当社は、業務の一部を外部企業に委託する場合、委託先に対して必要最小限の個人情報を提供することがあります。この場合、当社は委託先と機密保持契約を締結し、適切な管理・監督を行います。</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>委託先</th>
+                        <th>委託業務の内容</th>
+                        <th>提供される情報</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>メール配信サービス</td>
+                        <td>予約確認メール、リマインダーの配信</td>
+                        <td>メールアドレス、氏名、予約情報</td>
+                    </tr>
+                    <tr>
+                        <td>クラウドサービスプロバイダー</td>
+                        <td>データベースのホスティング、バックアップ</td>
+                        <td>全ての保存データ（暗号化済み）</td>
+                    </tr>
+                    <tr>
+                        <td>カスタマーサポートツール</td>
+                        <td>問い合わせ対応、チケット管理</td>
+                        <td>氏名、メールアドレス、問い合わせ内容</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>5.4 外部サービスの利用</h3>
+            <p>本サービスは、以下の外部サービスを利用しています。これらのサービスには、サービス提供のために必要最小限の個人情報が送信されます。</p>
+
+            <h4>Google LLC（Gmail API）</h4>
+            <ul>
+                <li><strong>用途：</strong> 予約確認メールの自動取得、予約情報の同期</li>
+                <li><strong>提供される情報：</strong> メール件名、送信者、受信日時、本文（予約情報のみ）</li>
+                <li><strong>データ保存場所：</strong> アメリカ合衆国</li>
+                <li><strong>プライバシーポリシー：</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">https://policies.google.com/privacy</a></li>
+                <li><strong>セキュリティ認証：</strong> ISO/IEC 27001, SOC 2</li>
+            </ul>
+
+            <h4>Vercel Inc.（ホスティングサービス）</h4>
+            <ul>
+                <li><strong>用途：</strong> Webアプリケーションのホスティング、CDN配信</li>
+                <li><strong>提供される情報：</strong> アクセスログ（IPアドレス、アクセス日時、リクエスト内容）</li>
+                <li><strong>データ保存場所：</strong> アメリカ合衆国</li>
+                <li><strong>プライバシーポリシー：</strong> <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">https://vercel.com/legal/privacy-policy</a></li>
+                <li><strong>セキュリティ認証：</strong> SOC 2 Type II</li>
+            </ul>
+
+            <div class="alert-box">
+                <p><strong>国際データ転送について：</strong> 上記の外部サービスは、日本国外にデータセンターを有しており、個人情報が国外に転送される場合があります。当社は、適切な保護措置（標準契約条項の締結、プライバシーシールド認証等）を講じた上で、これらのサービスを利用しています。</p>
+            </div>
+
+            <h2>第6条（個人情報の保存期間）</h2>
+            <p>当社は、利用目的達成に必要な期間に限り、個人情報を保存します。</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>データ種別</th>
+                        <th>保存期間</th>
+                        <th>保存理由</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>予約情報（完了済み）</td>
+                        <td>予約実施日から1年間</td>
+                        <td>履歴照会、統計分析</td>
+                    </tr>
+                    <tr>
+                        <td>予約情報（キャンセル済み）</td>
+                        <td>キャンセル日から6ヶ月間</td>
+                        <td>不正利用防止、統計分析</td>
+                    </tr>
+                    <tr>
+                        <td>会員情報（退会後）</td>
+                        <td>退会日から3ヶ月間</td>
+                        <td>再登録時の利便性向上、紛争対応</td>
+                    </tr>
+                    <tr>
+                        <td>アクセスログ</td>
+                        <td>6ヶ月間</td>
+                        <td>セキュリティ監査、不正アクセス調査</td>
+                    </tr>
+                    <tr>
+                        <td>セキュリティログ</td>
+                        <td>1年間</td>
+                        <td>セキュリティインシデント調査</td>
+                    </tr>
+                    <tr>
+                        <td>問い合わせ履歴</td>
+                        <td>対応完了から1年間</td>
+                        <td>品質向上、再問い合わせ対応</td>
+                    </tr>
+                    <tr>
+                        <td>会計・税務関連データ</td>
+                        <td>7年間</td>
+                        <td>法令遵守（会社法、税法）</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p><strong>自動削除：</strong> 上記の保存期間経過後、個人情報は自動的に削除されます（技術的に削除が困難な場合、匿名化処理を実施します）。</p>
+
+            <h2>第7条（Cookie及びこれに類する技術の使用）</h2>
+
+            <h3>7.1 Cookieとは</h3>
+            <p>Cookieとは、Webサイトがユーザーのコンピュータに保存する小さなテキストファイルです。Cookieにより、Webサイトはユーザーの設定や行動を記憶することができます。</p>
+
+            <h3>7.2 当社が使用するCookie</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cookie名</th>
+                        <th>種類</th>
+                        <th>用途</th>
+                        <th>保存期間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>session</td>
+                        <td>必須Cookie</td>
+                        <td>ログイン状態の維持、セッション管理</td>
+                        <td>ブラウザ終了時まで</td>
+                    </tr>
+                    <tr>
+                        <td>csrf_token</td>
+                        <td>必須Cookie</td>
+                        <td>セキュリティ（CSRF攻撃防止）</td>
+                        <td>セッション終了時まで</td>
+                    </tr>
+                    <tr>
+                        <td>cookieConsent</td>
+                        <td>必須Cookie</td>
+                        <td>Cookie同意状態の記録</td>
+                        <td>1年間</td>
+                    </tr>
+                    <tr>
+                        <td>preferences</td>
+                        <td>機能Cookie</td>
+                        <td>言語設定、表示設定の保存</td>
+                        <td>6ヶ月間</td>
+                    </tr>
+                    <tr>
+                        <td>analytics</td>
+                        <td>分析Cookie</td>
+                        <td>利用状況の分析（オプトイン）</td>
+                        <td>1年間</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>7.3 Cookieの管理</h3>
+            <p>ほとんどのブラウザでは、Cookieの受け入れ設定を変更できます。ただし、必須Cookieを無効にした場合、本サービスの一部機能がご利用いただけなくなります。</p>
+
+            <div class="info-box">
+                <p><strong>Cookieの設定方法：</strong></p>
+                <ul>
+                    <li><strong>Google Chrome：</strong> 設定 &gt; プライバシーとセキュリティ &gt; Cookie と他のサイトデータ</li>
+                    <li><strong>Safari：</strong> 環境設定 &gt; プライバシー &gt; Cookieとウェブサイトのデータ</li>
+                    <li><strong>Firefox：</strong> オプション &gt; プライバシーとセキュリティ &gt; Cookie とサイトデータ</li>
+                    <li><strong>Microsoft Edge：</strong> 設定 &gt; プライバシー、検索、サービス &gt; Cookie</li>
+                </ul>
+            </div>
+
+            <h2>第8条（個人情報の開示、訂正、削除等）</h2>
+
+            <h3>8.1 開示請求</h3>
+            <p>ご本人は、当社に対して、個人情報保護法の定めに従い、個人情報の開示を請求することができます。開示請求にあたっては、本人確認のため、以下の手続きを行っていただきます。</p>
+
+            <h4>開示請求の手順</h4>
+            <ol>
+                <li><strong>請求方法：</strong> <a href="mailto:privacy@hallel.example.com">privacy@hallel.example.com</a> 宛に「個人情報開示請求」の件名でメールを送信</li>
+                <li><strong>本人確認：</strong> 登録メールアドレスから送信いただくことで本人確認を行います</li>
+                <li><strong>本人確認書類（必要な場合）：</strong> 運転免許証、マイナンバーカード等の本人確認書類のコピー（電話番号等の一部をマスキングしてください）</li>
+                <li><strong>対応期間：</strong> 原則として、請求受領後2週間以内に対応します</li>
+            </ol>
+
+            <h4>開示の方法</h4>
+            <ul>
+                <li>PDFファイルでのメール送付（無料）</li>
+                <li>書面での郵送（郵送費実費をご負担いただきます）</li>
+            </ul>
+
+            <h3>8.2 訂正・追加・削除請求</h3>
+            <p>個人情報の内容が事実でない場合、訂正、追加、削除（以下「訂正等」といいます）を請求することができます。</p>
+
+            <h4>訂正等の手順</h4>
+            <ol>
+                <li><strong>請求方法：</strong> <a href="mailto:privacy@hallel.example.com">privacy@hallel.example.com</a> 宛に「個人情報訂正等請求」の件名でメールを送信</li>
+                <li><strong>記載事項：</strong> 訂正が必要な項目、正しい内容、訂正理由</li>
+                <li><strong>対応期間：</strong> 原則として、請求受領後1週間以内に対応します</li>
+            </ol>
+
+            <h3>8.3 利用停止・消去請求</h3>
+            <p>個人情報が、利用目的の範囲を超えて取り扱われている場合、または不正に取得されたものである場合、利用停止または消去（以下「利用停止等」といいます）を請求することができます。</p>
+
+            <h4>利用停止等の手順</h4>
+            <ol>
+                <li><strong>請求方法：</strong> <a href="mailto:privacy@hallel.example.com">privacy@hallel.example.com</a> 宛に「個人情報利用停止請求」の件名でメールを送信</li>
+                <li><strong>記載事項：</strong> 利用停止を希望する理由</li>
+                <li><strong>対応期間：</strong> 原則として、請求受領後2週間以内に対応します</li>
+                <li><strong>注意事項：</strong> 利用停止後、本サービスの全部または一部がご利用いただけなくなります</li>
+            </ol>
+
+            <div class="alert-box">
+                <p><strong>重要事項：</strong></p>
+                <ul>
+                    <li>手数料: 開示請求の際、郵送を希望される場合は実費（郵送料）をご負担いただきます</li>
+                    <li>代理人による請求: 代理人が請求する場合、委任状および代理人の本人確認書類が必要です</li>
+                    <li>請求への対応: 法令により対応できない場合、その旨を遅滞なく通知いたします</li>
+                </ul>
+            </div>
+
+            <h2>第9条（個人情報の安全管理措置）</h2>
+            <p>当社は、個人情報の漏洩、滅失又は毀損の防止その他の個人情報の安全管理のため、以下の措置を講じます。</p>
+
+            <h3>9.1 組織的安全管理措置</h3>
+            <ul>
+                <li><strong>個人情報保護管理者の設置：</strong> 個人情報の取扱いに関する責任者を明確化</li>
+                <li><strong>個人情報取扱規程の策定：</strong> 取得、利用、保存、削除等の基準を定めた規程を策定</li>
+                <li><strong>定期的な監査：</strong> 四半期ごとに内部監査を実施</li>
+                <li><strong>従業員教育：</strong> 年2回、個人情報保護に関する研修を実施</li>
+                <li><strong>漏洩等事案への対応体制：</strong> インシデント対応計画（IRP）の策定・運用</li>
+            </ul>
+
+            <h3>9.2 人的安全管理措置</h3>
+            <ul>
+                <li><strong>秘密保持契約：</strong> 全従業員と秘密保持契約を締結</li>
+                <li><strong>退職時の手続き：</strong> 退職時にアクセス権限を即座に削除、機密情報の返却</li>
+                <li><strong>定期的な誓約書：</strong> 年1回、個人情報保護に関する誓約書を提出</li>
+            </ul>
+
+            <h3>9.3 物理的安全管理措置</h3>
+            <ul>
+                <li><strong>入退室管理：</strong> サーバールーム、オフィスへの入退室を管理（ICカード認証）</li>
+                <li><strong>機器の盗難防止：</strong> サーバー、PC等の機器に盗難防止ロックを設置</li>
+                <li><strong>書類の施錠管理：</strong> 個人情報を含む書類は施錠可能なキャビネットに保管</li>
+                <li><strong>廃棄時の措置：</strong> 個人情報を含む書類はシュレッダー処理、機器はデータ完全消去</li>
+            </ul>
+
+            <h3>9.4 技術的安全管理措置</h3>
+            <ul>
+                <li><strong>アクセス制御：</strong> ユーザーIDとパスワードによるアクセス制限、役割ベースのアクセス制御（RBAC）</li>
+                <li><strong>多要素認証（MFA）：</strong> 管理画面へのログインに多要素認証を導入</li>
+                <li><strong>通信の暗号化：</strong> SSL/TLS 1.3による通信の暗号化（HTTPS強制）</li>
+                <li><strong>データの暗号化：</strong> データベース内の個人情報をAES-256で暗号化</li>
+                <li><strong>ファイアウォール：</strong> 不正アクセス防止のためのファイアウォール設置</li>
+                <li><strong>侵入検知システム（IDS）：</strong> 不正アクセスの検知・遮断</li>
+                <li><strong>ウイルス対策：</strong> ウイルス対策ソフトの導入・定期更新</li>
+                <li><strong>脆弱性管理：</strong> 月次での脆弱性スキャン、パッチ適用</li>
+                <li><strong>バックアップ：</strong> 日次での自動バックアップ、遠隔地での保管</li>
+                <li><strong>ログ管理：</strong> アクセスログ、操作ログの記録・監視（6ヶ月間保存）</li>
+                <li><strong>ブルートフォース対策：</strong> ログイン試行回数制限、アカウントロックアウト機能</li>
+                <li><strong>CSRF対策：</strong> CSRFトークンによる保護</li>
+                <li><strong>XSS対策：</strong> 入力値のサニタイズ、Content Security Policyヘッダー設定</li>
+            </ul>
+
+            <h3>9.5 外部認証・セキュリティ評価</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>内容</th>
+                        <th>実施頻度</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ペネトレーションテスト</td>
+                        <td>外部のセキュリティ専門家による侵入テスト</td>
+                        <td>年1回</td>
+                    </tr>
+                    <tr>
+                        <td>脆弱性診断</td>
+                        <td>自動ツールによる脆弱性スキャン</td>
+                        <td>月1回</td>
+                    </tr>
+                    <tr>
+                        <td>セキュリティ監査</td>
+                        <td>第三者機関による監査</td>
+                        <td>年1回</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>第10条（個人情報の漏洩等が発生した場合の対応）</h2>
+
+            <h3>10.1 漏洩等事案の定義</h3>
+            <p>本ポリシーにおいて「漏洩等事案」とは、以下のいずれかに該当する事態を指します。</p>
+            <ul>
+                <li>個人情報の漏洩（第三者による不正取得、誤送信等）</li>
+                <li>個人情報の滅失（データの消失、バックアップの失敗等）</li>
+                <li>個人情報の毀損（データの改ざん、破壊等）</li>
+            </ul>
+
+            <h3>10.2 個人情報保護委員会への報告</h3>
+            <p>以下の場合、個人情報保護委員会に速やかに（原則として漏洩等事案の覚知後、速やかに、かつ、遅くとも72時間以内に）報告します。</p>
+            <ul>
+                <li>漏洩等が発生した個人データが1,000件を超える場合</li>
+                <li>要配慮個人情報が含まれる場合</li>
+                <li>財産的被害が生じるおそれがある場合</li>
+                <li>不正の目的をもって行われたおそれがある場合</li>
+            </ul>
+
+            <h3>10.3 ご本人への通知</h3>
+            <p>漏洩等事案が発生した場合、影響を受ける可能性のあるご本人に対して、以下の内容を通知します。</p>
+            <ul>
+                <li>漏洩等事案の概要（発生日時、原因、影響範囲）</li>
+                <li>漏洩等した個人情報の項目</li>
+                <li>二次被害の防止措置（パスワード変更の推奨等）</li>
+                <li>当社が講じる措置・再発防止策</li>
+                <li>お問い合わせ窓口</li>
+            </ul>
+
+            <h3>10.4 公表</h3>
+            <p>重大な漏洩等事案が発生した場合、当社Webサイトにて事案の概要、原因、再発防止策等を公表します。</p>
+
+            <div class="contact-section">
+                <h3>漏洩等事案発生時の連絡先</h3>
+                <div class="contact-info">
+                    <div class="contact-label">緊急連絡先</div>
+                    <div class="contact-value">
+                        メール: <a href="mailto:security@hallel.example.com">security@hallel.example.com</a><br>
+                        電話: [緊急連絡用電話番号]（24時間対応）
+                    </div>
+                </div>
+            </div>
+
+            <h2>第11条（プライバシーポリシーの変更）</h2>
+            <p>当社は、法令の変更、サービス内容の変更、その他必要に応じて、本ポリシーを変更することがあります。</p>
+
+            <h3>11.1 変更手続き</h3>
+            <ol>
+                <li><strong>軽微な変更：</strong> 本サービス上での掲示により、変更後のポリシーが効力を生じます</li>
+                <li><strong>重要な変更：</strong> 変更内容を本サービス上で通知し、メールでご連絡します。変更に同意いただけない場合、サービス利用を中止していただく必要があります</li>
+            </ol>
+
+            <h3>11.2 変更履歴</h3>
+            <p>過去の変更履歴は、本ページ下部に記載します。</p>
+
+            <h2>第12条（お問い合わせ窓口）</h2>
+            <div class="contact-section">
+                <h3>個人情報に関するお問い合わせ</h3>
+                <p>個人情報の取扱いに関するご質問、苦情、開示請求等は、以下の窓口までご連絡ください。</p>
+
+                <div class="contact-info">
+                    <div class="contact-label">窓口名称</div>
+                    <div class="contact-value">HALLEL株式会社 個人情報保護窓口</div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">メールアドレス</div>
+                    <div class="contact-value"><a href="mailto:privacy@hallel.example.com">privacy@hallel.example.com</a></div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">電話番号</div>
+                    <div class="contact-value">[電話番号]</div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">受付時間</div>
+                    <div class="contact-value">平日 10:00〜18:00（土日祝日、年末年始を除く）</div>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-label">郵送先</div>
+                    <div class="contact-value">
+                        〒[郵便番号]<br>
+                        [住所]<br>
+                        HALLEL株式会社 個人情報保護窓口 宛
+                    </div>
+                </div>
+            </div>
+
+            <h3>12.1 認定個人情報保護団体</h3>
+            <p>当社が加入する認定個人情報保護団体の名称及び苦情の解決の申出先は以下のとおりです。</p>
+            <div class="info-box">
+                <p><strong>名称：</strong> [認定個人情報保護団体名]（加入予定）</p>
+                <p><strong>苦情解決窓口：</strong> [窓口名]</p>
+                <p><strong>連絡先：</strong> [電話番号] / [メールアドレス]</p>
+            </div>
+
+            <h3>12.2 個人情報保護委員会</h3>
+            <p>個人情報の取扱いに関する苦情について、当社との話し合いで解決できない場合、個人情報保護委員会に相談・苦情の申出ができます。</p>
+            <div class="info-box">
+                <p><strong>名称：</strong> 個人情報保護委員会</p>
+                <p><strong>所在地：</strong> 〒100-0013 東京都千代田区霞が関3-2-2 中央合同庁舎第7号館</p>
+                <p><strong>電話：</strong> 03-6457-9680（代表）</p>
+                <p><strong>個人情報保護相談ダイヤル：</strong> 03-6457-9849</p>
+                <p><strong>URL：</strong> <a href="https://www.ppc.go.jp/" target="_blank" rel="noopener noreferrer">https://www.ppc.go.jp/</a></p>
+            </div>
+
+            <h2>第13条（その他）</h2>
+
+            <h3>13.1 準拠法</h3>
+            <p>本ポリシーの解釈及び適用は、日本法に準拠します。</p>
+
+            <h3>13.2 管轄裁判所</h3>
+            <p>本ポリシーに関する紛争については、[所在地の地方裁判所名]を第一審の専属的合意管轄裁判所とします。</p>
+
+            <h3>13.3 言語</h3>
+            <p>本ポリシーは日本語を正文とします。参考のために他の言語で翻訳されたものが提供される場合でも、日本語版が優先します。</p>
+
+            <div class="metadata">
+                <p><strong>制定日：</strong> 2025年11月17日</p>
+                <p><strong>最終更新日：</strong> 2025年11月17日</p>
+                <p><strong>バージョン：</strong> 1.0</p>
+            </div>
+
+            <div class="footer-nav">
+                <a href="/">ホームに戻る</a>
+                <a href="/terms-of-service">利用規約を見る</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HALLEL {{ store_name }} 予約状況</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        :root {
+            /* Atlassian-inspired Color Palette */
+            --primary-blue: #0052CC;
+            --primary-blue-hover: #0065FF;
+            --neutral-900: #091E42;
+            --neutral-800: #172B4D;
+            --neutral-700: #253858;
+            --neutral-600: #344563;
+            --neutral-500: #42526E;
+            --neutral-400: #5E6C84;
+            --neutral-300: #7A869A;
+            --neutral-200: #97A0AF;
+            --neutral-100: #DFE1E6;
+            --neutral-50: #F4F5F7;
+
+            /* Status Colors */
+            --success: #00875A;
+            --success-light: #36B37E;
+            --warning: #FF8B00;
+            --warning-light: #FFAB00;
+            --danger: #DE350B;
+            --danger-light: #FF5630;
+
+            /* Surface Colors */
+            --surface-bg: #F4F5F7;
+            --card-bg: #FFFFFF;
+            --header-bg: #253858;
+
+            /* Text Colors */
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --text-light: #FFFFFF;
+
+            /* Font Family */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+            /* Shadows (Atlassian Elevation) */
+            --shadow-low: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-medium: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-high: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+
+            /* Border Radius */
+            --radius-sm: 3px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--surface-bg) 0%, #E6E9EF 100%);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            padding: 0 20px;
+        }
+
+        /* Header Styling */
+        .header {
+            background: linear-gradient(135deg, var(--header-bg) 0%, var(--neutral-700) 100%);
+            padding: 1rem 0;
+            text-align: center;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-medium);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.5;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-weight: 700;
+            color: var(--text-light);
+            letter-spacing: -0.02em;
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            background-color: var(--primary-blue);
+            color: var(--text-light);
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            box-shadow: var(--shadow-low);
+        }
+
+        .lead {
+            color: var(--neutral-100);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        /* Date Controls */
+        .date-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .date-controls .btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
+            border-radius: 50px;
+            padding: 0.4rem 0.8rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .date-controls .btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-low);
+        }
+
+        .date-controls .btn:active {
+            transform: translateY(0);
+        }
+
+        #date-picker {
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            padding: 0.4rem 0.6rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        #date-picker:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2);
+        }
+
+        /* Timeline Card */
+        .timeline-card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-card:hover {
+            box-shadow: 0 12px 24px -6px rgba(9, 30, 66, 0.3), 0 0 1px rgba(9, 30, 66, 0.31);
+        }
+
+        .timeline {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .time-slot {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--neutral-100);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .time-slot:last-child {
+            border-bottom: none;
+        }
+
+        .time-slot:hover {
+            background-color: var(--neutral-50);
+        }
+
+        .time-label {
+            font-weight: 600;
+            width: 120px;
+            flex-shrink: 0;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .occupancy-bar-container {
+            flex-grow: 1;
+            margin: 0 1.5rem;
+        }
+
+        .occupancy-bar {
+            height: 32px;
+            background-color: var(--neutral-50);
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(9, 30, 66, 0.1);
+            position: relative;
+        }
+
+        .occupancy-fill {
+            height: 100%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            font-weight: 700;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .occupancy-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .occupancy-text {
+            width: 100px;
+            text-align: right;
+            font-weight: 600;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Status Colors */
+        .status-available {
+            background: linear-gradient(135deg, var(--success) 0%, var(--success-light) 100%);
+        }
+
+        .status-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, var(--warning-light) 100%);
+        }
+
+        .status-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, var(--danger-light) 100%);
+        }
+
+        .status-charter {
+            background: linear-gradient(135deg, var(--neutral-500) 0%, var(--neutral-400) 100%);
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            box-shadow: var(--shadow-low);
+        }
+
+        /* Flatpickr Custom Styling - Modern Cool Design */
+        .flatpickr-calendar {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(9, 30, 66, 0.4);
+            border: none;
+            font-family: var(--font-family);
+            overflow: hidden;
+        }
+        .flatpickr-months {
+            background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
+            padding: 1.5rem;
+            position: relative;
+        }
+        .flatpickr-months::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        .flatpickr-month, .flatpickr-current-month {
+            color: var(--text-light);
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            background: transparent;
+            color: var(--text-light);
+            border: none;
+            padding: 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+            appearance: none;
+            text-align: center;
+            margin: 0 0.5rem;
+        }
+        .flatpickr-current-month input.cur-year {
+            background: transparent;
+            color: var(--text-light);
+            border: none;
+            padding: 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+            width: 4.5em;
+            text-align: center;
+        }
+        .flatpickr-current-month input.cur-year:focus {
+            outline: none;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-month {
+            background: transparent;
+        }
+        .flatpickr-prev-month, .flatpickr-next-month {
+            fill: var(--text-light) !important;
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            transform: scale(1.1);
+        }
+        .flatpickr-weekdays {
+            background: linear-gradient(180deg, #f8f9fc 0%, #ffffff 100%);
+            padding: 1rem 0 0.75rem;
+            border-bottom: 2px solid #e8ecf4;
+        }
+        .flatpickr-weekday {
+            color: var(--primary-blue);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .flatpickr-days {
+            border: none;
+            padding: 0.5rem;
+        }
+        .flatpickr-day {
+            color: var(--text-primary);
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            margin: 2px;
+            font-size: 0.95rem;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0 !important;
+            line-height: 39px !important;
+        }
+        .flatpickr-day span {
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+        }
+        .flatpickr-day:hover {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+            border-color: var(--primary-blue);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.2);
+        }
+        .flatpickr-day.today {
+            background: linear-gradient(135deg, #36B37E 0%, #00C853 100%);
+            color: var(--text-light);
+            border-color: transparent;
+            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(54, 179, 126, 0.4);
+            position: relative;
+        }
+        .flatpickr-day.today::after {
+            content: '';
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+        }
+        .flatpickr-day.today:hover {
+            background: linear-gradient(135deg, #2a9d6a 0%, #00b248 100%);
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(54, 179, 126, 0.5);
+        }
+        .flatpickr-day.selected {
+            background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
+            color: var(--text-light);
+            border-color: transparent;
+            font-weight: 800;
+            box-shadow: 0 6px 20px rgba(0, 82, 204, 0.4);
+            transform: scale(1.05);
+        }
+        .flatpickr-day.selected:hover {
+            background: linear-gradient(135deg, #0041a8 0%, #5568d3 100%);
+            transform: scale(1.08);
+            box-shadow: 0 8px 25px rgba(0, 82, 204, 0.5);
+        }
+        .flatpickr-day.disabled {
+            color: var(--neutral-300);
+            opacity: 0.4;
+        }
+        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+            color: var(--neutral-300);
+            opacity: 0.5;
+        }
+
+        /* 今月ボタンのカスタムアイコン */
+        #today-btn {
+            position: relative;
+            padding-left: 2.5rem !important;
+        }
+        #today-btn::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>');
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>');
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+        }
+
+        /* flatpickrカレンダー内の今月ボタン */
+        .flatpickr-calendar .flatpickr-today-btn {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.5rem;
+            background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 82, 204, 0.3);
+        }
+        .flatpickr-calendar .flatpickr-today-btn:hover {
+            background: linear-gradient(135deg, #0041a8 0%, #5568d3 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.4);
+        }
+        .flatpickr-calendar .flatpickr-today-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .time-slot {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 1rem;
+            }
+
+            .time-label {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            .occupancy-bar-container {
+                margin: 0.5rem 0;
+            }
+
+            .occupancy-text {
+                width: 100%;
+                text-align: left;
+                margin-top: 0.5rem;
+            }
+
+            .legend {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--neutral-100);
+            border-top-color: var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+
+    <!-- Cookie同意バナー -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cookie-consent.css') }}">
+    <script src="{{ url_for('static', filename='js/cookie-consent.js') }}" defer></script>
+</head>
+<body>
+    <div class="container my-5">
+        <header class="header">
+            <div class="header-content">
+                <h1>
+                    HALLEL {{ store_name }}
+                    <span class="badge">予約状況</span>
+                </h1>
+                <div class="date-controls">
+                    <button id="prev-day" class="btn" aria-label="前の日">‹ 前日</button>
+                    <input type="date" id="date-picker" class="form-control" aria-label="日付選択">
+                    <button id="next-day" class="btn" aria-label="次の日">翌日 ›</button>
+                    <button id="today-btn" class="btn" style="background: linear-gradient(135deg, #0052CC 0%, #667eea 100%); color: white; border: none; font-weight: 600;" aria-label="今月">今月</button>
+                </div>
+                <p class="lead" id="current-date"></p>
+            </div>
+        </header>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color status-available"></div>
+                <span>空いてる (1~3人)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color status-warning"></div>
+                <span>普通 (4~5人)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color status-danger"></div>
+                <span>混んでる (6~7人)</span>
+            </div>
+        </div>
+
+        <div class="timeline-card">
+            <ul class="timeline" id="timeline">
+                <li class="loading">
+                    <div class="spinner"></div>
+                    <p class="mt-3">読み込み中...</p>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 店舗情報（Pythonから渡される）
+            const STORE_ID = '{{ store }}';
+            const STORE_NAME = '{{ store_name }}';
+            const MAX_CAPACITY = {{ max_slots }};
+            const ROOMS = {{ rooms | tojson if rooms else 'null' }};
+            const HOURS = {{ hours | tojson }};
+
+            const timeline = document.getElementById('timeline');
+            const currentDateEl = document.getElementById('current-date');
+            const datePicker = document.getElementById('date-picker');
+            const prevDayBtn = document.getElementById('prev-day');
+            const nextDayBtn = document.getElementById('next-day');
+
+            let savedDate = localStorage.getItem('hallel-booking-date');
+            let currentDate = savedDate ? new Date(savedDate) : new Date();
+            currentDate.setHours(0, 0, 0, 0);
+
+            let reservationsByDate = {};
+
+            // Flatpickr初期化
+            const fp = flatpickr(datePicker, {
+                locale: 'ja',
+                defaultDate: currentDate,
+                dateFormat: 'Y-m-d',
+                onChange: function(selectedDates, dateStr, instance) {
+                    currentDate = selectedDates[0];
+                    currentDate.setHours(0, 0, 0, 0);
+                    localStorage.setItem('hallel-booking-date', currentDate.toISOString());
+                    renderTimeline(currentDate);
+                },
+                onReady: function(selectedDates, dateStr, instance) {
+                    // カレンダー内に今月ボタンを追加
+                    const calendarContainer = instance.calendarContainer;
+                    if (!calendarContainer.querySelector('.flatpickr-today-btn')) {
+                        const todayButton = document.createElement('button');
+                        todayButton.className = 'flatpickr-today-btn';
+                        todayButton.textContent = '今月';
+                        todayButton.type = 'button';
+                        todayButton.addEventListener('click', function() {
+                            instance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
+                            instance.close(); // カレンダーを閉じる
+                        });
+                        calendarContainer.appendChild(todayButton);
+                    }
+                }
+            });
+
+            // 今月ボタン
+            const todayBtn = document.getElementById('today-btn');
+            todayBtn.addEventListener('click', () => {
+                fp.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
+            });
+
+            function timeToMinutes(time) {
+                const [hours, minutes] = time.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
+
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            function formatDateJapanese(date) {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+                return `${year}年${month}月${day}日 (${dayOfWeek})`;
+            }
+
+            async function fetchReservations() {
+                try {
+                    const response = await fetch(`/api/reservations?store=${STORE_ID}`);
+                    reservationsByDate = await response.json();
+                    renderTimeline(currentDate);
+                } catch (error) {
+                    console.error('予約データの取得に失敗しました:', error);
+                    timeline.innerHTML = '<li class="loading"><p>データの取得に失敗しました</p></li>';
+                }
+            }
+
+            function renderTimeline(date) {
+                const dateString = formatDate(date);
+                currentDateEl.textContent = formatDateJapanese(date);
+                datePicker.value = dateString;
+
+                const reservations = reservationsByDate[dateString] || [];
+
+                if (ROOMS) {
+                    // エリア別表示
+                    renderTimelineWithRooms(reservations);
+                } else {
+                    // 従来の表示（全体の人数のみ）
+                    renderTimelineSimple(reservations);
+                }
+            }
+
+            function renderTimelineSimple(reservations) {
+                const timeSlots = [];
+                const startHour = HOURS.start;
+                const endHour = HOURS.end;
+
+                for (let h = startHour; h < endHour; h++) {
+                    for (let m = 0; m < 60; m += 30) {
+                        const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        timeSlots.push({
+                            timeLabel: startTime,
+                            start: startTime,
+                            count: 0,
+                            isCharter: false  // 貸切フラグ
+                        });
+                    }
+                }
+
+                timeSlots.forEach(slot => {
+                    const slotStart = timeToMinutes(slot.start);
+                    const slotEnd = slotStart + 30;
+                    reservations.forEach(res => {
+                        const resStart = timeToMinutes(res.start);
+                        const resEnd = timeToMinutes(res.end);
+                        if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
+                            // 貸切の場合はフラグを立てる
+                            if (res.type === 'charter') {
+                                slot.isCharter = true;
+                            } else {
+                                slot.count++;
+                            }
+                        }
+                    });
+                });
+
+                let html = '';
+                timeSlots.forEach(slot => {
+                    // 貸切の場合は満枠表示
+                    if (slot.isCharter) {
+                        html += `
+                            <li class="time-slot">
+                                <div class="time-label">${slot.start}</div>
+                                <div class="occupancy-bar-container">
+                                    <div style="padding: 12px; background: linear-gradient(135deg, #FF5630 0%, #FF7452 100%); border-radius: 8px; text-align: center; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 86, 48, 0.3);">
+                                        🔒 貸切利用
+                                    </div>
+                                </div>
+                                <div class="occupancy-text">${MAX_CAPACITY} / ${MAX_CAPACITY}</div>
+                            </li>
+                        `;
+                    } else {
+                        let percentage = (slot.count / MAX_CAPACITY) * 100;
+                        let colorClass = 'status-available';
+                        let label = `${slot.count} / ${MAX_CAPACITY}`;
+
+                        if (slot.count >= 6) {
+                            colorClass = 'status-danger';
+                        } else if (slot.count >= 4) {
+                            colorClass = 'status-warning';
+                        }
+
+                        html += `
+                            <li class="time-slot">
+                                <div class="time-label">${slot.start}</div>
+                                <div class="occupancy-bar-container">
+                                    <div class="occupancy-bar">
+                                        <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
+                                            ${slot.count > 0 ? slot.count : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="occupancy-text">${label}</div>
+                            </li>
+                        `;
+                    }
+                });
+
+                timeline.innerHTML = html;
+            }
+
+            function renderTimelineWithRooms(reservations) {
+                const timeSlots = [];
+                const startHour = HOURS.start;
+                const endHour = HOURS.end;
+
+                for (let h = startHour; h < endHour; h++) {
+                    for (let m = 0; m < 60; m += 30) {
+                        const startTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        const roomCounts = {};
+                        Object.keys(ROOMS).forEach(roomKey => {
+                            roomCounts[roomKey] = 0;
+                        });
+                        timeSlots.push({
+                            timeLabel: startTime,
+                            start: startTime,
+                            rooms: roomCounts,
+                            isCharter: false  // 貸切フラグ
+                        });
+                    }
+                }
+
+                timeSlots.forEach(slot => {
+                    const slotStart = timeToMinutes(slot.start);
+                    const slotEnd = slotStart + 30;
+                    reservations.forEach(res => {
+                        const resStart = timeToMinutes(res.start);
+                        const resEnd = timeToMinutes(res.end);
+                        if (Math.max(slotStart, resStart) < Math.min(slotEnd, resEnd)) {
+                            // 貸切の場合は全枠を満枠にする
+                            if (res.type === 'charter') {
+                                slot.isCharter = true;
+                            } else {
+                                const roomName = res.room_name || '個室B';
+                                if (slot.rooms.hasOwnProperty(roomName)) {
+                                    slot.rooms[roomName]++;
+                                }
+                            }
+                        }
+                    });
+                });
+
+                let html = '';
+                timeSlots.forEach(slot => {
+                    html += `<li class="time-slot">
+                        <div class="time-label">${slot.start}</div>
+                        <div style="flex: 1;">`;
+
+                    // 貸切の場合は全ての部屋を満枠表示
+                    if (slot.isCharter) {
+                        html += `
+                            <div style="padding: 12px; background: linear-gradient(135deg, #FF5630 0%, #FF7452 100%); border-radius: 8px; text-align: center; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 86, 48, 0.3);">
+                                🔒 貸切利用
+                            </div>
+                        `;
+                    } else {
+                        Object.keys(ROOMS).forEach(roomKey => {
+                            const roomInfo = ROOMS[roomKey];
+                            const count = slot.rooms[roomKey];
+                            const maxCapacity = roomInfo.max_capacity;
+                            const percentage = (count / maxCapacity) * 100;
+
+                            let colorClass = 'status-available';
+                            if (percentage >= 100) {
+                                colorClass = 'status-danger';
+                            } else if (percentage >= 50) {
+                                colorClass = 'status-warning';
+                            }
+
+                            html += `
+                                <div style="margin-bottom: 8px;">
+                                    <div style="font-size: 12px; color: #5E6C84; margin-bottom: 4px;">${roomInfo.display_name}</div>
+                                    <div class="occupancy-bar-container">
+                                        <div class="occupancy-bar">
+                                            <div class="occupancy-fill ${colorClass}" style="width: ${percentage}%;">
+                                                ${count > 0 ? count : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="occupancy-text" style="font-size: 11px;">${count} / ${maxCapacity}</div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    html += `</div></li>`;
+                });
+
+                timeline.innerHTML = html;
+            }
+
+            prevDayBtn.addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() - 1);
+                fp.setDate(currentDate);
+                localStorage.setItem('hallel-booking-date', currentDate.toISOString());
+                renderTimeline(currentDate);
+            });
+
+            nextDayBtn.addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() + 1);
+                fp.setDate(currentDate);
+                localStorage.setItem('hallel-booking-date', currentDate.toISOString());
+                renderTimeline(currentDate);
+            });
+
+            fetchReservations();
+        });
+    </script>
+</body>
+</html>

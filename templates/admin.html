@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>HALLEL 管理ダッシュボード</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        :root {
+            /* Atlassian-inspired Color Palette */
+            --primary-blue: #0052CC;
+            --primary-blue-hover: #0065FF;
+            --neutral-900: #091E42;
+            --neutral-800: #172B4D;
+            --neutral-700: #253858;
+            --neutral-600: #344563;
+            --neutral-500: #42526E;
+            --neutral-400: #5E6C84;
+            --neutral-300: #7A869A;
+            --neutral-200: #97A0AF;
+            --neutral-100: #DFE1E6;
+            --neutral-50: #F4F5F7;
+
+            /* Status Colors */
+            --success: #00875A;
+            --success-light: #36B37E;
+            --warning: #FF8B00;
+            --warning-light: #FFAB00;
+            --danger: #DE350B;
+            --danger-light: #FF5630;
+
+            /* Surface Colors */
+            --surface-bg: #F4F5F7;
+            --card-bg: #FFFFFF;
+            --header-bg: #253858;
+
+            /* Text Colors */
+            --text-primary: #172B4D;
+            --text-secondary: #5E6C84;
+            --text-light: #FFFFFF;
+
+            /* Font Family */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+            /* Shadows (Atlassian Elevation) */
+            --shadow-low: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-medium: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-high: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+
+            /* Border Radius */
+            --radius-sm: 3px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--surface-bg) 0%, #E6E9EF 100%);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            background: linear-gradient(135deg, var(--header-bg) 0%, var(--neutral-700) 100%);
+            box-shadow: var(--shadow-medium);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--text-light) !important;
+            letter-spacing: -0.02em;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .navbar-brand::before {
+            content: '';
+            width: 24px;
+            height: 24px;
+            background: currentColor;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            mask-size: contain;
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            -webkit-mask-size: contain;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.8) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 50px;
+            transition: all 0.2s ease;
+            margin: 0 0.25rem;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .navbar-nav .nav-link-edit,
+        .navbar-nav .nav-link-view {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-nav .nav-link-edit::before,
+        .navbar-nav .nav-link-view::before {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .navbar-nav .nav-link-edit::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .navbar-nav .nav-link-view::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .btn-outline-light {
+            color: var(--text-light);
+            border-color: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+            border-radius: 50px;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-light:hover {
+            background-color: var(--text-light);
+            color: var(--header-bg);
+            border-color: var(--text-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-low);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--card-bg);
+            border: none;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: 0 12px 24px -6px rgba(9, 30, 66, 0.3), 0 0 1px rgba(9, 30, 66, 0.31);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 1.25rem 1.5rem;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-header::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background-color: var(--text-light);
+            border-radius: 2px;
+        }
+
+        .card-header-system::before {
+            width: 20px;
+            height: 20px;
+            background: var(--text-light);
+            border-radius: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* 予約管理カードヘッダー */
+        .card-header-calendar::before {
+            width: 20px;
+            height: 20px;
+            background: var(--text-light);
+            border-radius: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* パスワードカードヘッダー */
+        .card-header-key::before {
+            width: 20px;
+            height: 20px;
+            background: var(--text-light);
+            border-radius: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* アクティビティログカードヘッダー */
+        .card-header-chart::before {
+            width: 20px;
+            height: 20px;
+            background: var(--text-light);
+            border-radius: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* SVGアイコン付きボタン */
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-icon::before {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .btn-icon-trash::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .btn-icon-lock::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* 全店舗タブアイコン */
+        .nav-link-building {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link-building::before {
+            content: '';
+            width: 14px;
+            height: 14px;
+            background: currentColor;
+            flex-shrink: 0;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* バッジ用アイコン */
+        .badge-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .badge-icon::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .badge-icon-lock::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .badge-icon-edit::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .badge-icon-mail::before {
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        .card-body {
+            padding: 2rem 1.5rem;
+        }
+
+        /* Form Styling */
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            background-color: var(--neutral-50);
+            border: 2px solid var(--neutral-100);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .form-control:hover {
+            border-color: var(--primary-blue);
+        }
+
+        .form-control:focus {
+            background-color: var(--card-bg);
+            border-color: var(--primary-blue);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+            outline: none;
+        }
+
+        .form-text {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Buttons */
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, var(--warning-light) 100%);
+            border: none;
+            color: var(--neutral-900);
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-low);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            color: var(--neutral-900);
+        }
+
+        .btn-warning:active {
+            transform: translateY(0);
+        }
+
+        /* Log Container */
+        .log-container {
+            height: 400px;
+            background-color: var(--neutral-900);
+            color: #36B37E;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 0.85rem;
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+            line-height: 1.6;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .log-container div {
+            padding: 0.25rem 0;
+            border-left: 3px solid transparent;
+            padding-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .log-container div:hover {
+            background-color: rgba(54, 179, 126, 0.1);
+            border-left-color: #36B37E;
+        }
+
+        /* Alerts */
+        .alert {
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            animation: slideDown 0.3s ease;
+            box-shadow: var(--shadow-low);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background-color: #E3FCEF;
+            color: #006644;
+            border-left: 4px solid var(--success);
+        }
+
+        .alert-danger {
+            background-color: #FFEBE6;
+            color: #BF2600;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-info {
+            background-color: #DEEBFF;
+            color: #0052CC;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        .btn-close {
+            opacity: 0.6;
+        }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+        /* Responsive Grid */
+        .row {
+            margin: 0 -15px;
+        }
+
+        .col-lg-6 {
+            padding: 0 15px;
+        }
+
+        /* Animation for cards */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        /* Quick Stats (optional enhancement) */
+        .quick-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: var(--text-light);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-medium);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-high);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Flatpickr Custom Styling - Modern Cool Design */
+        .flatpickr-calendar {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(9, 30, 66, 0.4);
+            border: none;
+            font-family: var(--font-family);
+            overflow: hidden;
+        }
+        .flatpickr-months {
+            background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
+            padding: 1.5rem;
+            position: relative;
+        }
+        .flatpickr-months::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        .flatpickr-month, .flatpickr-current-month {
+            color: var(--text-light);
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            background: transparent;
+            color: var(--text-light);
+            border: none;
+            padding: 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+            appearance: none;
+            text-align: center;
+            margin: 0 0.5rem;
+        }
+        .flatpickr-current-month input.cur-year {
+            background: transparent;
+            color: var(--text-light);
+            border: none;
+            padding: 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+            width: 4.5em;
+            text-align: center;
+        }
+        .flatpickr-current-month input.cur-year:focus {
+            outline: none;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-month {
+            background: transparent;
+        }
+        .flatpickr-prev-month, .flatpickr-next-month {
+            fill: var(--text-light) !important;
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            transform: scale(1.1);
+        }
+        .flatpickr-weekdays {
+            background: linear-gradient(180deg, #f8f9fc 0%, #ffffff 100%);
+            padding: 1rem 0 0.75rem;
+            border-bottom: 2px solid #e8ecf4;
+        }
+        .flatpickr-weekday {
+            color: var(--primary-blue);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .flatpickr-days {
+            border: none;
+            padding: 0.5rem;
+        }
+        .flatpickr-day {
+            color: var(--text-primary);
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            margin: 2px;
+            font-size: 0.95rem;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0 !important;
+            line-height: 39px !important;
+        }
+        .flatpickr-day span {
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+        }
+        .flatpickr-day:hover {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+            border-color: var(--primary-blue);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.2);
+        }
+        .flatpickr-day.today {
+            background: linear-gradient(135deg, #36B37E 0%, #00C853 100%);
+            color: var(--text-light);
+            border-color: transparent;
+            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(54, 179, 126, 0.4);
+            position: relative;
+        }
+        .flatpickr-day.today::after {
+            content: '';
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+        }
+        .flatpickr-day.today:hover {
+            background: linear-gradient(135deg, #2a9d6a 0%, #00b248 100%);
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(54, 179, 126, 0.5);
+        }
+        .flatpickr-day.selected {
+            background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
+            color: var(--text-light);
+            border-color: transparent;
+            font-weight: 800;
+            box-shadow: 0 6px 20px rgba(0, 82, 204, 0.4);
+            transform: scale(1.05);
+        }
+        .flatpickr-day.selected:hover {
+            background: linear-gradient(135deg, #0041a8 0%, #5568d3 100%);
+            transform: scale(1.08);
+            box-shadow: 0 8px 25px rgba(0, 82, 204, 0.5);
+        }
+        .flatpickr-day.disabled {
+            color: var(--neutral-300);
+            opacity: 0.4;
+        }
+        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+            color: var(--neutral-300);
+            opacity: 0.5;
+        }
+
+        /* 今月ボタンのカスタムアイコン */
+        #today-btn {
+            position: relative;
+            padding-left: 2.5rem !important;
+        }
+        #today-btn::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>');
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2" fill="currentColor"/></svg>');
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+        }
+
+        /* flatpickrカレンダー内の今月ボタン */
+        .flatpickr-calendar .flatpickr-today-btn {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.5rem;
+            background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 82, 204, 0.3);
+        }
+        .flatpickr-calendar .flatpickr-today-btn:hover {
+            background: linear-gradient(135deg, #0041a8 0%, #5568d3 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.4);
+        }
+        .flatpickr-calendar .flatpickr-today-btn:active {
+            transform: translateY(0);
+        }
+
+        /* タブスタイリング */
+        .store-tabs {
+            border-bottom: 2px solid var(--neutral-100);
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .store-tabs .nav-item {
+            margin-bottom: -2px;
+        }
+
+        .store-tabs .nav-link {
+            color: var(--text-secondary);
+            background: transparent;
+            border: 2px solid transparent;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .store-tabs .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .store-tabs .nav-link:hover {
+            color: var(--primary-blue);
+            background: rgba(0, 82, 204, 0.05);
+        }
+
+        .store-tabs .nav-link.active {
+            color: var(--primary-blue);
+            background: linear-gradient(135deg, rgba(0, 82, 204, 0.08) 0%, rgba(102, 126, 234, 0.08) 100%);
+            border-color: var(--primary-blue) var(--primary-blue) transparent;
+            font-weight: 700;
+        }
+
+        .store-tabs .nav-link.active::before {
+            transform: scaleX(1);
+        }
+
+        .tab-content {
+            padding-top: 1rem;
+        }
+
+        /* タブコンテンツアニメーション */
+        .tab-pane {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+
+            .card-body {
+                padding: 1.5rem 1rem;
+            }
+
+            .log-container {
+                height: 300px;
+                font-size: 0.8rem;
+            }
+
+            .quick-stats {
+                flex-direction: column;
+            }
+
+            .store-tabs .nav-link {
+                padding: 0.6rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin">管理ダッシュボード</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-edit" href="/admin/calendar" target="_blank">編集カレンダー</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-view" href="/" target="_blank">閲覧カレンダー</a>
+                    </li>
+                </ul>
+                <a href="/logout" class="btn btn-outline-light">ログアウト</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- システム管理（マイグレーション） -->
+        <div class="card mb-4" id="migration-card" style="border-left: 4px solid #FF8B00;">
+            <div class="card-header card-header-system" style="background: linear-gradient(135deg, #FF8B00 0%, #FFAB00 100%);">
+                システム管理
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-3">
+                    <strong>📢 重要:</strong> セキュリティアップグレード フェーズ1のマイグレーションを実行してください。<br>
+                    このボタンは一度だけ実行してください。既に実行済みの場合は警告が表示されます。
+                </div>
+                <button id="run-migration-btn" class="btn btn-warning">
+                    🚀 マイグレーション実行
+                </button>
+                <div id="migration-result" class="mt-3" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- 予約管理セクション -->
+        <div class="card mb-4">
+            <div class="card-header card-header-calendar">
+                予約管理 <span id="total-reservations" class="badge bg-light text-dark ms-2">0件</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-end gap-2">
+                        <div>
+                            <label for="date-filter" class="form-label">日付を選択</label>
+                            <input type="date" id="date-filter" class="form-control" style="max-width: 300px;">
+                        </div>
+                        <button id="prev-day-btn" class="btn btn-outline-secondary">◀ 前日</button>
+                        <button id="today-btn" class="btn btn-primary">本日</button>
+                        <button id="next-day-btn" class="btn btn-outline-secondary">翌日 ▶</button>
+                    </div>
+                    <div>
+                        <button id="cleanup-btn" class="btn btn-danger btn-icon btn-icon-trash">
+                            重複データを削除
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 店舗タブ -->
+                <ul class="nav nav-tabs store-tabs mb-4" id="storeTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active nav-link-building" id="all-stores-tab" data-bs-toggle="tab" data-bs-target="#all-stores" type="button" role="tab" aria-controls="all-stores" aria-selected="true">
+                            全店舗
+                        </button>
+                    </li>
+                    {% for store in stores %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="{{ store.id }}-tab" data-bs-toggle="tab" data-bs-target="#{{ store.id }}" type="button" role="tab" aria-controls="{{ store.id }}" aria-selected="false" data-store="{{ store.id }}">
+                            {{ store.name }}
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <!-- タブコンテンツ -->
+                <div class="tab-content" id="storeTabContent">
+                    <div class="tab-pane fade show active" id="all-stores" role="tabpanel" aria-labelledby="all-stores-tab">
+                        <div id="reservations-list-all"></div>
+                    </div>
+                    {% for store in stores %}
+                    <div class="tab-pane fade" id="{{ store.id }}" role="tabpanel" aria-labelledby="{{ store.id }}-tab">
+                        <div id="reservations-list-{{ store.id }}"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Column: Password Change -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header card-header-key">
+                        パスワード変更
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/admin/change_password">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">新しいパスワード</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="new_password"
+                                    name="new_password"
+                                    required
+                                    minlength="12"
+                                    placeholder="12文字以上（大文字・小文字・数字・記号を含む）"
+                                    autocomplete="new-password"
+                                >
+                                <div class="form-text">
+                                    <strong>パスワード要件:</strong> 12文字以上、大文字・小文字・数字・記号（!@#$%^&*等）をそれぞれ1文字以上含む
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100 btn-icon btn-icon-lock">
+                                パスワードを変更
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Activity Log -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header card-header-chart">
+                        アクティビティログ
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container">
+                            {% if logs %}
+                                {% for log in logs %}
+                                    <div>{{ log.strip() }}</div>
+                                {% endfor %}
+                            {% else %}
+                                <div style="color: rgba(255, 255, 255, 0.5); text-align: center; padding: 2rem;">
+                                    ログはまだありません
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+    <script>
+        // Auto-scroll log container to bottom on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const logContainer = document.querySelector('.log-container');
+            if (logContainer) {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+
+            // 予約管理の初期化
+            const dateFilter = document.getElementById('date-filter');
+            const totalReservationsBadge = document.getElementById('total-reservations');
+            let currentStoreFilter = 'all'; // 現在選択されている店舗
+
+            // 今日の日付をデフォルトに設定
+            const today = new Date();
+            dateFilter.value = today.toISOString().split('T')[0];
+
+            // タブ切り替えイベント
+            document.querySelectorAll('#storeTabs button[data-bs-toggle="tab"]').forEach(tabButton => {
+                tabButton.addEventListener('shown.bs.tab', (event) => {
+                    const targetId = event.target.getAttribute('data-bs-target');
+                    currentStoreFilter = targetId === '#all-stores' ? 'all' : targetId.replace('#', '');
+                    loadReservations();
+                });
+            });
+
+            // Flatpickr初期化
+            const datePickerInstance = flatpickr(dateFilter, {
+                locale: 'ja',
+                defaultDate: today,
+                dateFormat: 'Y-m-d',
+                onChange: function(selectedDates, dateStr, instance) {
+                    loadReservations();
+                },
+                onReady: function(selectedDates, dateStr, instance) {
+                    // カレンダー内に本日ボタンを追加
+                    const calendarContainer = instance.calendarContainer;
+                    if (!calendarContainer.querySelector('.flatpickr-today-btn')) {
+                        const todayButton = document.createElement('button');
+                        todayButton.className = 'flatpickr-today-btn';
+                        todayButton.textContent = '本日';
+                        todayButton.type = 'button';
+                        todayButton.addEventListener('click', function() {
+                            instance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
+                            instance.close(); // カレンダーを閉じる
+                        });
+                        calendarContainer.appendChild(todayButton);
+                    }
+                }
+            });
+
+            // 本日ボタン
+            const todayBtn = document.getElementById('today-btn');
+            todayBtn.addEventListener('click', () => {
+                datePickerInstance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
+            });
+
+            // 前日ボタン
+            const prevDayBtn = document.getElementById('prev-day-btn');
+            prevDayBtn.addEventListener('click', () => {
+                const currentDate = datePickerInstance.selectedDates[0] || new Date();
+                const prevDay = new Date(currentDate);
+                prevDay.setDate(prevDay.getDate() - 1);
+                datePickerInstance.setDate(prevDay, true);
+            });
+
+            // 翌日ボタン
+            const nextDayBtn = document.getElementById('next-day-btn');
+            nextDayBtn.addEventListener('click', () => {
+                const currentDate = datePickerInstance.selectedDates[0] || new Date();
+                const nextDay = new Date(currentDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+                datePickerInstance.setDate(nextDay, true);
+            });
+
+            // 予約データを取得して表示
+            async function loadReservations() {
+                try {
+                    const response = await fetch('/api/reservations');
+                    const data = await response.json();
+                    displayReservations(data);
+                } catch (error) {
+                    console.error('予約データの取得に失敗:', error);
+                    reservationsList.innerHTML = '<div class="alert alert-danger">予約データの取得に失敗しました</div>';
+                }
+            }
+
+            function displayReservations(allReservations) {
+                const selectedDate = dateFilter.value;
+                let reservations = allReservations[selectedDate] || [];
+
+                // 店舗でフィルタリング
+                if (currentStoreFilter !== 'all') {
+                    reservations = reservations.filter(res => res.store_id === currentStoreFilter);
+                }
+
+                // 予約件数を更新
+                totalReservationsBadge.textContent = `${reservations.length}件`;
+
+                // 現在のタブに対応するコンテナを取得
+                const containerId = currentStoreFilter === 'all' ? 'reservations-list-all' : `reservations-list-${currentStoreFilter}`;
+                const reservationsList = document.getElementById(containerId);
+
+                if (!reservationsList) {
+                    console.error('Container not found:', containerId);
+                    return;
+                }
+
+                if (reservations.length === 0) {
+                    reservationsList.innerHTML = `
+                        <div class="alert alert-info">
+                            ${selectedDate} の予約はありません
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 時間でソート
+                reservations.sort((a, b) => a.start.localeCompare(b.start));
+
+                let html = '<div class="table-responsive"><table class="table table-hover">';
+                html += '<thead><tr><th>時間</th><th>種別</th><th>顧客名</th>';
+
+                // 全店舗タブの場合は店舗名も表示
+                if (currentStoreFilter === 'all') {
+                    html += '<th>店舗</th>';
+                }
+
+                html += '<th>操作</th></tr></thead><tbody>';
+
+                reservations.forEach((res) => {
+                    let typeLabel = '';
+                    const customerName = res.customer_name || 'N/A';
+                    const storeName = res.store_name || res.store_id || 'N/A';
+
+                    if (res.type === 'charter') {
+                        typeLabel = '<span class="badge bg-secondary badge-icon badge-icon-lock">貸切</span>';
+                    } else if (res.type === 'manual') {
+                        typeLabel = '<span class="badge bg-primary badge-icon badge-icon-edit">手動</span>';
+                    } else {
+                        typeLabel = '<span class="badge bg-success badge-icon badge-icon-mail">Gmail</span>';
+                    }
+
+                    html += `
+                        <tr>
+                            <td><strong>${res.start} - ${res.end}</strong></td>
+                            <td>${typeLabel}</td>
+                            <td>${customerName}</td>`;
+
+                    // 全店舗タブの場合は店舗名を表示
+                    if (currentStoreFilter === 'all') {
+                        html += `<td><span class="badge bg-info">${storeName}</span></td>`;
+                    }
+
+                    html += `
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger delete-btn btn-icon btn-icon-trash"
+                                        data-date="${selectedDate}"
+                                        data-start="${res.start}"
+                                        data-end="${res.end}"
+                                        data-customer="${customerName}"
+                                        data-store="${res.store_id || ''}">
+                                    削除
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                reservationsList.innerHTML = html;
+
+                // 削除ボタンにイベントリスナーを追加
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        if (!confirm('この予約を削除しますか？')) return;
+
+                        const deleteData = {
+                            date: btn.dataset.date,
+                            start: btn.dataset.start,
+                            end: btn.dataset.end,
+                            customer_name: btn.dataset.customer,
+                            store_id: btn.dataset.store
+                        };
+
+                        try {
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                            const response = await fetch('/api/reservations/delete', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify(deleteData)
+                            });
+
+                            const result = await response.json();
+
+                            if (!response.ok) {
+                                alert(`削除に失敗しました: ${result.error || 'Unknown error'}`);
+                                return;
+                            }
+
+                            // 成功したら再読み込み
+                            loadReservations();
+                        } catch (error) {
+                            alert(`エラーが発生しました: ${error.message}`);
+                        }
+                    });
+                });
+            }
+
+            // 重複削除ボタン
+            const cleanupBtn = document.getElementById('cleanup-btn');
+            cleanupBtn.addEventListener('click', async () => {
+                if (!confirm('重複している予約データを削除します。\n※各予約の最新データのみが残ります。\n\n実行しますか？')) {
+                    return;
+                }
+
+                cleanupBtn.disabled = true;
+                cleanupBtn.innerHTML = '🔄 処理中...';
+
+                try {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                    const response = await fetch('/api/admin/cleanup-duplicates', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        alert(`エラー: ${result.error || 'Unknown error'}`);
+                        return;
+                    }
+
+                    alert(result.message);
+                    loadReservations(); // 再読み込み
+                } catch (error) {
+                    alert(`エラーが発生しました: ${error.message}`);
+                } finally {
+                    cleanupBtn.disabled = false;
+                    cleanupBtn.innerHTML = '重複データを削除';
+                }
+            });
+
+            // マイグレーション実行ボタン
+            const runMigrationBtn = document.getElementById('run-migration-btn');
+            const migrationResult = document.getElementById('migration-result');
+
+            runMigrationBtn.addEventListener('click', async () => {
+                if (!confirm('セキュリティアップグレード フェーズ1のマイグレーションを実行しますか？\n\n※この操作は一度だけ実行してください。')) {
+                    return;
+                }
+
+                runMigrationBtn.disabled = true;
+                runMigrationBtn.innerHTML = '🔄 実行中...';
+                migrationResult.style.display = 'none';
+
+                try {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                    const response = await fetch('/admin/run-migration', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    // 結果を表示
+                    migrationResult.style.display = 'block';
+
+                    if (result.status === 'success') {
+                        migrationResult.className = 'alert alert-success mt-3';
+                        migrationResult.innerHTML = `
+                            <h5>✅ ${result.message}</h5>
+                            <p><strong>作成されたテーブル:</strong></p>
+                            <ul>
+                                ${result.tables_created.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                            ${result.admin_user ? `
+                                <p><strong>管理者ユーザー:</strong> ${result.admin_user.username}</p>
+                                <p><small>作成日時: ${result.admin_user.created_at}</small></p>
+                            ` : ''}
+                            <hr>
+                            <p><strong>次のステップ:</strong></p>
+                            <ol>
+                                <li>Vercelの環境変数に SECRET_KEY を設定</li>
+                                <li>再デプロイ</li>
+                                <li>既存のパスワードでログイン確認</li>
+                            </ol>
+                        `;
+
+                        // 成功したらカードを非表示にする（数秒後）
+                        setTimeout(() => {
+                            document.getElementById('migration-card').style.display = 'none';
+                        }, 10000);
+
+                    } else if (result.status === 'warning') {
+                        migrationResult.className = 'alert alert-warning mt-3';
+                        migrationResult.innerHTML = `
+                            <h5>⚠️ ${result.message}</h5>
+                            <p>既存のテーブル:</p>
+                            <ul>
+                                ${result.tables.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                            <p>マイグレーションは既に完了しています。このカードは無視してください。</p>
+                        `;
+
+                        // 警告の場合もカードを非表示にする
+                        setTimeout(() => {
+                            document.getElementById('migration-card').style.display = 'none';
+                        }, 5000);
+
+                    } else {
+                        migrationResult.className = 'alert alert-danger mt-3';
+                        migrationResult.innerHTML = `
+                            <h5>❌ エラー</h5>
+                            <p>${result.message}</p>
+                        `;
+                    }
+
+                } catch (error) {
+                    migrationResult.style.display = 'block';
+                    migrationResult.className = 'alert alert-danger mt-3';
+                    migrationResult.innerHTML = `
+                        <h5>❌ エラーが発生しました</h5>
+                        <p>${error.message}</p>
+                    `;
+                } finally {
+                    runMigrationBtn.disabled = false;
+                    runMigrationBtn.innerHTML = '🚀 マイグレーション実行';
+                }
+            });
+
+            // 初回読み込み
+            loadReservations();
+        });
+    </script>
+</body>
+</html>

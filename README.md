@@ -1,268 +1,379 @@
-# HALLEL全店舗 GAS予約管理システム - 引き継ぎドキュメント
+# HALLEL 予約管理システム
 
-## 📋 プロジェクト概要
-HALLEL全5店舗（半蔵門・渋谷・恵比寿・中目黒・代々木上原）のGmail予約メールを自動処理し、Vercel APIに送信するシステム。各店舗で独立したGoogleアカウントとGASプロジェクトを使用。
+HALLEL全店舗（渋谷店・恵比寿店・半蔵門店・中目黒店・代々木上原店）の予約状況を管理・表示するWebアプリケーションです。
 
-## 🏢 店舗構成
+## 📋 機能
 
-| 店舗名 | Gmailアカウント | GASコード | ラベル名 | カレンダー同期 |
-| :--- | :--- | :--- | :--- | :--- |
-| 半蔵門 | hallel-hanzomon@gmail.com | `/gas-scripts/hanzomon/main.js` | `HALLEL_処理済み_半蔵門` | あり (light@topform.jp) |
-| 渋谷 | hallel-shibuya@gmail.com | `/gas-scripts/shibuya/main.js` | `HALLEL_処理済み_渋谷` | なし |
-| 恵比寿 | hallel-ebisu@gmail.com | `/gas-scripts/ebisu/main.js` | `HALLEL_処理済み_恵比寿` | あり (ebisu@topform.jp) |
-| 中目黒 | hallel-nakameguro@gmail.com | `/gas-scripts/nakameguro/main.js` | `HALLEL_処理済み_中目黒` | なし |
-| 代々木上原 | hallel-yoyogiuehara@gmail.com | `/gas-scripts/yoyogiuehara/main.js` | `HALLEL_処理済み_代々木上原` | なし |
+### 🌐 公開ページ
+- リアルタイムの予約状況確認
+- 30分単位のタイムスロット表示
+- カレンダーで日付切り替え
+- **店舗ごとの部屋別表示**
+  - 恵比寿店: 個室A / 個室B
+  - 半蔵門店: STUDIO A（個室）/ STUDIO B（オープン）
+  - 中目黒店: 格闘技エリア / フリーウエイトエリア
+- **貸切予約の自動判別と表示**
+- ダークテーマのスタイリッシュなデザイン
+- レスポンシブ対応（スマホ・PC）
 
-## ✨ 実装機能
+### 🔐 管理者機能
+- 管理者ログイン認証
+- **全5店舗の予約管理（タブ切り替え）**
+- **部屋別の予約状況表示**
+- 予約の手動追加・削除（部屋選択対応）
+- 貸切予約の管理
+- アクティビティログの閲覧
+- パスワード変更機能
 
-### 1. Gmailラベル方式による重複防止
-- 処理済みメールに自動でラベルを付与
-- 未処理メールのみを取得・処理
-- API送信成功時のみラベル追加（失敗時は次回リトライ）
+### 📧 Gmail自動連携
+- Gmailから予約メールを自動検知
+- 予約・キャンセルの自動反映
+- **部屋名の自動抽出**
+  - 恵比寿店: STUDIO A/B → 個室A/B
+  - 半蔵門店: 個室A/B
+  - 中目黒店: 格闘技エリア / フリーウエイトエリア
+- **貸切予約の自動判別**
+  - メール本文に「貸切利用」が含まれる場合を自動検出
+  - カレンダーに「🔒 貸切利用」として表示
+- **メール数過多対策実装済み**
+  - 日付・キーワードフィルタリング
+  - 処理件数制限
+  - ラベル使用を最小化
 
-### 2. 超厳密な店舗判定（3段階）
+## 🚀 クイックスタート
+
+### 1. 必要なソフトウェア
+
+- Python 3.8以上
+- pip
+
+### 2. インストール
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/yourusername/HALLEL-.git
+cd HALLEL-
+
+# 依存パッケージのインストール
+pip install -r requirements.txt
+```
+
+### 3. アプリケーションの起動
+
+```bash
+python app.py
+```
+
+アプリケーションは http://localhost:5001 で起動します。
+
+### 4. 初期ログイン
+
+- URL: http://localhost:5001/login
+- 初期パスワード: `hallel0000admin`
+
+**重要: 初回ログイン後、必ずパスワードを変更してください！**
+
+## 📁 ファイル構成
+
+```
+HALLEL-/
+├── app.py                      # メインアプリケーション
+├── requirements.txt            # Python依存パッケージ
+├── password.txt                # 管理者パスワード（ハッシュ化）
+├── activity.log                # アクティビティログ
+│
+├── templates/                  # HTMLテンプレート
+│   ├── booking-status.html     # 公開予約状況ページ
+│   ├── admin.html              # 管理ダッシュボード
+│   ├── admin-calendar.html     # カレンダー管理
+│   └── login.html              # ログインページ
+│
+├── gmail_booking_sync.py       # Gmail連携スクリプト（Python版）
+├── google-apps-script.js       # Gmail連携スクリプト（GAS版）
+├── get_gmail_token.py          # Gmail認証トークン取得
+│
+├── config.example.py           # 設定ファイルの例
+├── README.md                   # このファイル
+└── GMAIL_SETUP.md              # Gmail連携セットアップガイド
+```
+
+## 📧 Gmail連携のセットアップ
+
+Gmail連携を使用すると、予約メールを自動的に検知してシステムに反映できます。
+
+詳しいセットアップ方法は **[GMAIL_SETUP.md](GMAIL_SETUP.md)** を参照してください。
+
+### メール数過多問題について
+
+Gmail APIでは、大量のメールにラベルを付けようとするとAPIの制限に引っかかります。
+本システムでは以下の対策を実装しています：
+
+- ✅ 過去7日間のメールのみ対象
+- ✅ 未読メールのみ処理
+- ✅ 件名キーワードでフィルタリング
+- ✅ 一度に最大50件まで処理
+- ✅ ラベル不使用（既読マークのみ）
+
+詳細は [GMAIL_SETUP.md](GMAIL_SETUP.md) の「メール数過多対策について」を参照。
+
+## 🎨 画面説明
+
+### 公開ページ（/）
+一般客が予約状況を確認できるページです。
+
+- **緑**: 空いています（0-50%）
+- **黄**: やや混雑（50-100%未満）
+- **赤**: 満枠（100%）
+- **🔒 貸切利用**: 貸切予約（全枠使用不可）
+
+**部屋がある店舗（恵比寿・半蔵門・中目黒）:**
+- 各部屋ごとに予約状況を表示
+- 貸切時は全部屋が「🔒 貸切利用」表示
+
+### 管理者ページ（/admin）
+ログイン後にアクセスできる管理画面です。
+
+- アクティビティログの閲覧
+- パスワード変更
+- カレンダー管理へのリンク
+
+### カレンダー管理（/admin/calendar?store=xxx）
+予約の追加・削除を行えます。
+
+- **店舗選択**: タブで5店舗を切り替え
+  - 渋谷店 / 恵比寿店 / 半蔵門店 / 中目黒店 / 代々木上原店
+- **部屋別表示**: 部屋がある店舗は部屋ごとに予約状況を表示
+- **手動予約追加**: タイムスロットをクリックして部屋を選択して予約追加
+- **既存予約の削除**: 予約をクリックして削除
+- **貸切予約**: 貸切時間帯は「貸切」として表示
+
+## 🔧 設定
+
+### 最大収容人数の変更
+
+`app.py` と各HTMLファイルの `MAX_CAPACITY` を変更してください。
+
+```python
+# app.py (該当なし、HTMLファイルで設定)
+```
+
 ```javascript
-// 第1段階：検索クエリ
-SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel'
-
-// 第2段階：店舗キーワード必須
-const isThisStore = body.includes('店舗： HALLEL 半蔵門店') ||
-                   body.includes('店舗：HALLEL 半蔵門店') ||
-                   body.includes('設備： 半蔵門店') ||
-                   body.includes('設備：半蔵門店');
-
-// 第3段階：他店舗除外
-EXCLUDE_KEYWORDS: ['渋谷店', '恵比寿店', '中目黒店', '代々木上原店']
+// templates/booking-status.html
+// templates/admin-calendar.html
+const MAX_CAPACITY = 7;  // ここを変更
 ```
 
-### 3. API送信
-- エンドポイント：`https://hallel-shibuya.vercel.app/api/gas/webhook`
-- 認証：`X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ`
-- データ形式：JSON
+### パスワードの変更
 
-### 4. Google Calendar同期（一部店舗のみ）
-- 予約：カレンダーに追加
-- キャンセル：カレンダーから削除
-- 重複チェックあり
+管理者画面（/admin）からパスワードを変更できます。
 
-### 5. ラベル一括削除機能
-- 全店舗の誤ったラベルをリセット可能
-- 関数：`removeAllProcessedLabels()`
+または、初期パスワードを変更したい場合は：
 
-## 🚀 セットアップ手順（新規店舗または再設定）
+1. `password.txt` を削除
+2. `app.py` の `set_initial_password()` 関数内のパスワードを変更
+3. アプリケーションを再起動
 
-### ステップ0：事前準備（初回のみ）
-#### 0-1. 古いラベルの削除（既存店舗の場合）
-1. どれか1つの店舗のGASで実行（全店舗のラベルが削除される）：
-2. 関数を選択: `removeAllProcessedLabels`
-3. 実行ボタンをクリック
+## 📡 API エンドポイント
 
-### ステップ1：GASプロジェクトにアクセス
-1. 対象店舗のGmailアカウントでログイン
-2. Google Apps Script（script.google.com）にアクセス
-3. 既存プロジェクトを開く、または新規作成
+### GET /api/reservations
+すべての予約データを取得します。
 
-### ステップ2：コードをコピペ
-1. 左側のファイルリストで `コード.gs` を開く
-2. 既存コードを全て削除
-3. 対応する店舗のコードをコピー：
-    - 半蔵門店 → `/gas-scripts/hanzomon/main.js`
-    - 渋谷店 → `/gas-scripts/shibuya/main.js`
-    - 恵比寿店 → `/gas-scripts/ebisu/main.js`
-    - 中目黒店 → `/gas-scripts/nakameguro/main.js`
-    - 代々木上原店 → `/gas-scripts/yoyogiuehara/main.js`
-4. 貼り付けて保存（Ctrl+S / Cmd+S）
-
-### ステップ3：権限の承認
-1. 関数を選択：`setupTrigger10min`
-2. 実行ボタンをクリック
-3. 権限エラーが出る場合：
-    - エディタ上部の「権限を確認」をクリック
-    - Googleアカウントを選択
-    - 「詳細」→「（安全ではないページ）に移動」をクリック
-    - 「許可」をクリック
-4. 再度 `setupTrigger10min` を実行
-
-### ステップ4：動作確認
-1. 関数を選択：`processNewReservations`
-2. 実行ボタンをクリック
-3. ログを確認（下部の「実行ログ」タブ）：
-```text
-【恵比寿店：処理開始】
-未処理スレッド: X件
-予約: 田中太郎 (個室A)
-API送信成功: 1件
-ラベル追加: 1スレッド
-【処理完了】
-```
-
-### ステップ5：Gmailで確認
-1. Gmailを開く
-2. 左側のラベルに `HALLEL_処理済み_{店舗名}` が作成されている
-3. 処理済みメールにラベルが付いている
-
-## 📝 主要関数一覧
-
-### 自動実行関数
-| 関数名 | 説明 | 実行タイミング |
-| :--- | :--- | :--- |
-| `processNewReservations` | 未処理メールを処理してAPI送信 | 10分ごと（自動） |
-
-### セットアップ関数
-| 関数名 | 説明 | 実行タイミング |
-| :--- | :--- | :--- |
-| `setupTrigger10min` | 10分ごとのトリガーを設定 | 初回セットアップ時 |
-| `setupTrigger1hour` | 1時間ごとのトリガーを設定（オプション） | 必要に応じて |
-| `deleteAllTriggers` | 全トリガーを削除 | トリガーリセット時 |
-| `listTriggers` | 現在のトリガー一覧を表示 | 確認時 |
-
-### メンテナンス関数
-| 関数名 | 説明 | 実行タイミング |
-| :--- | :--- | :--- |
-| `removeAllProcessedLabels` | 全店舗の処理済みラベルを削除 | ラベルリセット時 |
-| `syncAllToAPI` | 過去の全メールをAPI同期 | 初回データ移行時 |
-
-### テスト・確認関数
-| 関数名 | 説明 | 実行タイミング |
-| :--- | :--- | :--- |
-| `testExtractStudio` | 部屋名抽出ロジックのテスト | 動作確認時 |
-| `checkCalendarStatus` | カレンダー同期状況を確認（半蔵門・恵比寿のみ） | 動作確認時 |
-
-## 🔧 CONFIG設定（店舗固有）
-各店舗の設定は `CONFIG` オブジェクトで管理：
-
-```javascript
-const CONFIG = {
-  STORE_NAME: 'hanzomon',                    // APIに送信する店舗識別子
-  STORE_KEYWORD: '半蔵門',                   // ログ表示用
-  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel',  // Gmail検索クエリ
-  INCLUDE_KEYWORD: '半蔵門店',               // 必須キーワード
-  EXCLUDE_KEYWORDS: ['渋谷店', '恵比寿店', '中目黒店', '代々木上原店'],  // 除外キーワード
-  DEFAULT_ROOM: '個室B',                     // デフォルト部屋名
-  API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',  // API URL
-  API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',  // API認証キー
-  CALENDAR_ID: 'light@topform.jp',          // カレンダーID（nullなら同期なし）
-  LABEL_NAME: 'HALLEL_処理済み_半蔵門',     // Gmailラベル名
-};
-```
-
-## 🏪 店舗別の特徴
-
-### 半蔵門店
-- 部屋名：STUDIO B ①②③、個室A/B
-- カレンダー：あり（light@topform.jp）
-- 特殊処理：STUDIO A/B → 個室A/B変換
-
-### 渋谷店
-- 部屋名：STUDIO ①~⑦
-- カレンダー：なし
-
-### 恵比寿店
-- 部屋名：個室A/B（元々STUDIO A/B）
-- カレンダー：あり（ebisu@topform.jp）
-- 特殊処理：STUDIO A/B → 個室A/B変換
-
-### 中目黒店
-- 部屋名：フリーウエイトエリア、格闘技エリア
-- カレンダー：なし
-
-### 代々木上原店
-- 部屋名：パーソナルジム（区別なし）
-- カレンダー：なし
-
-## ⚠️ トラブルシューティング
-
-### 問題1：権限エラー
-`Exception: Specified permissions are not sufficient`
-
-**解決策：**
-1. GASエディタ上部の「権限を確認」をクリック
-2. Googleアカウントで承認
-3. 再度関数を実行
-
-### 問題2：他店舗のメールが処理される
-**原因：** 古いコードまたは設定ミス
-**解決策：**
-1. 最新のコードをコピペし直す
-2. `CONFIG.INCLUDE_KEYWORD` と `CONFIG.EXCLUDE_KEYWORDS` を確認
-3. `removeAllProcessedLabels()` で古いラベルを削除
-4. `processNewReservations()` で再処理
-
-### 問題3：カレンダー同期エラー
-`カレンダー未設定: light@topform.jp`
-
-**解決策：**
-1. Google Calendarで対象カレンダーを開く
-2. 「設定と共有」から、店舗のGmailアカウントを編集権限で共有
-3. 再度 `processNewReservations()` を実行
-
-### 問題4：ラベルが重複している
-**解決策：**
-1. どれか1つの店舗で `removeAllProcessedLabels()` を実行
-2. 全店舗で `processNewReservations()` を実行
-3. 正しいラベルが付く
-
-## 📊 ログの見方
-
-### 正常な実行ログ
-```text
-============================================================
-【恵比寿店：処理開始】2025/11/26 21:30:00
-未処理スレッド: 3件
-予約: 田中太郎 (個室A)
-予約: 佐藤花子 (個室B) 【貸切】
-キャンセル: 山田次郎 (個室A)
-送信対象: 3件
-API送信成功: 3件
-ラベル追加: 3スレッド
-カレンダー: 追加2件, 削除1件
-【処理完了】
-```
-
-### エラーログ
-`API送信失敗: HTTP 500`
-→ APIサーバーの問題。ラベルは付かないため、次回リトライされる
-
-## 🔄 定期メンテナンス
-### 月次チェック
-1. GAS「実行数」タブで実行履歴を確認
-2. エラーが多い場合は原因調査
-3. Gmail容量を確認（ラベル付きメールがたまる）
-
-### ラベル整理
-- 必要に応じて古い処理済みメールのラベルを外す（Gmail上で手動）
-
-## 📞 サポート情報
-
-### API エンドポイント
-`POST https://hallel-shibuya.vercel.app/api/gas/webhook`
-Header: `X-API-Key: Wh00k@2025!Secure$Token#ABC123XYZ`
-
-### データ形式
+**レスポンス例:**
 ```json
 {
-  "source": "gas",
-  "timestamp": "2025-11-26T12:00:00.000Z",
-  "reservations": [{
-    "date": "2025-12-01",
-    "start": "10:00",
-    "end": "11:00",
-    "customer_name": "田中太郎",
-    "room_name": "個室A",
-    "store": "ebisu",
-    "type": "gmail",
-    "is_cancellation": false,
-    "is_charter": false,
-    "source": "gas_sync",
-    "email_id": "...",
-    "email_date": "2025-11-26T12:00:00.000Z"
-  }]
+  "2025-08-01": [
+    { "type": "gmail", "start": "14:00", "end": "15:00" },
+    { "type": "charter", "start": "11:00", "end": "13:00" }
+  ]
 }
 ```
 
-## 📌 重要な注意事項
-- 各店舗は独立：他店舗の設定変更は影響しない
-- ラベルは店舗ごと：`HALLEL_処理済み_{店舗名}` で明確に区別
-- API送信成功後にラベル：失敗時はラベルなし = 次回リトライ
-- トリガーは10分ごと：変更する場合は `setupTrigger1hour()` を使用
-- カレンダー共有必須：半蔵門・恵比寿は事前に共有設定が必要
+### POST /api/reservations
+予約を追加します（管理者のみ）。
+
+**リクエスト例:**
+```json
+{
+  "date": "2025-08-01",
+  "type": "manual",
+  "start": "16:00",
+  "end": "17:00"
+}
+```
+
+### POST /api/reservations/delete
+予約を削除します（管理者のみ）。
+
+**リクエスト例:**
+```json
+{
+  "date": "2025-08-01",
+  "index": 0
+}
+```
+
+### POST /api/process_email
+Gmail連携用のエンドポイントです（外部スクリプトから呼び出し）。
+
+**予約の追加:**
+```json
+{
+  "action_type": "booking",
+  "date": "2025-08-05",
+  "start_time": "14:00",
+  "end_time": "15:30"
+}
+```
+
+**予約のキャンセル:**
+```json
+{
+  "action_type": "cancellation",
+  "date": "2025-08-05",
+  "start_time": "14:00"
+}
+```
+
+## 🗃️ データの永続化
+
+現在、予約データはメモリ上に保存されているため、サーバーを再起動するとデータが消えます。
+
+### 本番環境での推奨事項
+
+1. **データベースの導入**
+   - SQLite（小規模）
+   - PostgreSQL（中〜大規模）
+
+2. **バックアップ機能の追加**
+   - 定期的なデータのJSONエクスポート
+   - データベースのバックアップ
+
+3. **本番用サーバーの使用**
+   - Gunicorn + Nginx
+   - または、PaaSサービス（Heroku、Railway等）
+
+## 🛡️ セキュリティ
+
+### セキュリティ強化状況（フェーズ1-2実装済み）
+
+✅ **フェーズ1実装済み:**
+- データベースベースの認証システム
+- ブルートフォース攻撃対策（5回失敗で15分ロック）
+- アクティビティログ（IP・User-Agent記録）
+- パスワードハッシュ化（pbkdf2:sha256）
+- セッション管理の改善（環境変数SECRET_KEY）
+- CSRF保護（Flask-WTF）
+- セキュリティヘッダー（X-Frame-Options、CSP等）
+- プライバシーポリシー・利用規約
+- Cookie同意バナー（電気通信事業法対応）
+
+✅ **フェーズ2実装済み:**
+- レート制限（Flask-Limiter）- DoS攻撃対策
+- Webhook認証（APIキー認証）
+- パスワード強度要件強化（12文字+複雑性）
+- 監査ログ強化（詳細な操作履歴）
+
+⚠️ **今後の予定:**
+- 多要素認証（MFA）
+- データベース暗号化
+- リアルタイムモニタリング
+
+詳細は **[SECURITY_LEGAL_AUDIT_REPORT.md](SECURITY_LEGAL_AUDIT_REPORT.md)** を参照してください。
+
+### 本番環境での注意点
+
+1. **必須の環境変数**
+   - `SECRET_KEY`: セッション管理用（ランダムな文字列、32文字以上推奨）
+   - `POSTGRES_URL`: PostgreSQLデータベース接続URL
+   - `WEBHOOK_API_KEY`: GAS Webhook認証用（省略可、推奨設定）
+
+   Vercelでの設定方法:
+   ```bash
+   # Settings → Environment Variables で設定
+   SECRET_KEY=your-secret-key-here
+   WEBHOOK_API_KEY=your-webhook-api-key-here
+   ```
+
+2. **HTTPS の使用**
+   - SSL証明書の設定
+   - Vercel/Netlify等では自動設定
+
+3. **パスワードポリシー**
+   - 最低12文字以上、大文字・小文字・数字・記号を含む（実装済み）
+   - 定期的な変更を推奨
+
+4. **認証情報の管理**
+   - credentials.json と token.json をGitにコミットしない
+   - .gitignore に追加済み
+
+5. **GAS Webhookの設定** ✅ 設定済み
+   - `google-apps-script.js` の `CONFIG.WEBHOOK_API_KEY` にAPI keyを設定
+   - `sendToFlaskAPI` 関数が自動的に `X-API-Key` ヘッダーを追加
+   - 詳細は `google-apps-script.js` の16行目と171-173行目を参照
+
+## 📋 将来の機能拡張
+
+以下の機能は今後の実装を予定しています：
+
+### 認証・セキュリティ
+- [ ] **複数管理者アカウント対応** - ログインユーザーの完全な区別（誰がログインしたか識別）
+- [ ] 多要素認証（MFA）
+- [ ] 管理者の権限レベル設定（閲覧のみ、編集可能など）
+- [ ] ログイン履歴の詳細表示
+
+### 機能拡張
+- [ ] 予約のメール通知
+- [ ] 顧客データベース（顧客情報の蓄積）
+- [ ] レポート機能（月次利用統計など）
+- [ ] API認証トークン（外部システム連携用）
+
+### インフラ
+- [ ] データベース暗号化
+- [ ] リアルタイムモニタリング
+- [ ] 自動バックアップ
+
+### 法的文書の更新
+- [ ] **プライバシーポリシーの事業者情報更新** - [代表者名]、[住所]、[電話番号]、メールアドレスを実際の情報に置き換え
+- [ ] **利用規約の事業者情報更新** - 同上
+
+## 🐛 トラブルシューティング
+
+### アプリが起動しない
+
+**原因:** ポート5001が使用中
+
+```bash
+# 別のポートで起動
+python app.py
+# app.py内のポート番号を変更
+```
+
+### ログインできない
+
+1. `password.txt` を削除
+2. アプリケーションを再起動
+3. 初期パスワード `hallel0000admin` でログイン
+
+### Gmail連携がうまく動かない
+
+[GMAIL_SETUP.md](GMAIL_SETUP.md) の「トラブルシューティング」を参照してください。
+
+## 📝 ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。
+
+## 🤝 コントリビューション
+
+バグ報告や機能追加の提案は、GitHubのIssueからお願いします。
+
+## 📞 サポート
+
+質問や問題がある場合は、以下の方法でお問い合わせください：
+
+- GitHub Issues
+- Email: support@hallel.example.com
+
+---
+
+**HALLEL 渋谷店 予約管理システム**
+Made with ❤️ for HALLEL
