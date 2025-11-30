@@ -60,6 +60,130 @@ function extractStudio(body) {
   return CONFIG.DEFAULT_ROOM;
 }
 
+/**
+ * 【最強店舗判定ロジック】多層防御による完璧な店舗メール検証
+ *
+ * @param {string} subject - メールの件名
+ * @param {string} body - メールの本文
+ * @param {string[]} lines - メール本文を行に分割した配列
+ * @param {string} storeKeyword - 店舗キーワード（例：'半蔵門'）
+ * @param {string} includeKeyword - 含むべきキーワード（例：'半蔵門店'）
+ * @param {string[]} excludeKeywords - 除外キーワード配列
+ * @returns {Object} {isValid: boolean, reason: string, confidence: number}
+ */
+function validateStoreEmail(subject, body, lines, storeKeyword, includeKeyword, excludeKeywords) {
+  let confidence = 0;
+  const reasons = [];
+
+  // ====== 第1層: 件名チェック ======
+  let subjectCheck = false;
+  if (subject.includes(includeKeyword)) {
+    subjectCheck = true;
+    confidence += 40;
+    reasons.push(`件名に「${includeKeyword}」含有`);
+  } else if (subject.includes(storeKeyword)) {
+    subjectCheck = true;
+    confidence += 20;
+    reasons.push(`件名に「${storeKeyword}」含有`);
+  }
+
+  // ====== 第2層: 厳密な店舗行検出 ======
+  let storeLineValid = false;
+  let storeLineConfidence = 0;
+
+  // パターン1: 標準的な「店舗：」行
+  const standardStoreLine = lines.find(line => {
+    const trimmed = line.trim();
+    return trimmed.match(/^店舗[：:]\s*/) && trimmed.includes(`HALLEL ${includeKeyword}`);
+  });
+
+  if (standardStoreLine) {
+    storeLineValid = true;
+    storeLineConfidence = 50;
+    reasons.push(`標準店舗行発見: [${standardStoreLine.trim()}]`);
+  } else {
+    // パターン2: 「店舗」を含む行で条件緩和
+    const relaxedStoreLines = lines.filter(line =>
+      line.includes('店舗') &&
+      line.includes('HALLEL') &&
+      line.includes(includeKeyword)
+    );
+
+    if (relaxedStoreLines.length === 1) {
+      storeLineValid = true;
+      storeLineConfidence = 35;
+      reasons.push(`緩和店舗行発見(単一): [${relaxedStoreLines[0].trim()}]`);
+    } else if (relaxedStoreLines.length > 1) {
+      // 複数の店舗行がある場合は最も詳細な行を選ぶ
+      const bestLine = relaxedStoreLines.reduce((best, current) => {
+        const currentScore = (current.includes('設備') ? 10 : 0) +
+                           (current.match(/[：:]/g) || []).length * 5;
+        const bestScore = (best.includes('設備') ? 10 : 0) +
+                         (best.match(/[：:]/g) || []).length * 5;
+        return currentScore > bestScore ? current : best;
+      });
+
+      storeLineValid = true;
+      storeLineConfidence = 30;
+      reasons.push(`緩和店舗行発見(複数から選択): [${bestLine.trim()}]`);
+    }
+  }
+
+  confidence += storeLineConfidence;
+
+  // ====== 第3層: 除外キーワード位置チェック ======
+  let excludeCheckPassed = true;
+  let excludeDetails = [];
+
+  for (const excludeKeyword of excludeKeywords) {
+    if (body.includes(excludeKeyword)) {
+      const matchingLines = lines
+        .map((line, index) => ({ line, index: index + 1 }))
+        .filter(({ line }) => line.includes(excludeKeyword));
+
+      // フッター・署名・リンクエリアでの検出は許可（下位50%の行）
+      const footerThreshold = Math.floor(lines.length * 0.5);
+      const criticalMatches = matchingLines.filter(({ index }) => index < footerThreshold);
+
+      if (criticalMatches.length > 0) {
+        excludeCheckPassed = false;
+        excludeDetails.push(`除外キーワード「${excludeKeyword}」が本文上部で検出: 行${criticalMatches[0].index}`);
+      } else {
+        excludeDetails.push(`除外キーワード「${excludeKeyword}」はフッター領域のみ（許可）`);
+        confidence += 5; // フッター領域のみの場合は軽微なボーナス
+      }
+    } else {
+      confidence += 10; // 除外キーワードが全く無い場合のボーナス
+    }
+  }
+
+  // ====== 第4層: 総合判定 ======
+  let isValid = false;
+  let finalReason = '';
+
+  if (!storeLineValid) {
+    finalReason = `店舗行検出失敗: 「店舗」「HALLEL」「${includeKeyword}」を含む行が見つかりません`;
+  } else if (!excludeCheckPassed) {
+    finalReason = `除外チェック失敗: ${excludeDetails.filter(d => d.includes('本文上部')).join(', ')}`;
+  } else {
+    isValid = true;
+    confidence = Math.min(confidence, 100);
+    finalReason = `多層検証成功: ${reasons.join(', ')}`;
+  }
+
+  return {
+    isValid,
+    reason: finalReason,
+    confidence,
+    details: {
+      subjectCheck,
+      storeLineValid,
+      excludeCheckPassed,
+      excludeDetails
+    }
+  };
+}
+
 // ============================================================
 // 【共通コード】 以下は全店舗で共通
 // ============================================================
@@ -115,16 +239,81 @@ function processNewReservations() {
         if (msg.getDate() < oneHourAgo) continue;
 
         const body = msg.getPlainBody();
+        const subject = msg.getSubject();
+        const msgId = msg.getId();
 
         // この店舗のメールかチェック（最強ロジック：行単位で解析）
         const lines = body.split(/\r\n|\r|\n/);
+
+        // 【デバッグログ強化】メール構造の詳細調査
+        Logger.log(`\n=== メール詳細調査 [${msgId}] ===`);
+        Logger.log(`件名: ${subject}`);
+        Logger.log(`--- body.length: ${body.length} ---`);
+        Logger.log(`--- 改行コード検出 ---`);
+        Logger.log(`\\r\\n数: ${(body.match(/\r\n/g) || []).length}`);
+        Logger.log(`\\r数: ${(body.match(/\r/g) || []).length}`);
+        Logger.log(`\\n数: ${(body.match(/\n/g) || []).length}`);
+
+        // 最初の200文字を16進数で表示（隠し文字検出）
+        const first200 = body.substring(0, 200);
+        const hexDump = first200.split('').map(c => `${c}[${c.charCodeAt(0).toString(16)}]`).slice(0, 10).join('');
+        Logger.log(`--- 最初10文字の16進数 ---\n${hexDump}`);
+
+        // 「店舗」を含む行をすべて表示
+        Logger.log(`--- 行分割結果 ---`);
+        Logger.log(`総行数: ${lines.length}`);
+        const storeLines = lines.filter((line, i) => {
+          const containsStore = line.includes('店舗');
+          if (containsStore) {
+            Logger.log(`行${i+1}: [${line.trim()}]`);
+          }
+          return containsStore;
+        });
+        Logger.log(`「店舗」を含む行: ${storeLines.length}件`);
+
+        // 現在のロジックでの判定結果
         const storeLine = lines.find(line => line.trim().match(/^店舗[：:]/));
+        Logger.log(`--- 現在の判定結果 ---`);
+        if (storeLine) {
+          Logger.log(`店舗行発見: [${storeLine.trim()}]`);
+          Logger.log(`半蔵門店含有: ${storeLine.includes('HALLEL 半蔵門店')}`);
+          Logger.log(`他店舗含有: ${CONFIG.EXCLUDE_KEYWORDS.map(k => `${k}:${storeLine.includes(k)}`).join(', ')}`);
+        } else {
+          Logger.log(`店舗行なし（正規表現 ^店舗[：:] にマッチしない）`);
+        }
 
-        // 「店舗：」行が見つからない、またはその行に「HALLEL 半蔵門店」が含まれていない場合はスキップ
-        if (!storeLine || !storeLine.includes('HALLEL 半蔵門店')) continue;
+        // body全体での他店舗キーワード検出
+        const excludeMatches = CONFIG.EXCLUDE_KEYWORDS.filter(k => body.includes(k));
+        if (excludeMatches.length > 0) {
+          Logger.log(`--- 除外キーワード検出 ---`);
+          excludeMatches.forEach(keyword => {
+            // キーワードが出現する行を特定
+            const matchingLines = lines.filter((line, i) => {
+              if (line.includes(keyword)) {
+                Logger.log(`除外キーワード「${keyword}」検出 行${i+1}: [${line.trim()}]`);
+                return true;
+              }
+              return false;
+            });
+          });
+        }
 
-        // 他店舗除外
-        if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
+        Logger.log(`=== 調査終了 ===\n`);
+
+        // 【新ロジック】最強店舗判定（多層防御）
+        const storeValidation = validateStoreEmail(subject, body, lines, CONFIG.STORE_KEYWORD, CONFIG.INCLUDE_KEYWORD, CONFIG.EXCLUDE_KEYWORDS);
+
+        Logger.log(`--- 最強店舗判定結果 ---`);
+        Logger.log(`検証結果: ${storeValidation.isValid ? '✅ 有効' : '❌ 無効'}`);
+        Logger.log(`判定理由: ${storeValidation.reason}`);
+        Logger.log(`信頼度: ${storeValidation.confidence}%`);
+
+        if (!storeValidation.isValid) {
+          Logger.log(`❌ スキップ: ${storeValidation.reason}`);
+          continue;
+        }
+
+        Logger.log(`✅ 処理対象: ${CONFIG.STORE_KEYWORD}店のメール（信頼度${storeValidation.confidence}%）`);
 
         const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
         if (data) {
@@ -299,15 +488,13 @@ function syncAllToAPI() {
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
       const body = msg.getPlainBody();
-
-      // この店舗のメールかチェック（最強ロジック：行単位で解析）
+      const subject = msg.getSubject();
       const lines = body.split(/\r\n|\r|\n/);
-      const storeLine = lines.find(line => line.trim().match(/^店舗[：:]/));
 
-      if (!storeLine || !storeLine.includes('HALLEL 半蔵門店')) continue;
+      // 【新ロジック】最強店舗判定を使用
+      const storeValidation = validateStoreEmail(subject, body, lines, CONFIG.STORE_KEYWORD, CONFIG.INCLUDE_KEYWORD, CONFIG.EXCLUDE_KEYWORDS);
 
-      // 他店舗除外
-      if (CONFIG.EXCLUDE_KEYWORDS.some(k => body.includes(k))) continue;
+      if (!storeValidation.isValid) continue;
 
       const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
       if (data) allEmails.push(data);
@@ -375,6 +562,97 @@ function checkCalendarStatus() {
   }
 
   Logger.log('部屋別: ' + JSON.stringify(counts));
+}
+
+/**
+ * 【デバッグ専用】メール構造調査（直近5件のメールを解析）
+ * 実際にどのようなテキストが来ているかを確認するためのテスト関数
+ */
+function debugEmailStructure() {
+  Logger.log('='.repeat(60));
+  Logger.log('【デバッグ】メール構造調査開始');
+
+  try {
+    // 過去24時間のメールを取得（ラベル関係なく）
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const query = `${CONFIG.SEARCH_QUERY} after:${Math.floor(oneDayAgo.getTime() / 1000)}`;
+    const threads = GmailApp.search(query);
+
+    Logger.log(`調査対象スレッド: ${threads.length}件（直近24時間）`);
+
+    let emailCount = 0;
+    for (const thread of threads) {
+      for (const msg of thread.getMessages()) {
+        if (msg.getDate() < oneDayAgo || emailCount >= 5) continue;
+
+        const body = msg.getPlainBody();
+        const subject = msg.getSubject();
+        const msgId = msg.getId();
+
+        emailCount++;
+
+        Logger.log(`\n=== 【${emailCount}/5】メール詳細調査 [${msgId}] ===`);
+        Logger.log(`件名: ${subject}`);
+        Logger.log(`日時: ${msg.getDate()}`);
+        Logger.log(`送信者: ${msg.getFrom()}`);
+        Logger.log(`--- body.length: ${body.length} ---`);
+
+        // 改行コード検出
+        Logger.log(`--- 改行コード検出 ---`);
+        Logger.log(`\\r\\n数: ${(body.match(/\r\n/g) || []).length}`);
+        Logger.log(`\\r数: ${(body.match(/\r/g) || []).length}`);
+        Logger.log(`\\n数: ${(body.match(/\n/g) || []).length}`);
+
+        // 最初の500文字を表示（構造把握）
+        const first500 = body.substring(0, 500);
+        Logger.log(`--- 最初500文字 ---`);
+        Logger.log(first500);
+        Logger.log(`--- 500文字終了 ---`);
+
+        // 行分割テスト
+        const lines = body.split(/\r\n|\r|\n/);
+        Logger.log(`--- 行分割結果 ---`);
+        Logger.log(`総行数: ${lines.length}`);
+
+        // 最初の10行を表示
+        lines.slice(0, 10).forEach((line, i) => {
+          Logger.log(`行${i+1}: [${line.trim()}]`);
+        });
+
+        // 「店舗」を含む行をすべて表示
+        const storeLines = lines.filter((line, i) => {
+          const containsStore = line.includes('店舗');
+          if (containsStore) {
+            Logger.log(`★店舗含有行${i+1}: [${line.trim()}]`);
+          }
+          return containsStore;
+        });
+        Logger.log(`「店舗」を含む行: ${storeLines.length}件`);
+
+        // 店舗名を含む行をすべて表示
+        const storeNames = ['半蔵門店', '渋谷店', '恵比寿店', '中目黒店', '代々木上原店'];
+        storeNames.forEach(storeName => {
+          if (body.includes(storeName)) {
+            Logger.log(`--- 「${storeName}」検出箇所 ---`);
+            lines.forEach((line, i) => {
+              if (line.includes(storeName)) {
+                Logger.log(`${storeName}含有行${i+1}: [${line.trim()}]`);
+              }
+            });
+          }
+        });
+
+        Logger.log(`=== 【${emailCount}】調査終了 ===\n`);
+
+        if (emailCount >= 5) break;
+      }
+      if (emailCount >= 5) break;
+    }
+
+    Logger.log(`調査完了: ${emailCount}件のメールを解析しました`);
+  } catch (error) {
+    Logger.log(`エラー: ${error.message}`);
+  }
 }
 
 /**
