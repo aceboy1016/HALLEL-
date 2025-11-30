@@ -131,9 +131,9 @@ function validateStoreEmail(subject, body, lines, storeKeyword, includeKeyword, 
       // 複数の店舗行がある場合は最も詳細な行を選ぶ
       const bestLine = relaxedStoreLines.reduce((best, current) => {
         const currentScore = (current.includes('設備') ? 10 : 0) +
-                           (current.match(/[：:]/g) || []).length * 5;
+          (current.match(/[：:]/g) || []).length * 5;
         const bestScore = (best.includes('設備') ? 10 : 0) +
-                         (best.match(/[：:]/g) || []).length * 5;
+          (best.match(/[：:]/g) || []).length * 5;
         return currentScore > bestScore ? current : best;
       });
 
@@ -227,82 +227,17 @@ function processNewReservations() {
         const body = msg.getPlainBody();
         const subject = msg.getSubject();
         const msgId = msg.getId();
-
-        // 【デバッグログ強化】メール構造の詳細調査
-        Logger.log(`\n=== メール詳細調査 [${msgId}] ===`);
-        Logger.log(`件名: ${subject}`);
-        Logger.log(`--- body.length: ${body.length} ---`);
-        Logger.log(`--- 改行コード検出 ---`);
-        Logger.log(`\\r\\n数: ${(body.match(/\r\n/g) || []).length}`);
-        Logger.log(`\\r数: ${(body.match(/\r/g) || []).length}`);
-        Logger.log(`\\n数: ${(body.match(/\n/g) || []).length}`);
-
-        // 最初の200文字を16進数で表示（隠し文字検出）
-        const first200 = body.substring(0, 200);
-        const hexDump = first200.split('').map(c => `${c}[${c.charCodeAt(0).toString(16)}]`).slice(0, 10).join('');
-        Logger.log(`--- 最初10文字の16進数 ---\n${hexDump}`);
-
-        // この店舗のメールかチェック（最強ロジック：行単位で解析）
         const lines = body.split(/\r\n|\r|\n/);
-        Logger.log(`--- 行分割結果 ---`);
-        Logger.log(`総行数: ${lines.length}`);
 
-        // 「店舗」を含む行をすべて表示
-        const storeLines = lines.filter((line, i) => {
-          const containsStore = line.includes('店舗');
-          if (containsStore) {
-            Logger.log(`行${i+1}: [${line.trim()}]`);
-          }
-          return containsStore;
-        });
-        Logger.log(`「店舗」を含む行: ${storeLines.length}件`);
-
-        // 現在のロジックでの判定結果
-        const storeLine = lines.find(line => line.trim().match(/^店舗[：:]/));
-        Logger.log(`--- 現在の判定結果 ---`);
-        if (storeLine) {
-          Logger.log(`店舗行発見: [${storeLine.trim()}]`);
-          Logger.log(`渋谷店含有: ${storeLine.includes('HALLEL 渋谷店')}`);
-          Logger.log(`代々木上原店含有: ${storeLine.includes('HALLEL 代々木上原店')}`);
-          Logger.log(`他店舗含有: ${CONFIG.EXCLUDE_KEYWORDS.map(k => `${k}:${storeLine.includes(k)}`).join(', ')}`);
-        } else {
-          Logger.log(`店舗行なし（正規表現 ^店舗[：:] にマッチしない）`);
-        }
-
-        // body全体での他店舗キーワード検出
-        const excludeMatches = CONFIG.EXCLUDE_KEYWORDS.filter(k => body.includes(k));
-        if (excludeMatches.length > 0) {
-          Logger.log(`--- 除外キーワード検出 ---`);
-          excludeMatches.forEach(keyword => {
-            // キーワードが出現する行を特定
-            const matchingLines = lines.filter((line, i) => {
-              if (line.includes(keyword)) {
-                Logger.log(`除外キーワード「${keyword}」検出 行${i+1}: [${line.trim()}]`);
-                return true;
-              }
-              return false;
-            });
-          });
-        }
-
-        Logger.log(`=== 調査終了 ===\n`);
-
-        // 【新ロジック】最強店舗判定（多層防御）
+        // 【店舗判定】多層防御ロジック
         const storeValidation = validateStoreEmail(subject, body, lines, CONFIG.STORE_KEYWORD, CONFIG.INCLUDE_KEYWORD, CONFIG.EXCLUDE_KEYWORDS);
 
-        Logger.log(`--- 最強店舗判定結果 ---`);
-        Logger.log(`検証結果: ${storeValidation.isValid ? '✅ 有効' : '❌ 無効'}`);
-        Logger.log(`判定理由: ${storeValidation.reason}`);
-        Logger.log(`信頼度: ${storeValidation.confidence}%`);
-
         if (!storeValidation.isValid) {
-          Logger.log(`❌ スキップ: ${storeValidation.reason}`);
+          Logger.log(`[${msgId.substring(0, 8)}] ❌ スキップ: ${storeValidation.reason}`);
           continue;
         }
 
-        Logger.log(`✅ 処理対象: ${CONFIG.STORE_KEYWORD}店のメール（信頼度${storeValidation.confidence}%）`);
-
-        // 既存の処理を継続...
+        Logger.log(`[${msgId.substring(0, 8)}] ✅ 処理対象 (信頼度${storeValidation.confidence}%): ${subject}`);
 
         const data = parseEmail(msg.getSubject(), body, msg.getDate(), msg.getId());
         if (data) {
@@ -573,14 +508,14 @@ function debugEmailStructure() {
 
         // 最初の10行を表示
         lines.slice(0, 10).forEach((line, i) => {
-          Logger.log(`行${i+1}: [${line.trim()}]`);
+          Logger.log(`行${i + 1}: [${line.trim()}]`);
         });
 
         // 「店舗」を含む行をすべて表示
         const storeLines = lines.filter((line, i) => {
           const containsStore = line.includes('店舗');
           if (containsStore) {
-            Logger.log(`★店舗含有行${i+1}: [${line.trim()}]`);
+            Logger.log(`★店舗含有行${i + 1}: [${line.trim()}]`);
           }
           return containsStore;
         });
@@ -593,7 +528,7 @@ function debugEmailStructure() {
             Logger.log(`--- 「${storeName}」検出箇所 ---`);
             lines.forEach((line, i) => {
               if (line.includes(storeName)) {
-                Logger.log(`${storeName}含有行${i+1}: [${line.trim()}]`);
+                Logger.log(`${storeName}含有行${i + 1}: [${line.trim()}]`);
               }
             });
           }
