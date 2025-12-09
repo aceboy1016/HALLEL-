@@ -88,6 +88,15 @@ STORE_CONFIG = {
     }
 }
 
+# --- Room Options per Store (for editing) ---
+ROOM_OPTIONS = {
+    'shibuya': ['STUDIO ①', 'STUDIO ②', 'STUDIO ③', 'STUDIO ④', 'STUDIO ⑤', 'STUDIO ⑥', 'STUDIO ⑦'],
+    'yoyogi-uehara': ['STUDIO ①', 'STUDIO ②', 'STUDIO ③', 'STUDIO ④', 'STUDIO ⑤', 'STUDIO ⑥', 'STUDIO ⑦'],
+    'nakameguro': ['フリーウエイトエリア', '格闘技エリア'],
+    'ebisu': ['個室A', '個室B'],
+    'hanzomon': ['STUDIO A', 'STUDIO B']
+}
+
 # --- Database Connection Pool ---
 db_pool = None
 
@@ -102,14 +111,48 @@ def init_db_pool():
     return db_pool
 
 def get_db_conn():
-    """Get database connection from pool"""
+    """Get database connection from pool with liveness check"""
+    global db_pool
     pool = init_db_pool()
-    return pool.getconn()
+    try:
+        conn = pool.getconn()
+        # Test connection
+        with conn.cursor() as cur:
+            cur.execute('SELECT 1')
+        return conn
+    except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+        # Connection is dead
+        print(f"⚠️  Connection dead, resetting pool: {e}")
+        try:
+            if conn:
+                pool.putconn(conn, close=True)
+        except:
+            pass
+        
+        # Reset pool
+        try:
+            if db_pool:
+                db_pool.closeall()
+        except:
+            pass
+        db_pool = None
+        
+        # Retry with new pool
+        pool = init_db_pool()
+        return pool.getconn()
 
 def return_db_conn(conn):
     """Return database connection to pool"""
-    pool = init_db_pool()
-    pool.putconn(conn)
+    try:
+        pool = init_db_pool()
+        pool.putconn(conn)
+    except Exception as e:
+        print(f"⚠️  Error returning connection to pool: {e}")
+        # If return fails, try to close connection to be safe
+        try:
+            conn.close()
+        except:
+            pass
 
 # --- Logging Setup ---
 # Legacy file logging (deprecated)
@@ -631,14 +674,14 @@ def get_reservations():
             # クエリ：店舗フィルタがあれば特定店舗、なければ全店舗
             if store_filter:
                 cur.execute("""
-                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store, room_name
+                    SELECT id, date, start_time, end_time, customer_name, type, is_cancellation, store, room_name
                     FROM reservations
                     WHERE store = %s
                     ORDER BY date, start_time
                 """, (store_filter,))
             else:
                 cur.execute("""
-                    SELECT date, start_time, end_time, customer_name, type, is_cancellation, store, room_name
+                    SELECT id, date, start_time, end_time, customer_name, type, is_cancellation, store, room_name
                     FROM reservations
                     ORDER BY date, start_time
                 """)
@@ -656,6 +699,7 @@ def get_reservations():
             store_name = STORE_CONFIG.get(store_id, {}).get('name_jp', store_id)
 
             reservations_db[date_str].append({
+                'id': row['id'],
                 'type': row['type'],
                 'start': row['start_time'].strftime('%H:%M'),
                 'end': row['end_time'].strftime('%H:%M'),
@@ -828,6 +872,117 @@ def delete_reservation():
         return jsonify({'error': str(e)}), 500
     finally:
         return_db_conn(conn)
+
+@app.route('/api/reservations/<int:reservation_id>/room', methods=['PUT'])
+@limiter.limit("30 per minute")  # 部屋編集の頻度制限
+def update_reservation_room(reservation_id):
+    """
+    予約の部屋名を更新
+
+    Request Body:
+    {
+        "room_name": "STUDIO ①"
+    }
+
+    Response:
+    {
+        "status": "success",
+        "message": "部屋名を更新しました",
+        "reservation": {
+            "id": 123,
+            "room_name": "STUDIO ①",
+            "old_room_name": "STUDIO ②"
+        }
+    }
+    """
+    if not is_logged_in():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json
+    new_room_name = data.get('room_name')
+
+    if not new_room_name:
+        return jsonify({'error': '部屋名を指定してください'}), 400
+
+    conn = get_db_conn()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # 予約を取得
+            cur.execute("""
+                SELECT id, customer_name, room_name, store, date, start_time, end_time
+                FROM reservations
+                WHERE id = %s
+            """, (reservation_id,))
+            reservation = cur.fetchone()
+
+            if not reservation:
+                return jsonify({'error': '予約が見つかりません'}), 404
+
+            store = reservation['store']
+            old_room_name = reservation['room_name']
+
+            # 店舗の有効な部屋名リストを確認
+            valid_rooms = ROOM_OPTIONS.get(store, [])
+            if valid_rooms and new_room_name not in valid_rooms:
+                return jsonify({
+                    'error': f'無効な部屋名です。有効な部屋名: {valid_rooms}'
+                }), 400
+
+            # 部屋名を更新
+            cur.execute("""
+                UPDATE reservations
+                SET room_name = %s
+                WHERE id = %s
+            """, (new_room_name, reservation_id))
+
+        conn.commit()
+
+        log_activity(
+            f"Room name updated: ID={reservation_id}, "
+            f"{old_room_name} -> {new_room_name}, "
+            f"Customer={reservation['customer_name']}, Store={store}"
+        )
+
+        return jsonify({
+            'status': 'success',
+            'message': '部屋名を更新しました',
+            'reservation': {
+                'id': reservation_id,
+                'room_name': new_room_name,
+                'old_room_name': old_room_name
+            }
+        })
+
+    except Exception as e:
+        conn.rollback()
+        print(f'[UPDATE ROOM ERROR] {str(e)}')
+        return jsonify({'error': str(e)}), 500
+    finally:
+        return_db_conn(conn)
+
+@app.route('/api/stores/<store_id>/rooms')
+def get_store_rooms(store_id):
+    """
+    店舗の有効な部屋名リストを取得
+
+    Response:
+    {
+        "store_id": "shibuya",
+        "store_name": "渋谷店",
+        "rooms": ["STUDIO ①", "STUDIO ②", ...]
+    }
+    """
+    if store_id not in STORE_CONFIG:
+        return jsonify({'error': f'Invalid store: {store_id}'}), 400
+
+    store_info = STORE_CONFIG[store_id]
+    rooms = ROOM_OPTIONS.get(store_id, [])
+
+    return jsonify({
+        'store_id': store_id,
+        'store_name': store_info['name_jp'],
+        'rooms': rooms
+    })
 
 @app.route('/api/admin/cleanup-duplicates', methods=['POST'])
 @limiter.limit("10 per hour")  # 重複削除の頻度制限（負荷の高い操作）

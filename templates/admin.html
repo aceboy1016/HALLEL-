@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -334,6 +335,133 @@
             -webkit-mask-size: contain;
         }
 
+        /* 部屋編集ボタン */
+        .btn-edit-room {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .btn-edit-room:hover {
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-edit-room::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: currentColor;
+            mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            -webkit-mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>');
+            mask-size: contain;
+            -webkit-mask-size: contain;
+        }
+
+        /* 部屋名バッジ */
+        .room-badge {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+            color: var(--primary-blue);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* モーダルスタイル */
+        .modal-content {
+            border: none;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+            color: white;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+            opacity: 0.8;
+        }
+
+        .modal-header .btn-close:hover {
+            opacity: 1;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--neutral-100);
+        }
+
+        .room-option {
+            display: block;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--neutral-100);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 0.5rem;
+        }
+
+        .room-option:hover {
+            border-color: var(--primary-blue);
+            background: rgba(0, 82, 204, 0.05);
+        }
+
+        .room-option input[type="radio"] {
+            margin-right: 0.75rem;
+        }
+
+        .room-option.selected {
+            border-color: var(--primary-blue);
+            background: rgba(0, 82, 204, 0.1);
+        }
+
+        .current-room-info {
+            background: var(--neutral-50);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+        }
+
+        .current-room-info strong {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .current-room-info .room-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-top: 0.25rem;
+        }
+
         .card-body {
             padding: 2rem 1.5rem;
         }
@@ -458,6 +586,7 @@
                 opacity: 0;
                 transform: translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -505,6 +634,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -561,11 +691,13 @@
             font-family: var(--font-family);
             overflow: hidden;
         }
+
         .flatpickr-months {
             background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
             padding: 1.5rem;
             position: relative;
         }
+
         .flatpickr-months::before {
             content: '';
             position: absolute;
@@ -576,7 +708,9 @@
             background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
             opacity: 0.3;
         }
-        .flatpickr-month, .flatpickr-current-month {
+
+        .flatpickr-month,
+        .flatpickr-current-month {
             color: var(--text-light);
             position: relative;
             z-index: 1;
@@ -584,6 +718,7 @@
             justify-content: center;
             align-items: center;
         }
+
         .flatpickr-current-month .flatpickr-monthDropdown-months {
             background: transparent;
             color: var(--text-light);
@@ -595,6 +730,7 @@
             text-align: center;
             margin: 0 0.5rem;
         }
+
         .flatpickr-current-month input.cur-year {
             background: transparent;
             color: var(--text-light);
@@ -605,27 +741,35 @@
             width: 4.5em;
             text-align: center;
         }
+
         .flatpickr-current-month input.cur-year:focus {
             outline: none;
         }
+
         .flatpickr-current-month .flatpickr-monthDropdown-month {
             background: transparent;
         }
-        .flatpickr-prev-month, .flatpickr-next-month {
+
+        .flatpickr-prev-month,
+        .flatpickr-next-month {
             fill: var(--text-light) !important;
             padding: 0.5rem;
             transition: all 0.3s ease;
         }
-        .flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+
+        .flatpickr-prev-month:hover,
+        .flatpickr-next-month:hover {
             background: rgba(255, 255, 255, 0.25);
             border-radius: 10px;
             transform: scale(1.1);
         }
+
         .flatpickr-weekdays {
             background: linear-gradient(180deg, #f8f9fc 0%, #ffffff 100%);
             padding: 1rem 0 0.75rem;
             border-bottom: 2px solid #e8ecf4;
         }
+
         .flatpickr-weekday {
             color: var(--primary-blue);
             font-weight: 700;
@@ -633,10 +777,12 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .flatpickr-days {
             border: none;
             padding: 0.5rem;
         }
+
         .flatpickr-day {
             color: var(--text-primary);
             border-radius: 12px;
@@ -652,17 +798,20 @@
             padding: 0 !important;
             line-height: 39px !important;
         }
+
         .flatpickr-day span {
             display: inline-block;
             width: 100%;
             text-align: center;
         }
+
         .flatpickr-day:hover {
             background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
             border-color: var(--primary-blue);
             transform: scale(1.05);
             box-shadow: 0 4px 12px rgba(0, 82, 204, 0.2);
         }
+
         .flatpickr-day.today {
             background: linear-gradient(135deg, #36B37E 0%, #00C853 100%);
             color: var(--text-light);
@@ -671,6 +820,7 @@
             box-shadow: 0 4px 15px rgba(54, 179, 126, 0.4);
             position: relative;
         }
+
         .flatpickr-day.today::after {
             content: '';
             position: absolute;
@@ -682,11 +832,13 @@
             background: white;
             border-radius: 50%;
         }
+
         .flatpickr-day.today:hover {
             background: linear-gradient(135deg, #2a9d6a 0%, #00b248 100%);
             transform: scale(1.08);
             box-shadow: 0 6px 20px rgba(54, 179, 126, 0.5);
         }
+
         .flatpickr-day.selected {
             background: linear-gradient(135deg, #0052CC 0%, #667eea 100%);
             color: var(--text-light);
@@ -695,16 +847,20 @@
             box-shadow: 0 6px 20px rgba(0, 82, 204, 0.4);
             transform: scale(1.05);
         }
+
         .flatpickr-day.selected:hover {
             background: linear-gradient(135deg, #0041a8 0%, #5568d3 100%);
             transform: scale(1.08);
             box-shadow: 0 8px 25px rgba(0, 82, 204, 0.5);
         }
+
         .flatpickr-day.disabled {
             color: var(--neutral-300);
             opacity: 0.4;
         }
-        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
             color: var(--neutral-300);
             opacity: 0.5;
         }
@@ -714,6 +870,7 @@
             position: relative;
             padding-left: 2.5rem !important;
         }
+
         #today-btn::before {
             content: '';
             position: absolute;
@@ -749,11 +906,13 @@
             text-align: center;
             box-shadow: 0 2px 8px rgba(0, 82, 204, 0.3);
         }
+
         .flatpickr-calendar .flatpickr-today-btn:hover {
             background: linear-gradient(135deg, #0041a8 0%, #5568d3 100%);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 82, 204, 0.4);
         }
+
         .flatpickr-calendar .flatpickr-today-btn:active {
             transform: translateY(0);
         }
@@ -824,6 +983,7 @@
                 opacity: 0;
                 transform: translateY(10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -856,6 +1016,7 @@
         }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
@@ -879,19 +1040,20 @@
 
     <div class="container mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         <!-- システム管理（マイグレーション） -->
         <div class="card mb-4" id="migration-card" style="border-left: 4px solid #FF8B00;">
-            <div class="card-header card-header-system" style="background: linear-gradient(135deg, #FF8B00 0%, #FFAB00 100%);">
+            <div class="card-header card-header-system"
+                style="background: linear-gradient(135deg, #FF8B00 0%, #FFAB00 100%);">
                 システム管理
             </div>
             <div class="card-body">
@@ -932,13 +1094,17 @@
                 <!-- 店舗タブ -->
                 <ul class="nav nav-tabs store-tabs mb-4" id="storeTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active nav-link-building" id="all-stores-tab" data-bs-toggle="tab" data-bs-target="#all-stores" type="button" role="tab" aria-controls="all-stores" aria-selected="true">
+                        <button class="nav-link active nav-link-building" id="all-stores-tab" data-bs-toggle="tab"
+                            data-bs-target="#all-stores" type="button" role="tab" aria-controls="all-stores"
+                            aria-selected="true">
                             全店舗
                         </button>
                     </li>
                     {% for store in stores %}
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="{{ store.id }}-tab" data-bs-toggle="tab" data-bs-target="#{{ store.id }}" type="button" role="tab" aria-controls="{{ store.id }}" aria-selected="false" data-store="{{ store.id }}">
+                        <button class="nav-link" id="{{ store.id }}-tab" data-bs-toggle="tab"
+                            data-bs-target="#{{ store.id }}" type="button" role="tab" aria-controls="{{ store.id }}"
+                            aria-selected="false" data-store="{{ store.id }}">
                             {{ store.name }}
                         </button>
                     </li>
@@ -947,7 +1113,8 @@
 
                 <!-- タブコンテンツ -->
                 <div class="tab-content" id="storeTabContent">
-                    <div class="tab-pane fade show active" id="all-stores" role="tabpanel" aria-labelledby="all-stores-tab">
+                    <div class="tab-pane fade show active" id="all-stores" role="tabpanel"
+                        aria-labelledby="all-stores-tab">
                         <div id="reservations-list-all"></div>
                     </div>
                     {% for store in stores %}
@@ -968,19 +1135,12 @@
                     </div>
                     <div class="card-body">
                         <form method="POST" action="/admin/change_password">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                             <div class="mb-3">
                                 <label for="new_password" class="form-label">新しいパスワード</label>
-                                <input
-                                    type="password"
-                                    class="form-control"
-                                    id="new_password"
-                                    name="new_password"
-                                    required
-                                    minlength="12"
-                                    placeholder="12文字以上（大文字・小文字・数字・記号を含む）"
-                                    autocomplete="new-password"
-                                >
+                                <input type="password" class="form-control" id="new_password" name="new_password"
+                                    required minlength="12" placeholder="12文字以上（大文字・小文字・数字・記号を含む）"
+                                    autocomplete="new-password">
                                 <div class="form-text">
                                     <strong>パスワード要件:</strong> 12文字以上、大文字・小文字・数字・記号（!@#$%^&*等）をそれぞれ1文字以上含む
                                 </div>
@@ -1002,16 +1162,74 @@
                     <div class="card-body">
                         <div class="log-container">
                             {% if logs %}
-                                {% for log in logs %}
-                                    <div>{{ log.strip() }}</div>
-                                {% endfor %}
+                            {% for log in logs %}
+                            <div>{{ log.strip() }}</div>
+                            {% endfor %}
                             {% else %}
-                                <div style="color: rgba(255, 255, 255, 0.5); text-align: center; padding: 2rem;">
-                                    ログはまだありません
-                                </div>
+                            <div style="color: rgba(255, 255, 255, 0.5); text-align: center; padding: 2rem;">
+                                ログはまだありません
+                            </div>
                             {% endif %}
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 部屋編集モーダル -->
+    <div class="modal fade" id="editRoomModal" tabindex="-1" aria-labelledby="editRoomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editRoomModalLabel">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        部屋を変更
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 予約情報 -->
+                    <div class="current-room-info">
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>顧客名</strong>
+                                <div class="room-value" id="modal-customer-name">-</div>
+                            </div>
+                            <div class="col-6">
+                                <strong>日時</strong>
+                                <div class="room-value" id="modal-datetime">-</div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <strong>現在の部屋</strong>
+                            <div class="room-value" id="modal-current-room">-</div>
+                        </div>
+                    </div>
+
+                    <!-- 部屋選択 -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">新しい部屋を選択</label>
+                        <div id="room-options-container">
+                            <!-- 部屋オプションがここに動的に追加される -->
+                        </div>
+                    </div>
+
+                    <!-- 隠しフィールド -->
+                    <input type="hidden" id="modal-reservation-id" value="">
+                    <input type="hidden" id="modal-store-id" value="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" id="save-room-btn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"
+                            id="save-spinner"></span>
+                        変更を保存
+                    </button>
                 </div>
             </div>
         </div>
@@ -1022,7 +1240,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
     <script>
         // Auto-scroll log container to bottom on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const logContainer = document.querySelector('.log-container');
             if (logContainer) {
                 logContainer.scrollTop = logContainer.scrollHeight;
@@ -1051,10 +1269,10 @@
                 locale: 'ja',
                 defaultDate: today,
                 dateFormat: 'Y-m-d',
-                onChange: function(selectedDates, dateStr, instance) {
+                onChange: function (selectedDates, dateStr, instance) {
                     loadReservations();
                 },
-                onReady: function(selectedDates, dateStr, instance) {
+                onReady: function (selectedDates, dateStr, instance) {
                     // カレンダー内に本日ボタンを追加
                     const calendarContainer = instance.calendarContainer;
                     if (!calendarContainer.querySelector('.flatpickr-today-btn')) {
@@ -1062,7 +1280,7 @@
                         todayButton.className = 'flatpickr-today-btn';
                         todayButton.textContent = '本日';
                         todayButton.type = 'button';
-                        todayButton.addEventListener('click', function() {
+                        todayButton.addEventListener('click', function () {
                             instance.setDate(new Date(), true); // triggerChange=trueでonChangeを発火
                             instance.close(); // カレンダーを閉じる
                         });
@@ -1141,7 +1359,7 @@
                 reservations.sort((a, b) => a.start.localeCompare(b.start));
 
                 let html = '<div class="table-responsive"><table class="table table-hover">';
-                html += '<thead><tr><th>時間</th><th>種別</th><th>顧客名</th>';
+                html += '<thead><tr><th>時間</th><th>種別</th><th>顧客名</th><th>部屋</th>';
 
                 // 全店舗タブの場合は店舗名も表示
                 if (currentStoreFilter === 'all') {
@@ -1154,6 +1372,7 @@
                     let typeLabel = '';
                     const customerName = res.customer_name || 'N/A';
                     const storeName = res.store_name || res.store_id || 'N/A';
+                    const roomName = res.room_name || '-';
 
                     if (res.type === 'charter') {
                         typeLabel = '<span class="badge bg-secondary badge-icon badge-icon-lock">貸切</span>';
@@ -1167,7 +1386,23 @@
                         <tr>
                             <td><strong>${res.start} - ${res.end}</strong></td>
                             <td>${typeLabel}</td>
-                            <td>${customerName}</td>`;
+                            <td>${customerName}</td>
+                            <td>
+                                <span class="room-badge">
+                                    ${roomName}
+                                    <button class="btn-edit-room"
+                                            data-id="${res.id}"
+                                            data-customer="${customerName}"
+                                            data-date="${selectedDate}"
+                                            data-start="${res.start}"
+                                            data-end="${res.end}"
+                                            data-room="${roomName}"
+                                            data-store="${res.store_id || ''}"
+                                            title="部屋を変更">
+                                        編集
+                                    </button>
+                                </span>
+                            </td>`;
 
                     // 全店舗タブの場合は店舗名を表示
                     if (currentStoreFilter === 'all') {
@@ -1181,6 +1416,7 @@
                                         data-start="${res.start}"
                                         data-end="${res.end}"
                                         data-customer="${customerName}"
+                                        data-room="${roomName}"
                                         data-store="${res.store_id || ''}">
                                     削除
                                 </button>
@@ -1188,6 +1424,7 @@
                         </tr>
                     `;
                 });
+
 
                 html += '</tbody></table></div>';
                 reservationsList.innerHTML = html;
@@ -1202,6 +1439,7 @@
                             start: btn.dataset.start,
                             end: btn.dataset.end,
                             customer_name: btn.dataset.customer,
+                            room_name: btn.dataset.room,
                             store_id: btn.dataset.store
                         };
 
@@ -1230,7 +1468,73 @@
                         }
                     });
                 });
+
+                // 部屋編集ボタンにイベントリスナーを追加
+                document.querySelectorAll('.btn-edit-room').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const reservationId = btn.dataset.id;
+                        const customerName = btn.dataset.customer;
+                        const date = btn.dataset.date;
+                        const start = btn.dataset.start;
+                        const end = btn.dataset.end;
+                        const currentRoom = btn.dataset.room;
+                        const storeId = btn.dataset.store;
+
+                        // モーダルに情報を設定
+                        document.getElementById('modal-reservation-id').value = reservationId;
+                        document.getElementById('modal-store-id').value = storeId;
+                        document.getElementById('modal-customer-name').textContent = customerName;
+                        document.getElementById('modal-datetime').textContent = `${date} ${start} - ${end}`;
+                        document.getElementById('modal-current-room').textContent = currentRoom;
+
+                        // 部屋オプションを取得して表示
+                        try {
+                            const response = await fetch(`/api/stores/${storeId}/rooms`);
+                            const data = await response.json();
+
+                            const container = document.getElementById('room-options-container');
+                            container.innerHTML = '';
+
+                            if (data.rooms && data.rooms.length > 0) {
+                                data.rooms.forEach((room, index) => {
+                                    const isChecked = room === currentRoom;
+                                    const optionHtml = `
+                                        <label class="room-option ${isChecked ? 'selected' : ''}">
+                                            <input type="radio" name="new-room" value="${room}" ${isChecked ? 'checked' : ''}>
+                                            ${room}
+                                        </label>
+                                    `;
+                                    container.insertAdjacentHTML('beforeend', optionHtml);
+                                });
+
+                                // ラジオボタンの変更時にスタイルを更新
+                                container.querySelectorAll('input[type="radio"]').forEach(radio => {
+                                    radio.addEventListener('change', () => {
+                                        container.querySelectorAll('.room-option').forEach(opt => {
+                                            opt.classList.remove('selected');
+                                        });
+                                        radio.closest('.room-option').classList.add('selected');
+                                    });
+                                });
+                            } else {
+                                container.innerHTML = '<div class="alert alert-warning">この店舗には部屋オプションがありません</div>';
+                            }
+                        } catch (error) {
+                            console.error('部屋オプションの取得に失敗:', error);
+                            document.getElementById('room-options-container').innerHTML =
+                                '<div class="alert alert-danger">部屋オプションの取得に失敗しました</div>';
+                        }
+
+                        // モーダルを表示
+                        const modal = new bootstrap.Modal(document.getElementById('editRoomModal'));
+                        modal.show();
+                    });
+                });
             }
+
 
             // 重複削除ボタン
             const cleanupBtn = document.getElementById('cleanup-btn');
@@ -1360,9 +1664,79 @@
                 }
             });
 
+            // 部屋変更保存ボタン
+            const saveRoomBtn = document.getElementById('save-room-btn');
+            const saveSpinner = document.getElementById('save-spinner');
+
+            saveRoomBtn.addEventListener('click', async () => {
+                const reservationId = document.getElementById('modal-reservation-id').value;
+                const selectedRoom = document.querySelector('input[name="new-room"]:checked');
+                const currentRoom = document.getElementById('modal-current-room').textContent;
+
+                if (!selectedRoom) {
+                    alert('部屋を選択してください');
+                    return;
+                }
+
+                const newRoomName = selectedRoom.value;
+
+                // 同じ部屋を選択した場合
+                if (newRoomName === currentRoom) {
+                    alert('現在と同じ部屋が選択されています');
+                    return;
+                }
+
+                // 確認ダイアログ
+                const customerName = document.getElementById('modal-customer-name').textContent;
+                if (!confirm(`部屋を変更しますか？\n\n顧客: ${customerName}\n変更前: ${currentRoom}\n変更後: ${newRoomName}`)) {
+                    return;
+                }
+
+                // ボタンを無効化してスピナー表示
+                saveRoomBtn.disabled = true;
+                saveSpinner.classList.remove('d-none');
+
+                try {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                    const response = await fetch(`/api/reservations/${reservationId}/room`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ room_name: newRoomName })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        alert(`変更に失敗しました: ${result.error || 'Unknown error'}`);
+                        return;
+                    }
+
+                    // 成功
+                    alert(`部屋を変更しました\n\n${currentRoom} → ${newRoomName}`);
+
+                    // モーダルを閉じる
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editRoomModal'));
+                    modal.hide();
+
+                    // 予約一覧を再読み込み
+                    loadReservations();
+
+                } catch (error) {
+                    alert(`エラーが発生しました: ${error.message}`);
+                } finally {
+                    // ボタンを再有効化
+                    saveRoomBtn.disabled = false;
+                    saveSpinner.classList.add('d-none');
+                }
+            });
+
             // 初回読み込み
             loadReservations();
         });
     </script>
 </body>
+
 </html>

@@ -23,7 +23,7 @@
 const CONFIG = {
   CALENDAR_ID: 'ebisu@topform.jp',
   STORE_NAME: 'ebisu',
-  SEARCH_QUERY: 'from:noreply@em.hacomono.jp subject:hallel 恵比寿',
+  SEARCH_QUERY: 'from:noreply@em.hacomono.jp', // 件名にhallelが含まれない場合があるため、送信元のみで検索
   STORE_KEYWORD: '恵比寿',
   API_URL: 'https://hallel-shibuya.vercel.app/api/gas/webhook',
   API_KEY: 'Wh00k@2025!Secure$Token#ABC123XYZ',
@@ -505,9 +505,9 @@ function syncAllToAPI() {
   Logger.log('='.repeat(60));
 
   try {
-    // 全メールを取得
-    Logger.log('\n📧 全メールを取得中...');
-    const threads = GmailApp.search(CONFIG.SEARCH_QUERY);
+    // 2025/11/03以降のメールを取得
+    Logger.log('\n📧 2025/11/03以降のメールを取得中...');
+    const threads = GmailApp.search(`${CONFIG.SEARCH_QUERY} after:2025/11/03`);
     Logger.log(`📬 スレッド数: ${threads.length}件`);
 
     const allEmails = [];

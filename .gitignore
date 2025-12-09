@@ -50,3 +50,4 @@ config.py
 
 # OS
 Thumbs.db
+.vercel
